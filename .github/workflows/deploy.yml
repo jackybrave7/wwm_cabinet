@@ -1,0 +1,62 @@
+name: Deploy WWM Cabinet to Sweb
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-wwm-cabinet
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Write config from secrets
+        run: node scripts/write-deploy-config.mjs
+        env:
+          WWM_APP_SECRET: ${{ secrets.WWM_APP_SECRET }}
+          WWM_BASE_URL: ${{ secrets.WWM_BASE_URL }}
+          WWM_SMTP_USER: ${{ secrets.WWM_SMTP_USER }}
+          WWM_SMTP_PASS: ${{ secrets.WWM_SMTP_PASS }}
+          WWM_SMTP_HOST: ${{ secrets.WWM_SMTP_HOST }}
+          WWM_SMTP_PORT: ${{ secrets.WWM_SMTP_PORT }}
+          WWM_SMTP_FROM: ${{ secrets.WWM_SMTP_FROM }}
+          WWM_SMTP_FROM_NAME: ${{ secrets.WWM_SMTP_FROM_NAME }}
+          WWM_MAIL_ENABLED: ${{ secrets.WWM_MAIL_ENABLED }}
+          WWM_WEBHOOK_PAYMENT_TOKEN: ${{ secrets.WWM_WEBHOOK_PAYMENT_TOKEN }}
+          WWM_WEBHOOK_DEMO_TOKEN: ${{ secrets.WWM_WEBHOOK_DEMO_TOKEN }}
+          WWM_WEBHOOKS_ENABLED: ${{ secrets.WWM_WEBHOOKS_ENABLED }}
+          WWM_DEMO_HOURS: ${{ secrets.WWM_DEMO_HOURS }}
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          port: ${{ secrets.FTP_PORT }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_SERVER_DIR || './' }}
+          state-name: .ftp-deploy-wwm-state.json
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/prototype/**
+            **/node_modules/**
+            config/config.example.php
+            data/wwm.sqlite
+            data/wwm.sqlite-*
+            data/*.log
+            install-windows.ps1
+            MIGRATION.md

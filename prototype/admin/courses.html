@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.ico" sizes="any">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <title>Admin — Courses</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/prototype.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand wwm-logo" href="courses.html">World Watercolor <em>Masters</em></a>
+      <nav class="admin-nav">
+        <a href="courses.html" class="is-active">Courses</a>
+        <a href="students.html">Students</a>
+        <a href="course-edit.html">Edit course</a>
+        <a href="lesson-edit.html">Edit lesson</a>
+        <a href="../dashboard.html">← Student view</a>
+        <a href="../index.html">Prototype index</a>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <p class="badge badge-admin">Administrator</p>
+          <h1 class="page-title page-title-sm">Courses</h1>
+        </div>
+        <button type="button" class="btn btn-primary">+ New course</button>
+      </div>
+
+      <div class="admin-stats">
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Full access total</span>
+          <strong class="admin-stat-value">598</strong>
+          <span class="admin-stat-note">across published courses</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Demo active</span>
+          <strong class="admin-stat-value">124</strong>
+          <span class="admin-stat-note">time-limited access</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Avg. per course</span>
+          <strong class="admin-stat-value">299</strong>
+          <span class="admin-stat-note">published only</span>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>Sections</th>
+              <th>Lessons</th>
+              <th class="col-num">Full access</th>
+              <th>Demo</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>The Soul of Place</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">alvaro · id_goods 193</span>
+              </td>
+              <td>2</td>
+              <td>8</td>
+              <td class="col-num">
+                <strong class="admin-table-stat">412</strong>
+                <span class="admin-table-stat-note">students</span>
+              </td>
+              <td>48 h · 1 lesson</td>
+              <td><span class="badge badge-paid" style="margin:0">Published</span></td>
+              <td><a href="course-edit.html" class="btn btn-ghost btn-sm">Edit</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Watercolor textures</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">angus</span>
+              </td>
+              <td>3</td>
+              <td>12</td>
+              <td class="col-num">
+                <strong class="admin-table-stat">186</strong>
+                <span class="admin-table-stat-note">students</span>
+              </td>
+              <td>48 h · 1 lesson</td>
+              <td><span class="badge badge-paid" style="margin:0">Published</span></td>
+              <td><a href="course-edit.html" class="btn btn-ghost btn-sm">Edit</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Watercolor roses</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">la-fe</span>
+              </td>
+              <td>2</td>
+              <td>10</td>
+              <td class="col-num">
+                <strong class="admin-table-stat">0</strong>
+                <span class="admin-table-stat-note">students</span>
+              </td>
+              <td>72 h · 2 lessons</td>
+              <td><span class="badge" style="margin:0;background:#f5f5f5">Draft</span></td>
+              <td><a href="course-edit.html" class="btn btn-ghost btn-sm">Edit</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

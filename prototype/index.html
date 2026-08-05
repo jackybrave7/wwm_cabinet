@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/favicon.png">
+  <title>WWM Cabinet — HTML Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/prototype.css">
+</head>
+<body>
+  <div class="proto-hub">
+    <p class="badge badge-admin">HTML prototype</p>
+    <h1 class="page-title">WWM Personal Cabinet</h1>
+    <p class="lede">Static mockups for student LK and admin CMS — analogous to AVO course editor: sections, lessons, rich text, video embeds, demo settings.</p>
+
+    <p class="section-label">Student area</p>
+    <ul>
+      <li><a href="login.html">Sign in</a></li>
+      <li><a href="dashboard.html">My courses</a></li>
+      <li><a href="course.html">Course — sections &amp; lesson list</a></li>
+      <li><a href="lesson.html">Lesson — formatted content + Kinescope</a></li>
+      <li><a href="lesson-demo-locked.html">Lesson — locked (demo expired / paid only)</a></li>
+    </ul>
+
+    <p class="section-label">Admin CMS</p>
+    <ul>
+      <li><a href="admin/courses.html">Courses list</a></li>
+      <li><a href="admin/students.html">Students — lesson progress</a></li>
+      <li><a href="admin/student-view.html">Student detail — per-lesson opens</a></li>
+      <li><a href="admin/course-edit.html">Course settings — sections, demo duration, demo lessons</a></li>
+      <li><a href="admin/lesson-edit.html">Lesson editor — rich text + video insert</a></li>
+    </ul>
+
+    <div class="proto-note">
+      <strong>Scope:</strong> visual &amp; UX reference only. No backend. Toolbar uses browser <code>contenteditable</code> for demo. The live app will persist lesson HTML in the database.
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,490 @@
+{
+    "slug": "elke-en",
+    "title": "Elke Memmler's video course 'Watercolor Expressionism'",
+    "subtitle": "Watercolor expressionism — English dubbing",
+    "buy_url": "https://worldwatercolormasters.art/elke-memmler",
+    "avo_goods_id": 188,
+    "avo_training_id": 146,
+    "cover_image": "https://f1.autoweboffice.com/userdata/bl-school/training/launchpro_g1668170383.jpg",
+    "demo_hours": 48,
+    "demo_lessons": 1,
+    "sections": [
+        {
+            "title": "Lesson 1. Flower in a vase",
+            "lessons": [
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                1,
+                2
+            ]
+        },
+        {
+            "title": "Lesson 2. Cityscape",
+            "lessons": [
+                22,
+                23,
+                24,
+                25,
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37
+            ]
+        },
+        {
+            "lessons": [
+                38
+            ]
+        }
+    ],
+    "lessons": [
+        {
+            "num": 1,
+            "title": "Part 1. Analysis of the work. Composition, color, technique",
+            "demo": true,
+            "avo_lesson_id": 1442,
+            "materials": [],
+            "duration": "",
+            "html_body": "<p><p><br></p><br></p>"
+        },
+        {
+            "num": 2,
+            "title": "Part 2. Review of materials",
+            "demo": false,
+            "avo_lesson_id": 1443,
+            "materials": [],
+            "duration": "",
+            "html_body": "<p></p><p></p><p><br></p>123<div><br></div><div><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div><p><br></p><p></p><p><br></p><br><p></p></div>"
+        },
+        {
+            "num": 3,
+            "title": "List of materials and photo reference",
+            "demo": false,
+            "avo_lesson_id": 1444,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 4,
+            "title": "Part 3. Getting started. Drawing",
+            "demo": false,
+            "avo_lesson_id": 1445,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 5,
+            "title": "Part 4. Getting started in color",
+            "demo": false,
+            "avo_lesson_id": 1446,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 6,
+            "title": "Part 5. Painting the main flower (king)",
+            "demo": false,
+            "avo_lesson_id": 1447,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 7,
+            "title": "Part 6. The use of soap in painting",
+            "demo": false,
+            "avo_lesson_id": 1448,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 8,
+            "title": "Part 7. The use of napkins",
+            "demo": false,
+            "avo_lesson_id": 1449,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 9,
+            "title": "Part 8. Getting started on the second flower",
+            "demo": false,
+            "avo_lesson_id": 1450,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 10,
+            "title": "Part 9. Create leaves",
+            "demo": false,
+            "avo_lesson_id": 1451,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 11,
+            "title": "Part 10. Working with the background",
+            "demo": false,
+            "avo_lesson_id": 1452,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 12,
+            "title": "Part 11. Painting smaller element",
+            "demo": false,
+            "avo_lesson_id": 1453,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 13,
+            "title": "Part 12. Painting the vase",
+            "demo": false,
+            "avo_lesson_id": 1454,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 14,
+            "title": "Part 13. Bud",
+            "demo": false,
+            "avo_lesson_id": 1455,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 15,
+            "title": "Part 14. Painting dried areas",
+            "demo": false,
+            "avo_lesson_id": 1456,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 16,
+            "title": "Part 15. Go back to the vase. Periodically working with the background. White ink",
+            "demo": false,
+            "avo_lesson_id": 1457,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 17,
+            "title": "Part 16. We paint the background",
+            "demo": false,
+            "avo_lesson_id": 1458,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 18,
+            "title": "Part 17. Adjust the flower and leaves.",
+            "demo": false,
+            "avo_lesson_id": 1459,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 19,
+            "title": "Part 18. Layer of small leaves",
+            "demo": false,
+            "avo_lesson_id": 1460,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 20,
+            "title": "Part 19. Vase. Small parts",
+            "demo": false,
+            "avo_lesson_id": 1461,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 21,
+            "title": "Part 20. Final work",
+            "demo": false,
+            "avo_lesson_id": 1462,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 22,
+            "title": "Part 1. Talking about the picture. Composition, mood, color",
+            "demo": false,
+            "avo_lesson_id": 1463,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 23,
+            "title": "Part 2. Review of materials",
+            "demo": false,
+            "avo_lesson_id": 1464,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 24,
+            "title": "List of materials and photo reference",
+            "demo": false,
+            "avo_lesson_id": 1465,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 25,
+            "title": "Part 3. Pencil drawing",
+            "demo": false,
+            "avo_lesson_id": 1466,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 26,
+            "title": "Part 4. Painting in color. Building background, windows, roof",
+            "demo": false,
+            "avo_lesson_id": 1467,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 27,
+            "title": "Part 5. We continue to work in color. Drawing the rest of the building",
+            "demo": false,
+            "avo_lesson_id": 1468,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 28,
+            "title": "Part 6. Painting the background",
+            "demo": false,
+            "avo_lesson_id": 1469,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 29,
+            "title": "Part 7. We are planning a house in the foreground and a well",
+            "demo": false,
+            "avo_lesson_id": 1470,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 30,
+            "title": "Part 8. Fill the right side of the picture",
+            "demo": false,
+            "avo_lesson_id": 1471,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 31,
+            "title": "Part 9. Outline the back of the alley",
+            "demo": false,
+            "avo_lesson_id": 1472,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 32,
+            "title": "Part 10. The road of old stones",
+            "demo": false,
+            "avo_lesson_id": 1473,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 33,
+            "title": "Part 11. Painting the street on the left",
+            "demo": false,
+            "avo_lesson_id": 1474,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 34,
+            "title": "Part 12. Shape spherical trees in the center",
+            "demo": false,
+            "avo_lesson_id": 1475,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 35,
+            "title": "Part 13. Painting the church",
+            "demo": false,
+            "avo_lesson_id": 1476,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 36,
+            "title": "Part 14. Painting the trees",
+            "demo": false,
+            "avo_lesson_id": 1477,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 37,
+            "title": "Part 15. Create a veil and complete the picture",
+            "demo": false,
+            "avo_lesson_id": 1478,
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        },
+        {
+            "num": 38,
+            "title": "Feedback",
+            "demo": false,
+            "avo_lesson_id": 1440,
+            "kind": "feedback",
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+            },
+            "materials": []
+        }
+    ],
+    "draft_lessons": [
+        {
+            "title": "Bonus",
+            "avo_lesson_id": 1441,
+            "kind": "bonus",
+            "request_report": true
+        }
+    ]
+}

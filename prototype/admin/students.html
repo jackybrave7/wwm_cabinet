@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.ico" sizes="any">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <title>Admin — Students</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/prototype.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand wwm-logo" href="courses.html">World Watercolor <em>Masters</em></a>
+      <nav class="admin-nav">
+        <a href="courses.html">Courses</a>
+        <a href="students.html" class="is-active">Students</a>
+        <a href="course-edit.html">Edit course</a>
+        <a href="lesson-edit.html">Edit lesson</a>
+        <a href="../dashboard.html">← Student view</a>
+        <a href="../index.html">Prototype index</a>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <p class="badge badge-admin">Administrator</p>
+          <h1 class="page-title page-title-sm">Students</h1>
+        </div>
+        <div class="admin-toolbar">
+          <input type="search" class="field-input admin-search" placeholder="Search by name or email…" aria-label="Search students">
+        </div>
+      </div>
+
+      <div class="admin-stats">
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Total students</span>
+          <strong class="admin-stat-value">598</strong>
+          <span class="admin-stat-note">with any access</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Active this week</span>
+          <strong class="admin-stat-value">142</strong>
+          <span class="admin-stat-note">opened at least 1 lesson</span>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Avg. completion</span>
+          <strong class="admin-stat-value">34%</strong>
+          <span class="admin-stat-note">lessons opened / available</span>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Access</th>
+              <th>Lessons opened</th>
+              <th>Last activity</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>Marco Rossi</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">marco@example.com</span>
+              </td>
+              <td><span class="badge badge-paid" style="margin:0">Paid · 2 courses</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">15 <span class="progress-sep">/</span> 20</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" aria-label="15 of 20 lessons opened">
+                    <span class="progress-bar-fill" style="width:75%"></span>
+                  </div>
+                  <span class="progress-meta">The Soul of Place 8/8 · Watercolor textures 7/12</span>
+                </div>
+              </td>
+              <td>Today, 11:42</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Anna Kowalski</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">anna@example.com</span>
+              </td>
+              <td><span class="badge badge-paid" style="margin:0">Paid · 2 courses</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">7 <span class="progress-sep">/</span> 20</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" aria-label="7 of 20 lessons opened">
+                    <span class="progress-bar-fill" style="width:35%"></span>
+                  </div>
+                  <span class="progress-meta">The Soul of Place 5/8 · Watercolor textures 2/12</span>
+                </div>
+              </td>
+              <td>Yesterday</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>James Chen</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">student@example.com</span>
+              </td>
+              <td><span class="badge badge-paid" style="margin:0">Paid · 1 course</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">3 <span class="progress-sep">/</span> 8</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100" aria-label="3 of 8 lessons opened">
+                    <span class="progress-bar-fill" style="width:38%"></span>
+                  </div>
+                  <span class="progress-meta">The Soul of Place 3/8</span>
+                </div>
+              </td>
+              <td>3 days ago</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Demo Student</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">demo@wwm.test</span>
+              </td>
+              <td><span class="badge badge-demo" style="margin:0">Demo · 1 course</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">1 <span class="progress-sep">/</span> 1</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="1 of 1 demo lessons opened">
+                    <span class="progress-bar-fill progress-bar-fill-complete" style="width:100%"></span>
+                  </div>
+                  <span class="progress-meta">The Soul of Place 1/1 demo lesson</span>
+                </div>
+              </td>
+              <td>Today, 09:15</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Elena Petrova</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">elena.p@example.com</span>
+              </td>
+              <td><span class="badge badge-demo" style="margin:0">Demo expired</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">1 <span class="progress-sep">/</span> 1</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" aria-label="1 of 1 demo lessons opened">
+                    <span class="progress-bar-fill progress-bar-fill-muted" style="width:100%"></span>
+                  </div>
+                  <span class="progress-meta">Opened demo lesson before expiry</span>
+                </div>
+              </td>
+              <td>12 Jan 2026</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Tom Baker</strong><br>
+                <span style="color:var(--mute);font-size:0.85rem">tom@example.com</span>
+              </td>
+              <td><span class="badge badge-paid" style="margin:0">Paid · 1 course</span></td>
+              <td>
+                <div class="progress-cell">
+                  <span class="progress-label">0 <span class="progress-sep">/</span> 12</span>
+                  <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="0 of 12 lessons opened">
+                    <span class="progress-bar-fill" style="width:0%"></span>
+                  </div>
+                  <span class="progress-meta">Watercolor textures — not started</span>
+                </div>
+              </td>
+              <td>Never</td>
+              <td><a href="student-view.html" class="btn btn-ghost btn-sm">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

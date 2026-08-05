@@ -1,0 +1,17 @@
+RewriteEngine On
+
+# HTTPS (Sweb / Cloudflare)
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Static assets
+RewriteRule ^assets/ - [L]
+
+# Front controller
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# Protect sensitive paths if docroot misconfigured
+RewriteRule ^(app|config|data|scripts|templates)/ - [F,L]

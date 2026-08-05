@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.ico" sizes="any">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <title>Admin — Edit lesson</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/prototype.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand wwm-logo" href="courses.html">World Watercolor <em>Masters</em></a>
+      <nav class="admin-nav">
+        <a href="courses.html">Courses</a>
+        <a href="students.html">Students</a>
+        <a href="course-edit.html">Edit course</a>
+        <a href="lesson-edit.html" class="is-active">Edit lesson</a>
+        <a href="../lesson.html">Preview lesson</a>
+        <a href="../index.html">Prototype index</a>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <p class="badge badge-admin">The Soul of Place · Lesson 1</p>
+          <h1 class="page-title page-title-sm">Lesson editor</h1>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="../lesson.html" class="btn btn-ghost">Preview</a>
+          <button type="button" class="btn btn-primary">Save lesson</button>
+        </div>
+      </div>
+
+      <div class="editor-aside">
+        <div>
+          <div class="admin-card" style="padding:16px 18px;margin-bottom:16px">
+            <div class="field-row">
+              <label class="field">
+                <span>Lesson title</span>
+                <input type="text" value="Welcome &amp; materials">
+              </label>
+              <label class="field">
+                <span>Section</span>
+                <select>
+                  <option selected>Part 1 — Introduction</option>
+                  <option>Part 2 — Cityscapes</option>
+                </select>
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span>Duration (display)</span>
+                <input type="text" value="12 min" placeholder="e.g. 12:34">
+              </label>
+              <label class="field">
+                <span>Sort order</span>
+                <input type="number" value="1" min="1">
+              </label>
+            </div>
+          </div>
+
+          <div class="editor-wrap">
+            <div class="editor-toolbar">
+              <select data-cmd="formatBlock" data-value="h2" onchange="document.execCommand('formatBlock',false,this.value);this.selectedIndex=0">
+                <option value="">Heading</option>
+                <option value="h2">Heading 2</option>
+                <option value="h3">Heading 3</option>
+                <option value="p">Paragraph</option>
+              </select>
+              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+              <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+              <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+              <button type="button" data-cmd="createLink" data-value="https://" title="Link">Link</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-modal-open="video-modal" style="margin-left:auto">+ Insert video</button>
+            </div>
+            <div class="editor-surface lesson-content" contenteditable="true">
+              <h2>Introduction to the course</h2>
+              <p>In this course <strong>Alvaro Castagnet</strong> shares his approach to painting <em>interiors and exteriors</em> with expressive watercolor.</p>
+              <h3>What you will need</h3>
+              <ul>
+                <li>Watercolor paper (300 gsm)</li>
+                <li>Limited palette</li>
+                <li>Round brushes #8 and #12</li>
+              </ul>
+              <p>[Video block: Kinescope — inserted below toolbar]</p>
+              <h2>Working process</h2>
+              <p>Start with <strong>loose washes</strong> and build structure gradually.</p>
+            </div>
+          </div>
+
+          <p class="field-hint" style="margin-top:10px">Rich text is stored as HTML (like AVO lesson body). Supports H2, H3, lists, bold, italic, links, and video blocks.</p>
+        </div>
+
+        <aside>
+          <div class="admin-card">
+            <h2>Access</h2>
+            <label class="checkbox-field">
+              <input type="checkbox" checked>
+              <span>Available in <strong>demo</strong> mode</span>
+            </label>
+            <p class="field-hint" style="margin-top:10px">Uncheck for paid-only lessons. Demo duration is set at <a href="course-edit.html">course level</a>.</p>
+          </div>
+
+          <div class="admin-card">
+            <h2>Video</h2>
+            <div class="video-label"><span>Kinescope</span></div>
+            <p style="font-size:0.85rem;word-break:break-all;color:var(--mute);margin-bottom:12px">https://kinescope.io/embed/5YhbtzrkYgahN2VFgWYLNx</p>
+            <button type="button" class="btn btn-ghost btn-sm btn-block" data-modal-open="video-modal">Change video</button>
+          </div>
+
+          <div class="admin-card">
+            <h2>Materials</h2>
+            <label class="field">
+              <span>File / URL</span>
+              <input type="text" placeholder="Reference photos — Lesson 1.zip">
+            </label>
+            <button type="button" class="btn btn-ghost btn-sm btn-block">+ Add file</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="video-modal">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-dialog">
+      <h2>Insert video</h2>
+      <form class="form" onsubmit="return false">
+        <label class="field">
+          <span>Video host</span>
+          <select name="provider" data-video-provider>
+            <option value="kinescope" selected>Kinescope</option>
+            <option value="vimeo">Vimeo</option>
+            <option value="youtube">YouTube</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Embed URL</span>
+          <input type="url" name="video_url" value="https://kinescope.io/embed/5YhbtzrkYgahN2VFgWYLNx" placeholder="https://kinescope.io/embed/xxxxxxxx">
+          <span class="field-hint" data-video-hint">Paste Kinescope embed URL</span>
+        </label>
+        <label class="field">
+          <span>Title (optional)</span>
+          <input type="text" placeholder="Main lesson video">
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-modal-close>Cancel</button>
+          <button type="button" class="btn btn-primary" data-modal-close>Insert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../assets/js/prototype.js"></script>
+</body>
+</html>

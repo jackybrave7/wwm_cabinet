@@ -1,0 +1,106 @@
+<?php
+declare(strict_types=1);
+
+namespace Wwm;
+
+use Wwm\Controllers\Admin\AdminCourseController;
+use Wwm\Controllers\Admin\AdminLessonController;
+use Wwm\Controllers\Admin\AdminStudentController;
+use Wwm\Controllers\AuthController;
+use Wwm\Controllers\CourseController;
+use Wwm\Controllers\DashboardController;
+use Wwm\Controllers\LessonController;
+
+final class Router
+{
+    public function dispatch(string $method, string $uri): void
+    {
+        $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = rtrim($path, '/') ?: '/';
+
+        if ($method === 'GET' && $path === '/login') {
+            (new AuthController())->showLogin();
+            return;
+        }
+        if ($method === 'POST' && $path === '/login') {
+            (new AuthController())->login();
+            return;
+        }
+        if ($method === 'GET' && $path === '/logout') {
+            (new AuthController())->logout();
+            return;
+        }
+        if ($method === 'GET' && $path === '/forgot') {
+            (new AuthController())->showForgot();
+            return;
+        }
+        if ($method === 'POST' && $path === '/forgot') {
+            (new AuthController())->forgot();
+            return;
+        }
+        if ($method === 'GET' && $path === '/reset') {
+            (new AuthController())->showReset();
+            return;
+        }
+        if ($method === 'POST' && $path === '/reset') {
+            (new AuthController())->reset();
+            return;
+        }
+        if ($method === 'GET' && $path === '/api/health') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => true, 'service' => 'wwm-cabinet']);
+            return;
+        }
+
+        if ($method === 'GET' && ($path === '/admin' || $path === '/admin/courses')) {
+            (new AdminCourseController())->index();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/courses/([a-z0-9\-]+)$#', $path, $m)) {
+            (new AdminCourseController())->edit($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)$#', $path, $m)) {
+            (new AdminCourseController())->update($m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons/(\d+)$#', $path, $m)) {
+            (new AdminLessonController())->edit($m[1], (int)$m[2]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons/(\d+)$#', $path, $m)) {
+            (new AdminLessonController())->update($m[1], (int)$m[2]);
+            return;
+        }
+        if ($method === 'GET' && $path === '/admin/students') {
+            (new AdminStudentController())->index();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/students/(\d+)$#', $path, $m)) {
+            (new AdminStudentController())->show((int)$m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/') {
+            (new DashboardController())->index();
+            return;
+        }
+
+        if ($method === 'GET' && preg_match('#^/c/([a-z0-9\-]+)$#', $path, $m)) {
+            (new CourseController())->show($m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && preg_match('#^/c/([a-z0-9\-]+)/(\d+)$#', $path, $m)) {
+            (new LessonController())->show($m[1], (int)$m[2]);
+            return;
+        }
+
+        http_response_code(404);
+        wwm_render('error', [
+            'pageTitle' => 'Not found',
+            'code' => 404,
+            'message' => 'Page not found',
+        ]);
+    }
+}

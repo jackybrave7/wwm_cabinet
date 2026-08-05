@@ -1,0 +1,8 @@
+# WWM Cabinet — не коммитить секреты
+config/config.php
+data/wwm.sqlite
+data/wwm.sqlite-*
+data/cabinet.log
+data/mail.log
+.tools/
+.tools-release.json

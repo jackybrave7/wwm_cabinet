@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/favicon.ico" sizes="any">
+  <link rel="icon" href="../assets/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="../assets/favicon.png">
+  <title>Admin — Edit course</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/prototype.css">
+</head>
+<body class="admin-body">
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <a class="brand wwm-logo" href="courses.html">World Watercolor <em>Masters</em></a>
+      <nav class="admin-nav">
+        <a href="courses.html">Courses</a>
+        <a href="students.html">Students</a>
+        <a href="course-edit.html" class="is-active">Edit course</a>
+        <a href="lesson-edit.html">Edit lesson</a>
+        <a href="../index.html">Prototype index</a>
+      </nav>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div>
+          <p class="badge badge-admin">The Soul of Place</p>
+          <h1 class="page-title page-title-sm">Course settings</h1>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="../course.html" class="btn btn-ghost">Preview student view</a>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+
+      <div data-tabs>
+        <div class="tabs">
+          <button type="button" class="tab-btn is-active" data-tab="general">General</button>
+          <button type="button" class="tab-btn" data-tab="demo">Demo access</button>
+          <button type="button" class="tab-btn" data-tab="structure">Sections &amp; lessons</button>
+        </div>
+
+        <div class="tab-panel is-active" data-panel="general">
+          <div class="admin-card">
+            <h2>General information</h2>
+            <form class="form">
+              <div class="field-row">
+                <label class="field">
+                  <span>Course title</span>
+                  <input type="text" value="The Soul of Place">
+                </label>
+                <label class="field">
+                  <span>URL slug</span>
+                  <input type="text" value="alvaro">
+                </label>
+              </div>
+              <label class="field">
+                <span>Subtitle</span>
+                <input type="text" value="Interiors and Exteriors in Watercolor by Alvaro Castagnet">
+              </label>
+              <div class="field-row">
+                <label class="field">
+                  <span>AVO goods ID</span>
+                  <input type="text" value="193">
+                </label>
+                <label class="field">
+                  <span>Status</span>
+                  <select>
+                    <option selected>Published</option>
+                    <option>Draft</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field">
+                <span>Landing / buy URL</span>
+                <input type="url" value="https://worldwatercolormasters.art/alvaro-castagnet">
+              </label>
+            </form>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="demo">
+          <div class="admin-card">
+            <h2>Demo mode settings</h2>
+            <p class="field-hint" style="margin-bottom:16px">Analogous to AVO free registration + limited lesson access. Applied when user signs up via demo form or webhook grants <code>demo</code> access.</p>
+            <form class="form">
+              <label class="checkbox-field">
+                <input type="checkbox" checked>
+                <span>Enable demo access for this course</span>
+              </label>
+              <div class="field-row">
+                <label class="field">
+                  <span>Demo duration</span>
+                  <select>
+                    <option>24 hours</option>
+                    <option selected>48 hours</option>
+                    <option>72 hours</option>
+                    <option>7 days</option>
+                    <option>Custom…</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Custom hours (if selected)</span>
+                  <input type="number" value="48" min="1" max="720">
+                </label>
+              </div>
+              <label class="field">
+                <span>After demo expires</span>
+                <select>
+                  <option selected>Show upgrade prompt (keep lesson 1 visible, lock others)</option>
+                  <option>Hide entire course from dashboard</option>
+                </select>
+              </label>
+            </form>
+          </div>
+
+          <div class="admin-card">
+            <h2>Lessons included in demo</h2>
+            <p class="field-hint" style="margin-bottom:12px">Check lessons available during demo period. Typically lesson 1 only.</p>
+
+            <div class="lesson-row is-demo">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">1. Welcome &amp; materials</div>
+                <div class="lesson-row-section">Part 1 — Introduction</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox" checked> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+
+            <div class="lesson-row">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">2. Interiors in watercolor</div>
+                <div class="lesson-row-section">Part 1 — Introduction</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox"> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+
+            <div class="lesson-row">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">3. Light and atmosphere</div>
+                <div class="lesson-row-section">Part 2 — Cityscapes</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox"> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="structure">
+          <div class="admin-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+              <h2 style="margin:0">Sections &amp; lessons</h2>
+              <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-ghost btn-sm">+ Section</button>
+                <button type="button" class="btn btn-primary btn-sm">+ Lesson</button>
+              </div>
+            </div>
+
+            <p class="field-hint" style="margin-bottom:16px">Drag to reorder. Sections group lessons in the student sidebar (like AVO course structure).</p>
+
+            <div style="margin-bottom:20px;padding:12px 14px;background:var(--paper);border-radius:var(--radius)">
+              <strong style="font-size:0.9rem">Part 1 — Introduction</strong>
+              <button type="button" class="btn btn-ghost btn-sm" style="float:right">Rename section</button>
+            </div>
+
+            <div class="lesson-row is-demo">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">Welcome &amp; materials</div>
+                <div class="lesson-row-section">12 min · Kinescope</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox" checked> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+
+            <div class="lesson-row">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">Interiors in watercolor</div>
+                <div class="lesson-row-section">18 min · Kinescope</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox"> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+
+            <div style="margin:24px 0 20px;padding:12px 14px;background:var(--paper);border-radius:var(--radius)">
+              <strong style="font-size:0.9rem">Part 2 — Cityscapes</strong>
+              <button type="button" class="btn btn-ghost btn-sm" style="float:right">Rename section</button>
+            </div>
+
+            <div class="lesson-row">
+              <span class="drag-handle">⋮⋮</span>
+              <div>
+                <div class="lesson-row-title">Light and atmosphere</div>
+                <div class="lesson-row-section">22 min · Vimeo</div>
+              </div>
+              <div class="demo-toggle"><label><input type="checkbox"> Demo</label></div>
+              <a href="lesson-edit.html" class="btn btn-ghost btn-sm">Edit</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/prototype.js"></script>
+</body>
+</html>
