@@ -85,16 +85,10 @@ $status = strtolower((string)($course['status'] ?? 'published'));
       <div class="admin-card">
         <h2>Demo mode settings</h2>
         <p class="field-hint" style="margin-bottom:16px">Demo duration applies when granting demo access via seed or webhooks. Per-lesson demo flags control which lessons are visible in demo mode.</p>
-        <div class="field-row">
-          <label class="field">
-            <span>Demo duration (hours)</span>
-            <input type="number" name="demo_hours" value="<?= (int)($course['demo_hours'] ?? 48) ?>" min="1" max="720">
-          </label>
-          <label class="field">
-            <span>Demo lessons count (legacy)</span>
-            <input type="number" name="demo_lessons" value="<?= (int)($course['demo_lessons'] ?? 1) ?>" min="1">
-          </label>
-        </div>
+        <label class="field" style="max-width:280px">
+          <span>Demo duration (hours)</span>
+          <input type="number" name="demo_hours" value="<?= (int)($course['demo_hours'] ?? 48) ?>" min="1" max="720">
+        </label>
       </div>
     </div>
 

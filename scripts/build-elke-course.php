@@ -137,7 +137,6 @@ $course = [
     'avo_training_id' => 146,
     'cover_image' => 'https://f1.autoweboffice.com/userdata/bl-school/training/launchpro_g1668170383.jpg',
     'demo_hours' => 48,
-    'demo_lessons' => 1,
     'sections' => $sections,
     'lessons' => $lessons,
     'draft_lessons' => $draftLessons,

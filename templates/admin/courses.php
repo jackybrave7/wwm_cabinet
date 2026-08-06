@@ -42,7 +42,6 @@
           $course = $row['course'];
           $slug = (string)($course['slug'] ?? '');
           $demoHours = (int)($course['demo_hours'] ?? 48);
-          $demoLessons = (int)($course['demo_lessons'] ?? 1);
         ?>
         <tr>
           <td>
@@ -57,7 +56,7 @@
           <td><?= (int)$row['sections'] ?></td>
           <td><?= (int)$row['lessons'] ?></td>
           <td class="col-num"><strong><?= (int)$row['paid'] ?></strong></td>
-          <td><?= $demoHours ?> h · <?= $demoLessons ?> lesson<?= $demoLessons === 1 ? '' : 's' ?></td>
+          <td><?= $demoHours ?> h</td>
           <td>
             <?php if ($row['published']): ?>
               <span class="badge badge-paid" style="margin:0">Published</span>

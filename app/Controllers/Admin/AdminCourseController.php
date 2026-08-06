@@ -89,7 +89,7 @@ final class AdminCourseController
         $course['avo_training_id'] = (int)($_POST['avo_training_id'] ?? $course['avo_training_id'] ?? 0) ?: null;
         $course['status'] = ($_POST['status'] ?? 'published') === 'draft' ? 'draft' : 'published';
         $course['demo_hours'] = max(1, (int)($_POST['demo_hours'] ?? $course['demo_hours'] ?? 48));
-        $course['demo_lessons'] = max(1, (int)($_POST['demo_lessons'] ?? $course['demo_lessons'] ?? 1));
+        unset($course['demo_lessons']);
 
         $demoFlags = $_POST['lesson_demo'] ?? [];
         if (is_array($demoFlags) && is_array($course['lessons'] ?? null)) {

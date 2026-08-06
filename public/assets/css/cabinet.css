@@ -556,17 +556,12 @@ a:hover { text-decoration: underline; }
 .course-card-cover {
   display: block;
   width: 100%;
-  overflow: hidden;
-  background: #e8e4dc;
-  line-height: 0;
-}
-
-.course-card-cover img {
-  display: block;
-  width: 100%;
   aspect-ratio: 16 / 10;
-  object-fit: cover;
-  object-position: center;
+  overflow: hidden;
+  background-color: #e8e4dc;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 .course-card-body {
