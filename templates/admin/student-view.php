@@ -98,11 +98,12 @@ $accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
                 <option value="demo">Demo</option>
                 <option value="paid">Full</option>
               </select>
-              <select name="period" required aria-label="Duration">
+              <select name="period" class="access-period-select" required aria-label="Duration">
                 <?php foreach ($periods as $key => $label): ?>
                   <option value="<?= wwm_escape((string)$key) ?>"<?= $key === '30d' ? ' selected' : '' ?>><?= wwm_escape((string)$label) ?></option>
                 <?php endforeach; ?>
               </select>
+              <input type="date" name="expires_date" class="access-expires-date" hidden aria-label="Access until" min="<?= wwm_escape(gmdate('Y-m-d')) ?>">
               <button type="submit" class="btn btn-primary btn-sm">Grant</button>
             </form>
           </td>
@@ -111,6 +112,26 @@ $accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
     </tbody>
   </table>
 </div>
+
+<script>
+document.querySelectorAll('.access-grant-form').forEach((form) => {
+  const period = form.querySelector('.access-period-select');
+  const date = form.querySelector('.access-expires-date');
+  if (!period || !date) {
+    return;
+  }
+  const sync = () => {
+    const custom = period.value === 'custom';
+    date.hidden = !custom;
+    date.required = custom;
+    if (!custom) {
+      date.value = '';
+    }
+  };
+  period.addEventListener('change', sync);
+  sync();
+});
+</script>
 
 <?php foreach ($course_blocks as $block): ?>
   <?php

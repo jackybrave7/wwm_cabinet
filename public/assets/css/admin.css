@@ -358,6 +358,14 @@ body.admin-body {
   max-width: 140px;
 }
 
+.access-grant-form input[type="date"] {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
 .inline-form {
   display: inline;
 }

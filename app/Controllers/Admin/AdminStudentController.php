@@ -220,7 +220,7 @@ final class AdminStudentController
             'error' => match ($_GET['error'] ?? '') {
                 'csrf' => 'Session expired. Please try again.',
                 'course' => 'Course not found.',
-                'period' => 'Invalid access period.',
+                'period' => 'Invalid access period or date.',
                 default => null,
             },
         ]);
@@ -243,6 +243,7 @@ final class AdminStudentController
         $courseSlug = preg_replace('/[^a-z0-9\-]/', '', (string)($_POST['course_slug'] ?? '')) ?: '';
         $accessType = (string)($_POST['access_type'] ?? '');
         $period = (string)($_POST['period'] ?? '');
+        $expiresDate = trim((string)($_POST['expires_date'] ?? ''));
 
         if ($courseSlug === '' || (new CourseCatalog())->getAdmin($courseSlug) === null) {
             wwm_redirect('/admin/students/' . $id . '?error=course');
@@ -253,7 +254,7 @@ final class AdminStudentController
         }
 
         try {
-            $expiresAt = AccessPeriod::resolve($period);
+            $expiresAt = AccessPeriod::resolve($period, $expiresDate !== '' ? $expiresDate : null);
         } catch (\InvalidArgumentException) {
             wwm_redirect('/admin/students/' . $id . '?error=period');
         }

@@ -15,12 +15,16 @@ final class AccessPeriod
             '90d' => '90 days',
             '365d' => '1 year',
             'unlimited' => 'No expiry',
+            'custom' => 'Until date…',
         ];
     }
 
-    public static function resolve(?string $preset): ?string
+    public static function resolve(?string $preset, ?string $customDate = null): ?string
     {
         $preset = trim((string)$preset);
+        if ($preset === 'custom') {
+            return self::resolveCustomDate($customDate);
+        }
         if ($preset === '' || $preset === 'unlimited') {
             return null;
         }
@@ -39,5 +43,20 @@ final class AccessPeriod
         }
 
         return gmdate('c', time() + $seconds);
+    }
+
+    public static function resolveCustomDate(?string $date): string
+    {
+        $date = trim((string)$date);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            throw new \InvalidArgumentException('Invalid access date');
+        }
+
+        $ts = strtotime($date . ' 23:59:59 UTC');
+        if ($ts === false || $ts <= time()) {
+            throw new \InvalidArgumentException('Access date must be in the future');
+        }
+
+        return gmdate('c', $ts);
     }
 }
