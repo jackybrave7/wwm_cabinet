@@ -95,7 +95,11 @@ final class Router
             (new AccountController())->show();
             return;
         }
-        if ($method === 'POST' && $path === '/account') {
+        if ($method === 'POST' && $path === '/account/profile') {
+            (new AccountController())->updateProfile();
+            return;
+        }
+        if ($method === 'POST' && $path === '/account/password') {
             (new AccountController())->updatePassword();
             return;
         }

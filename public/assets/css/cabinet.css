@@ -387,6 +387,89 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow);
 }
 
+.account-page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 0 40px;
+}
+
+.account-head {
+  margin-bottom: 28px;
+}
+
+.account-head .page-title {
+  margin-bottom: 8px;
+}
+
+.account-sub {
+  margin: 0;
+  color: var(--mute);
+  font-size: 0.95rem;
+}
+
+.account-grid {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .account-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.account-panel {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+
+.account-panel-title {
+  margin: 0 0 6px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.account-panel-lede {
+  margin: 0 0 20px;
+  color: var(--mute);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.account-form {
+  margin-top: 0;
+}
+
+.account-form .btn {
+  margin-top: 4px;
+}
+
+.field-readonly input[readonly] {
+  background: var(--wwm-cream);
+  color: var(--mute);
+  cursor: default;
+}
+
+.account-back {
+  margin: 24px 0 0;
+  font-size: 0.9rem;
+}
+
+.account-back a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.account-back a:hover {
+  text-decoration: underline;
+}
+
 .form { display: grid; gap: 16px; margin-top: 24px; }
 
 .field { display: grid; gap: 6px; font-size: 0.9rem; }
