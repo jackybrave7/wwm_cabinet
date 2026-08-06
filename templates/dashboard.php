@@ -17,7 +17,13 @@
   <?php else: ?>
     <div class="course-grid">
       <?php foreach ($courses as $course): ?>
+        <?php $cover = wwm_course_cover_url((string)($course['cover_image'] ?? '')); ?>
         <a class="course-card" href="/c/<?= wwm_escape((string)$course['slug']) ?>">
+          <?php if ($cover !== null): ?>
+            <div class="course-card-cover">
+              <img src="<?= wwm_escape($cover) ?>" alt="<?= wwm_escape((string)$course['title']) ?>" width="640" height="400" loading="lazy">
+            </div>
+          <?php endif; ?>
           <div class="course-card-body">
             <p class="course-card-label">
               <?php if (!empty($course['access']['has_paid'])): ?>
@@ -30,8 +36,8 @@
             <?php if (!empty($course['subtitle'])): ?>
               <p class="course-card-sub"><?= wwm_escape((string)$course['subtitle']) ?></p>
             <?php endif; ?>
+            <span class="course-card-cta">Open course →</span>
           </div>
-          <span class="course-card-cta">Open course →</span>
         </a>
       <?php endforeach; ?>
     </div>

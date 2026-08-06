@@ -83,4 +83,27 @@ $formatDate = static function (?string $iso): string {
       <?php endforeach; ?>
     </tbody>
   </table>
+
+  <?php if (($totalPages ?? 1) > 1): ?>
+    <?php
+      $currentPage = (int)($page ?? 1);
+      $query = [];
+      if (($search ?? '') !== '') {
+          $query['q'] = $search;
+      }
+      $pageUrl = static function (int $p) use ($query): string {
+          $query['page'] = $p;
+          return '/admin/students?' . http_build_query($query);
+      };
+    ?>
+    <div class="admin-pagination">
+      <?php if ($currentPage > 1): ?>
+        <a href="<?= wwm_escape($pageUrl($currentPage - 1)) ?>" class="btn btn-ghost btn-sm">← Prev</a>
+      <?php endif; ?>
+      <span class="field-hint">Page <?= $currentPage ?> of <?= (int)$totalPages ?></span>
+      <?php if ($currentPage < (int)$totalPages): ?>
+        <a href="<?= wwm_escape($pageUrl($currentPage + 1)) ?>" class="btn btn-ghost btn-sm">Next →</a>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 </div>

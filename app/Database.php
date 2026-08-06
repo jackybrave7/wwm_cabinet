@@ -7,6 +7,8 @@ use PDO;
 
 final class Database
 {
+    public const SCHEMA_VERSION = 2;
+
     public static function connect(string $path): PDO
     {
         $dir = dirname($path);
@@ -22,6 +24,18 @@ final class Database
         $pdo->exec('PRAGMA journal_mode = WAL');
 
         return $pdo;
+    }
+
+    public static function migrateIfNeeded(PDO $pdo): void
+    {
+        $versionFile = WWM_ROOT . '/data/.schema_version';
+        $current = is_readable($versionFile) ? (int)file_get_contents($versionFile) : 0;
+        if ($current >= self::SCHEMA_VERSION) {
+            return;
+        }
+
+        self::migrate($pdo);
+        @file_put_contents($versionFile, (string)self::SCHEMA_VERSION);
     }
 
     public static function migrate(PDO $pdo): void
@@ -81,6 +95,7 @@ CREATE TABLE IF NOT EXISTS lesson_opens (
 
 CREATE INDEX IF NOT EXISTS idx_lesson_opens_user ON lesson_opens(user_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_opens_course ON lesson_opens(course_slug);
+CREATE INDEX IF NOT EXISTS idx_lesson_opens_user_course ON lesson_opens(user_id, course_slug);
 SQL);
     }
 

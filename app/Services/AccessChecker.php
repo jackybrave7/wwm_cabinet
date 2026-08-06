@@ -9,10 +9,29 @@ use Wwm\Models\Access;
 final class AccessChecker
 {
     private PDO $pdo;
+    private ?int $loadedUserId = null;
+
+    /** @var array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}> */
+    private array $userStateMap = [];
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+    }
+
+    /**
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}
+     */
+    public function courseState(int $userId, string $courseSlug): array
+    {
+        $this->ensureUserStates($userId);
+
+        return $this->userStateMap[$courseSlug] ?? [
+            'has_paid' => false,
+            'has_demo' => false,
+            'demo_active' => false,
+            'paid_active' => false,
+        ];
     }
 
     /**
@@ -21,7 +40,7 @@ final class AccessChecker
     public function lesson(int $userId, array $course, array $lesson): array
     {
         $slug = (string)$course['slug'];
-        $state = Access::courseState($this->pdo, $userId, $slug);
+        $state = $this->courseState($userId, $slug);
         $isDemoLesson = !empty($lesson['demo']);
 
         if ($state['has_paid']) {
@@ -60,16 +79,12 @@ final class AccessChecker
      */
     public function coursesForDashboard(int $userId, CourseCatalog $catalog): array
     {
-        $allAccess = Access::forUser($this->pdo, $userId);
-        $bySlug = [];
-        foreach ($allAccess as $row) {
-            $bySlug[$row['course_slug']][] = $row;
-        }
+        $this->ensureUserStates($userId);
 
         $result = [];
         foreach ($catalog->all() as $course) {
             $slug = (string)$course['slug'];
-            $state = Access::courseState($this->pdo, $userId, $slug);
+            $state = $this->courseState($userId, $slug);
             if (!$state['has_paid'] && !$state['demo_active']) {
                 continue;
             }
@@ -77,6 +92,17 @@ final class AccessChecker
                 'access' => $state,
             ]);
         }
+
         return $result;
+    }
+
+    private function ensureUserStates(int $userId): void
+    {
+        if ($this->loadedUserId === $userId) {
+            return;
+        }
+
+        $this->userStateMap = Access::stateMapForUser($this->pdo, $userId);
+        $this->loadedUserId = $userId;
     }
 }

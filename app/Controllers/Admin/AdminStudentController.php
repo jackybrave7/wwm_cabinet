@@ -8,40 +8,60 @@ use Wwm\Models\Access;
 use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
-use Wwm\Services\AdminStats;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 
 final class AdminStudentController
 {
+    private const STUDENTS_PER_PAGE = 50;
+
     public function index(): void
     {
         $userId = Session::requireAdmin();
         $user = User::findById(wwm_pdo(), $userId);
         $search = isset($_GET['q']) ? trim((string)$_GET['q']) : null;
+        $search = $search === '' ? null : $search;
+        $page = max(1, (int)($_GET['page'] ?? 1));
         $pdo = wwm_pdo();
         $catalog = new CourseCatalog();
-        $stats = new AdminStats($pdo);
+
+        $publishedCourses = [];
+        foreach ($catalog->all() as $course) {
+            if (!CourseWriter::isPublished($course)) {
+                continue;
+            }
+            $publishedCourses[] = $course;
+        }
+
+        $pagination = User::paginate($pdo, $search, $page, self::STUDENTS_PER_PAGE);
+        $accessByUser = Access::groupedByUser($pdo);
+        $openCountsByUser = LessonOpen::openCountsGrouped($pdo);
+        $lastActivityByUser = LessonOpen::lastActivityGrouped($pdo);
 
         $students = [];
-        foreach (User::all($pdo, $search) as $row) {
+        foreach ($pagination['rows'] as $row) {
             $id = (int)$row['id'];
-            $accessRows = Access::forUser($pdo, $id);
+            $userAccessRows = $accessByUser[$id] ?? [];
+            $stateMap = Access::stateMapFromRows($userAccessRows);
+            $userOpenCounts = $openCountsByUser[$id] ?? [];
             $courseProgress = [];
             $totalOpened = 0;
             $totalLessons = 0;
 
-            foreach ($catalog->all() as $course) {
-                if (!CourseWriter::isPublished($course)) {
-                    continue;
-                }
+            foreach ($publishedCourses as $course) {
                 $slug = (string)$course['slug'];
-                $state = Access::courseState($pdo, $id, $slug);
+                $state = $stateMap[$slug] ?? [
+                    'has_paid' => false,
+                    'has_demo' => false,
+                    'demo_active' => false,
+                    'paid_active' => false,
+                ];
                 if (!$state['has_paid'] && !$state['demo_active']) {
                     continue;
                 }
+
                 $lessonCount = CourseWriter::lessonCount($course);
-                $opened = LessonOpen::countForUserCourse($pdo, $id, $slug);
+                $opened = (int)($userOpenCounts[$slug] ?? 0);
                 $totalOpened += $opened;
                 $totalLessons += $lessonCount;
                 $courseProgress[] = [
@@ -55,13 +75,16 @@ final class AdminStudentController
 
             $students[] = [
                 'user' => $row,
-                'access_label' => $stats->accessLabelForUser($id),
+                'access_label' => Access::accessLabelFromStateMap($stateMap),
                 'courses' => $courseProgress,
                 'opened' => $totalOpened,
                 'total' => $totalLessons,
-                'last_activity' => LessonOpen::lastActivity($pdo, $id),
+                'last_activity' => $lastActivityByUser[$id] ?? null,
             ];
         }
+
+        $totalStudents = (int)$pagination['total'];
+        $totalPages = max(1, (int)ceil($totalStudents / self::STUDENTS_PER_PAGE));
 
         wwm_render_admin('students', [
             'pageTitle' => 'Students — Admin',
@@ -69,7 +92,9 @@ final class AdminStudentController
             'adminNav' => 'students',
             'students' => $students,
             'search' => $search ?? '',
-            'totalStudents' => count($students),
+            'totalStudents' => $totalStudents,
+            'page' => $page,
+            'totalPages' => $totalPages,
             'message' => isset($_GET['created']) ? 'Student created.' : null,
             'error' => match ($_GET['error'] ?? '') {
                 'exists' => 'A student with this email already exists.',
@@ -145,7 +170,10 @@ final class AdminStudentController
         }
 
         $catalog = new CourseCatalog();
-        $stats = new AdminStats($pdo);
+        $userAccessRows = Access::forUser($pdo, $id);
+        $stateMap = Access::stateMapFromRows($userAccessRows);
+        $grants = Access::grantsByCourseFromRows($userAccessRows);
+        $opensByCourse = LessonOpen::groupedForUser($pdo, $id);
         $courseBlocks = [];
         $accessCourses = [];
         $totalOpened = 0;
@@ -153,8 +181,8 @@ final class AdminStudentController
 
         foreach ($catalog->all() as $course) {
             $slug = (string)$course['slug'];
-            $demoGrant = Access::findGrant($pdo, $id, $slug, 'demo');
-            $paidGrant = Access::findGrant($pdo, $id, $slug, 'paid');
+            $demoGrant = $grants[$slug . ':demo'] ?? null;
+            $paidGrant = $grants[$slug . ':paid'] ?? null;
 
             $accessCourses[] = [
                 'course' => $course,
@@ -163,12 +191,17 @@ final class AdminStudentController
                 'paid' => $this->grantView($paidGrant),
             ];
 
-            $state = Access::courseState($pdo, $id, $slug);
+            $state = $stateMap[$slug] ?? [
+                'has_paid' => false,
+                'has_demo' => false,
+                'demo_active' => false,
+                'paid_active' => false,
+            ];
             if (!$state['has_paid'] && !$state['demo_active']) {
                 continue;
             }
 
-            $opens = LessonOpen::forUserCourse($pdo, $id, $slug);
+            $opens = $opensByCourse[$slug] ?? [];
             $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
             $lessonRows = [];
             foreach ($lessons as $lesson) {
@@ -199,18 +232,28 @@ final class AdminStudentController
             ];
         }
 
+        $lastActivity = null;
+        foreach ($opensByCourse as $courseOpens) {
+            foreach ($courseOpens as $open) {
+                $openedAt = (string)($open['last_opened_at'] ?? '');
+                if ($openedAt !== '' && ($lastActivity === null || $openedAt > $lastActivity)) {
+                    $lastActivity = $openedAt;
+                }
+            }
+        }
+
         wwm_render_admin('student-view', [
             'pageTitle' => 'Student — ' . ($student['name'] ?: $student['email']),
             'user' => $admin,
             'adminNav' => 'students',
             'student' => $student,
-            'access_label' => $stats->accessLabelForUser($id),
+            'access_label' => Access::accessLabelFromStateMap($stateMap),
             'access_courses' => $accessCourses,
             'access_periods' => AccessPeriod::presets(),
             'course_blocks' => $courseBlocks,
             'total_opened' => $totalOpened,
             'total_lessons' => $totalLessons,
-            'last_activity' => LessonOpen::lastActivity($pdo, $id),
+            'last_activity' => $lastActivity,
             'message' => match ($_GET['created'] ?? '') {
                 '1' => 'Student created.',
                 'access' => 'Access updated.',

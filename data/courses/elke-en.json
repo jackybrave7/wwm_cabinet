@@ -75,7 +75,7 @@
         {
             "num": 2,
             "title": "Review of materials",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1443,
             "materials": [],
             "duration": "",
@@ -486,5 +486,6 @@
             "kind": "bonus",
             "request_report": true
         }
-    ]
+    ],
+    "status": "published"
 }

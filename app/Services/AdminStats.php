@@ -65,27 +65,6 @@ final class AdminStats
      */
     public function accessLabelForUser(int $userId): string
     {
-        $rows = Access::forUser($this->pdo, $userId);
-        if ($rows === []) {
-            return 'No access';
-        }
-        $hasPaid = false;
-        $hasDemo = false;
-        foreach ($rows as $row) {
-            $state = Access::courseState($this->pdo, $userId, (string)$row['course_slug']);
-            if ($state['has_paid']) {
-                $hasPaid = true;
-            }
-            if ($state['demo_active']) {
-                $hasDemo = true;
-            }
-        }
-        if ($hasPaid) {
-            return 'Paid';
-        }
-        if ($hasDemo) {
-            return 'Demo';
-        }
-        return 'Demo expired';
+        return Access::accessLabelFromStateMap(Access::stateMapForUser($this->pdo, $userId));
     }
 }

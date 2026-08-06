@@ -7,6 +7,9 @@ final class CourseCatalog
 {
     private string $coursesDir;
 
+    /** @var array<string, array{0: ?array, 1: int}> */
+    private static array $fileCache = [];
+
     public function __construct(?string $coursesDir = null)
     {
         $this->coursesDir = $coursesDir ?? (WWM_ROOT . '/data/courses');
@@ -65,14 +68,23 @@ final class CourseCatalog
      */
     private function loadFile(string $file): ?array
     {
+        $mtime = @filemtime($file) ?: 0;
+        if (isset(self::$fileCache[$file]) && self::$fileCache[$file][1] === $mtime) {
+            return self::$fileCache[$file][0];
+        }
+
         $raw = file_get_contents($file);
         if ($raw === false) {
+            self::$fileCache[$file] = [null, $mtime];
             return null;
         }
         $data = json_decode($raw, true);
         if (!is_array($data) || empty($data['slug'])) {
+            self::$fileCache[$file] = [null, $mtime];
             return null;
         }
+
+        self::$fileCache[$file] = [$data, $mtime];
         return $data;
     }
 }

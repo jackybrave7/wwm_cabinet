@@ -396,6 +396,14 @@ body.admin-body {
   color: #fff;
 }
 
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
 .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .editor-wrap {

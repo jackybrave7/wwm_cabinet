@@ -34,7 +34,7 @@ spl_autoload_register(static function (string $class): void {
 });
 
 $pdo = Wwm\Database::connect((string)$config['db_path']);
-Wwm\Database::migrate($pdo);
+Wwm\Database::migrateIfNeeded($pdo);
 
 if (PHP_SAPI !== 'cli') {
     session_name('wwm_cabinet');
@@ -113,6 +113,16 @@ function wwm_redirect(string $path, int $code = 302): never
     }
     header('Location: ' . $path, true, $code);
     exit;
+}
+
+function wwm_course_cover_url(?string $url): ?string
+{
+    $url = trim((string)$url);
+    if ($url === '' || !str_starts_with($url, 'https://')) {
+        return null;
+    }
+
+    return $url;
 }
 
 function wwm_render(string $template, array $vars = []): void

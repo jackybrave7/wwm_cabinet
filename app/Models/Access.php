@@ -19,6 +19,94 @@ final class Access
         return $stmt->fetchAll() ?: [];
     }
 
+    /**
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public static function groupedByUser(PDO $pdo): array
+    {
+        $stmt = $pdo->query('SELECT * FROM access ORDER BY user_id, course_slug, access_type');
+        $rows = $stmt ? ($stmt->fetchAll() ?: []) : [];
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int)$row['user_id']][] = $row;
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}>
+     */
+    public static function stateMapFromRows(array $rows): array
+    {
+        $bySlug = [];
+        foreach ($rows as $row) {
+            $bySlug[(string)$row['course_slug']][] = $row;
+        }
+
+        $map = [];
+        foreach ($bySlug as $slug => $slugRows) {
+            $map[$slug] = self::courseStateFromRows($slugRows);
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}>
+     */
+    public static function stateMapForUser(PDO $pdo, int $userId): array
+    {
+        return self::stateMapFromRows(self::forUser($pdo, $userId));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, array<string, mixed>>
+     */
+    public static function grantsByCourseFromRows(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $row) {
+            $slug = (string)$row['course_slug'];
+            $type = (string)$row['access_type'];
+            $map[$slug . ':' . $type] = $row;
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}> $stateMap
+     */
+    public static function accessLabelFromStateMap(array $stateMap): string
+    {
+        if ($stateMap === []) {
+            return 'No access';
+        }
+
+        $hasPaid = false;
+        $hasDemo = false;
+        foreach ($stateMap as $state) {
+            if ($state['has_paid']) {
+                $hasPaid = true;
+            }
+            if ($state['demo_active']) {
+                $hasDemo = true;
+            }
+        }
+
+        if ($hasPaid) {
+            return 'Paid';
+        }
+        if ($hasDemo) {
+            return 'Demo';
+        }
+
+        return 'Demo expired';
+    }
+
     public static function grant(
         PDO $pdo,
         int $userId,
@@ -95,6 +183,15 @@ final class Access
         $stmt->execute([$userId, $courseSlug]);
         $rows = $stmt->fetchAll() ?: [];
 
+        return self::courseStateFromRows($rows);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}
+     */
+    private static function courseStateFromRows(array $rows): array
+    {
         $hasPaid = false;
         $paidActive = false;
         $hasDemo = false;

@@ -100,6 +100,39 @@ final class User
         return $stmt ? ($stmt->fetchAll() ?: []) : [];
     }
 
+    /**
+     * @return array{rows: list<array<string, mixed>>, total: int}
+     */
+    public static function paginate(PDO $pdo, ?string $search, int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+        $offset = ($page - 1) * $perPage;
+
+        if ($search !== null && trim($search) !== '') {
+            $q = '%' . trim($search) . '%';
+            $countStmt = $pdo->prepare(
+                'SELECT COUNT(*) FROM users WHERE email LIKE ? OR name LIKE ?'
+            );
+            $countStmt->execute([$q, $q]);
+            $total = (int)$countStmt->fetchColumn();
+
+            $stmt = $pdo->prepare(
+                'SELECT * FROM users WHERE email LIKE ? OR name LIKE ? ORDER BY created_at DESC LIMIT '
+                . $perPage . ' OFFSET ' . $offset
+            );
+            $stmt->execute([$q, $q]);
+            return ['rows' => $stmt->fetchAll() ?: [], 'total' => $total];
+        }
+
+        $total = (int)($pdo->query('SELECT COUNT(*) FROM users')?->fetchColumn() ?: 0);
+        $stmt = $pdo->query(
+            'SELECT * FROM users ORDER BY created_at DESC LIMIT ' . $perPage . ' OFFSET ' . $offset
+        );
+
+        return ['rows' => $stmt ? ($stmt->fetchAll() ?: []) : [], 'total' => $total];
+    }
+
     public static function delete(PDO $pdo, int $userId): void
     {
         $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
