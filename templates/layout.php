@@ -23,7 +23,7 @@
           <?php if (\Wwm\Models\User::isAdmin($user)): ?>
             <a href="/admin/courses">Admin</a>
           <?php endif; ?>
-          <span class="user-email"><?= wwm_escape(trim((string)($user['name'] ?? '')) !== '' ? (string)$user['name'] : (string)($user['email'] ?? '')) ?></span>
+          <span class="user-email"><?= wwm_escape((string)($user['email'] ?? '')) ?></span>
           <a href="/logout" class="btn btn-ghost">Sign out</a>
         </nav>
       <?php endif; ?>

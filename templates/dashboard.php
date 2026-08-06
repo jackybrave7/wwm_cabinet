@@ -21,7 +21,7 @@
         <a class="course-card" href="/c/<?= wwm_escape((string)$course['slug']) ?>">
           <?php if ($cover !== null): ?>
             <div class="course-card-cover">
-              <img src="<?= wwm_escape($cover) ?>" alt="<?= wwm_escape((string)$course['title']) ?>" width="640" height="400" loading="lazy">
+              <img src="<?= wwm_escape($cover) ?>" alt="<?= wwm_escape((string)$course['title']) ?>" loading="lazy" decoding="async">
             </div>
           <?php endif; ?>
           <div class="course-card-body">
