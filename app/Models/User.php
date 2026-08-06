@@ -99,4 +99,10 @@ final class User
         $stmt = $pdo->query('SELECT * FROM users ORDER BY created_at DESC');
         return $stmt ? ($stmt->fetchAll() ?: []) : [];
     }
+
+    public static function delete(PDO $pdo, int $userId): void
+    {
+        $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+        $stmt->execute([$userId]);
+    }
 }

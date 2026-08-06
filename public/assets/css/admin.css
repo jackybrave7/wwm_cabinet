@@ -342,6 +342,52 @@ body.admin-body {
   margin-bottom: 16px;
 }
 
+.access-grant-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.access-grant-form select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.82rem;
+  max-width: 140px;
+}
+
+.inline-form {
+  display: inline;
+}
+
+.inline-form button {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.access-table td {
+  vertical-align: top;
+}
+
+.admin-danger-zone {
+  border-color: #f5c6c3;
+  background: #fffafa;
+}
+
+.btn-danger {
+  background: #c62828;
+  color: #fff;
+  border-color: #c62828;
+}
+
+.btn-danger:hover {
+  background: #b71c1c;
+  border-color: #b71c1c;
+  color: #fff;
+}
+
 .top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .editor-wrap {

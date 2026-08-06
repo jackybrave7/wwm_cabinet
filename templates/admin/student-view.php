@@ -9,6 +9,8 @@ $formatDate = static function (?string $iso): string {
 $id = (int)($student['id'] ?? 0);
 $pct = $total_lessons > 0 ? min(100, (int)round($total_opened / $total_lessons * 100)) : 0;
 $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo' ? 'badge-demo' : 'badge-draft');
+$periods = is_array($access_periods ?? null) ? $access_periods : [];
+$accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
 ?>
 <div class="admin-topbar">
   <div>
@@ -18,6 +20,13 @@ $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo
   </div>
   <a href="/admin/students" class="btn btn-ghost">← All students</a>
 </div>
+
+<?php if (!empty($message)): ?>
+  <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
+<?php endif; ?>
+<?php if (!empty($error)): ?>
+  <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
+<?php endif; ?>
 
 <div class="admin-stats">
   <div class="admin-stat-card">
@@ -32,6 +41,75 @@ $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo
     <span class="admin-stat-label">Access</span>
     <strong class="admin-stat-value" style="font-size:1.35rem"><span class="badge <?= $badgeClass ?>"><?= wwm_escape($access_label) ?></span></strong>
   </div>
+</div>
+
+<div class="admin-card">
+  <h2>Course access</h2>
+  <table class="admin-table admin-table-compact access-table">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Demo</th>
+        <th>Full access</th>
+        <th>Grant</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($accessCourses as $row): ?>
+        <?php
+          $c = $row['course'];
+          $slug = (string)($c['slug'] ?? '');
+          $demo = is_array($row['demo'] ?? null) ? $row['demo'] : ['active' => false, 'label' => 'None'];
+          $paid = is_array($row['paid'] ?? null) ? $row['paid'] : ['active' => false, 'label' => 'None'];
+          $published = !empty($row['published']);
+        ?>
+        <tr>
+          <td>
+            <strong><?= wwm_escape((string)($c['title'] ?? $slug)) ?></strong><br>
+            <span class="field-hint"><?= wwm_escape($slug) ?><?= $published ? '' : ' · draft' ?></span>
+          </td>
+          <td>
+            <span class="badge <?= $demo['active'] ? 'badge-demo' : 'badge-draft' ?>"><?= wwm_escape((string)$demo['label']) ?></span>
+            <?php if ($demo['active']): ?>
+              <form method="post" action="/admin/students/<?= $id ?>/access/revoke" class="inline-form">
+                <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                <input type="hidden" name="course_slug" value="<?= wwm_escape($slug) ?>">
+                <input type="hidden" name="access_type" value="demo">
+                <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
+              </form>
+            <?php endif; ?>
+          </td>
+          <td>
+            <span class="badge <?= $paid['active'] ? 'badge-paid' : 'badge-draft' ?>"><?= wwm_escape((string)$paid['label']) ?></span>
+            <?php if ($paid['active']): ?>
+              <form method="post" action="/admin/students/<?= $id ?>/access/revoke" class="inline-form">
+                <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                <input type="hidden" name="course_slug" value="<?= wwm_escape($slug) ?>">
+                <input type="hidden" name="access_type" value="paid">
+                <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
+              </form>
+            <?php endif; ?>
+          </td>
+          <td>
+            <form method="post" action="/admin/students/<?= $id ?>/access" class="access-grant-form">
+              <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+              <input type="hidden" name="course_slug" value="<?= wwm_escape($slug) ?>">
+              <select name="access_type" required aria-label="Access type">
+                <option value="demo">Demo</option>
+                <option value="paid">Full</option>
+              </select>
+              <select name="period" required aria-label="Duration">
+                <?php foreach ($periods as $key => $label): ?>
+                  <option value="<?= wwm_escape((string)$key) ?>"<?= $key === '30d' ? ' selected' : '' ?>><?= wwm_escape((string)$label) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button type="submit" class="btn btn-primary btn-sm">Grant</button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
 </div>
 
 <?php foreach ($course_blocks as $block): ?>
@@ -86,6 +164,15 @@ $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo
 
 <?php if ($course_blocks === []): ?>
   <div class="admin-card">
-    <p class="field-hint">This student has no active course access.</p>
+    <p class="field-hint">This student has no active course access yet. Use the table above to grant demo or full access.</p>
   </div>
 <?php endif; ?>
+
+<div class="admin-card admin-danger-zone">
+  <h2>Danger zone</h2>
+  <p class="field-hint">Permanently delete this student and all their access records. This cannot be undone.</p>
+  <form method="post" action="/admin/students/<?= $id ?>/delete" class="inline-form" onsubmit="return confirm('Delete this student permanently?');">
+    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    <button type="submit" class="btn btn-danger btn-sm">Delete student</button>
+  </form>
+</div>

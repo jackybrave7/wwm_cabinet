@@ -82,8 +82,28 @@ final class Router
             (new AdminStudentController())->index();
             return;
         }
+        if ($method === 'GET' && $path === '/admin/students/new') {
+            (new AdminStudentController())->createForm();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/students') {
+            (new AdminStudentController())->store();
+            return;
+        }
         if ($method === 'GET' && preg_match('#^/admin/students/(\d+)$#', $path, $m)) {
             (new AdminStudentController())->show((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/access$#', $path, $m)) {
+            (new AdminStudentController())->grantAccess((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/access/revoke$#', $path, $m)) {
+            (new AdminStudentController())->revokeAccess((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/delete$#', $path, $m)) {
+            (new AdminStudentController())->destroy((int)$m[1]);
             return;
         }
 

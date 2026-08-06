@@ -12,17 +12,26 @@ $formatDate = static function (?string $iso): string {
     <p class="badge badge-admin">Administrator</p>
     <h1 class="page-title page-title-sm">Students</h1>
   </div>
-  <form class="admin-toolbar" method="get" action="/admin/students">
-    <input type="search" name="q" class="admin-search" placeholder="Search by name or email…" value="<?= wwm_escape($search ?? '') ?>" aria-label="Search students">
-    <button type="submit" class="btn btn-ghost btn-sm">Search</button>
-  </form>
+  <div class="top-actions">
+    <form class="admin-toolbar" method="get" action="/admin/students">
+      <input type="search" name="q" class="admin-search" placeholder="Search by name or email…" value="<?= wwm_escape($search ?? '') ?>" aria-label="Search students">
+      <button type="submit" class="btn btn-ghost btn-sm">Search</button>
+    </form>
+    <a href="/admin/students/new" class="btn btn-primary btn-sm">Add student</a>
+  </div>
 </div>
+
+<?php if (!empty($message)): ?>
+  <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
+<?php endif; ?>
+<?php if (!empty($error)): ?>
+  <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
+<?php endif; ?>
 
 <div class="admin-stats">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Total students</span>
     <strong class="admin-stat-value"><?= (int)$totalStudents ?></strong>
-    <span class="admin-stat-note">with any access</span>
   </div>
 </div>
 
