@@ -31,6 +31,17 @@ function envBool(name, fallback = false) {
   return /^(1|true|yes|on)$/i.test(v);
 }
 
+function phpAdminEmails(value) {
+  const emails = String(value || '')
+    .split(/[,;]+/)
+    .map((email) => email.trim())
+    .filter(Boolean);
+  if (emails.length === 0) {
+    return '[]';
+  }
+  return `[${emails.map(phpString).join(', ')}]`;
+}
+
 const appSecret = env('WWM_APP_SECRET');
 if (!appSecret || appSecret.length < 32) {
   console.error('WWM_APP_SECRET must be at least 32 characters');
@@ -82,7 +93,7 @@ return [
         193 => 'alvaro',
     ],
 
-    'admin_emails' => ${phpString(env('WWM_ADMIN_EMAILS', 'demo@wwm.test'))},
+    'admin_emails' => ${phpAdminEmails(env('WWM_ADMIN_EMAILS', 'eaalferov@yandex.ru'))},
 
     'log_enabled' => true,
     'log_file' => dirname(__DIR__) . '/data/cabinet.log',

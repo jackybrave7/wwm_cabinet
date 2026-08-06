@@ -62,6 +62,9 @@ final class User
         }
         $config ??= wwm_config();
         $emails = $config['admin_emails'] ?? [];
+        if (is_string($emails)) {
+            $emails = array_filter(array_map('trim', preg_split('/[,;]+/', $emails) ?: []));
+        }
         if (!is_array($emails) || $emails === []) {
             return false;
         }
