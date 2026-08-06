@@ -526,15 +526,14 @@ a:hover { text-decoration: underline; }
 
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 360px));
   gap: 20px;
   align-items: stretch;
 }
 
 .course-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
   min-width: 0;
   width: 100%;
   padding: 0;
@@ -555,22 +554,19 @@ a:hover { text-decoration: underline; }
 }
 
 .course-card-cover {
-  position: relative;
+  display: block;
   width: 100%;
-  aspect-ratio: 16 / 10;
   overflow: hidden;
   background: #e8e4dc;
-  flex-shrink: 0;
+  line-height: 0;
 }
 
 .course-card-cover img {
-  position: absolute;
-  inset: 0;
   display: block;
   width: 100%;
-  height: 100%;
-  max-width: 100%;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
+  object-position: center;
 }
 
 .course-card-body {
