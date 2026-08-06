@@ -19,6 +19,7 @@
       <?php if (!empty($user)): ?>
         <nav class="header-nav">
           <a href="/">My courses</a>
+          <a href="/account">Account</a>
           <?php if (\Wwm\Models\User::isAdmin($user)): ?>
             <a href="/admin/courses">Admin</a>
           <?php endif; ?>

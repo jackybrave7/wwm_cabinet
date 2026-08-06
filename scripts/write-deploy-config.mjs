@@ -74,6 +74,8 @@ return [
 
     'demo_hours' => ${Number(env('WWM_DEMO_HOURS', '48')) || 48},
 
+    'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},
+
     'avo_goods_to_course' => [
         188 => 'elke-en',
         191 => 'elke-de',

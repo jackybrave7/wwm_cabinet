@@ -28,6 +28,9 @@ return [
 
     'demo_hours' => 48,
 
+    // Shared password for new demo users (Account → change after login). Empty = random + reset email.
+    'demo_default_password' => 'Gh45tyhf',
+
     // Admin access: is_admin flag in DB and/or email allowlist
     'admin_emails' => ['demo@wwm.test'],
 

@@ -44,7 +44,7 @@ final class DemoAccess
         $created = false;
 
         if ($user === null) {
-            $password = bin2hex(random_bytes(12));
+            $password = $this->demoDefaultPassword() ?? bin2hex(random_bytes(12));
             $userId = User::create($pdo, $email, $password, $name);
             $user = User::findById($pdo, $userId);
             $created = true;
@@ -91,7 +91,7 @@ final class DemoAccess
             ));
         }
 
-        if ($created) {
+        if ($created && $this->demoDefaultPassword() === null) {
             $this->sendWelcomeEmail($user, $course, $expiresAt);
         }
 
@@ -164,6 +164,12 @@ final class DemoAccess
             'Your demo access — World Watercolor Masters',
             $body
         );
+    }
+
+    private function demoDefaultPassword(): ?string
+    {
+        $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
+        return $password !== '' ? $password : null;
     }
 
     private function currentDemoExpiresAt(\PDO $pdo, int $userId, string $courseSlug): ?string

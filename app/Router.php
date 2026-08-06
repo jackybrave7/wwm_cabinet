@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Wwm;
 
+use Wwm\Controllers\AccountController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminStudentController;
@@ -88,6 +89,14 @@ final class Router
 
         if ($method === 'GET' && $path === '/') {
             (new DashboardController())->index();
+            return;
+        }
+        if ($method === 'GET' && $path === '/account') {
+            (new AccountController())->show();
+            return;
+        }
+        if ($method === 'POST' && $path === '/account') {
+            (new AccountController())->updatePassword();
             return;
         }
 
