@@ -6,6 +6,7 @@ namespace Wwm;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminStudentController;
+use Wwm\Controllers\Api\DemoWebhookController;
 use Wwm\Controllers\AuthController;
 use Wwm\Controllers\CourseController;
 use Wwm\Controllers\DashboardController;
@@ -49,6 +50,10 @@ final class Router
         if ($method === 'GET' && $path === '/api/health') {
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode(['ok' => true, 'service' => 'wwm-cabinet']);
+            return;
+        }
+        if (($method === 'POST' || $method === 'GET') && $path === '/api/demo') {
+            (new DemoWebhookController())->grant();
             return;
         }
 

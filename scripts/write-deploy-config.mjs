@@ -74,6 +74,14 @@ return [
 
     'demo_hours' => ${Number(env('WWM_DEMO_HOURS', '48')) || 48},
 
+    'avo_goods_to_course' => [
+        188 => 'elke-en',
+        191 => 'elke-de',
+        193 => 'alvaro',
+    ],
+
+    'admin_emails' => ${phpString(env('WWM_ADMIN_EMAILS', 'demo@wwm.test'))},
+
     'log_enabled' => true,
     'log_file' => dirname(__DIR__) . '/data/cabinet.log',
 ];

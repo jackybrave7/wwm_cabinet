@@ -68,7 +68,7 @@ final class AdminLessonController
             $lessons[$i]['duration'] = trim((string)($_POST['duration'] ?? $lesson['duration'] ?? ''));
             $lessons[$i]['demo'] = !empty($_POST['demo']);
 
-            $htmlBody = wwm_sanitize_lesson_html($_POST['html_body'] ?? '');
+            $htmlBody = wwm_finalize_lesson_html($_POST['html_body'] ?? '');
             if ($htmlBody !== '') {
                 $lessons[$i]['html_body'] = $htmlBody;
                 unset($lessons[$i]['description'], $lessons[$i]['video']);

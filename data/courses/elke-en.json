@@ -12,6 +12,8 @@
         {
             "title": "Lesson 1. Flower in a vase",
             "lessons": [
+                1,
+                2,
                 3,
                 4,
                 5,
@@ -30,9 +32,7 @@
                 18,
                 19,
                 20,
-                21,
-                1,
-                2
+                21
             ]
         },
         {
@@ -65,7 +65,7 @@
     "lessons": [
         {
             "num": 1,
-            "title": "Part 1. Analysis of the work. Composition, color, technique",
+            "title": "Analysis of the work. Composition, color, technique",
             "demo": true,
             "avo_lesson_id": 1442,
             "materials": [],
@@ -74,12 +74,12 @@
         },
         {
             "num": 2,
-            "title": "Part 2. Review of materials",
+            "title": "Review of materials",
             "demo": false,
             "avo_lesson_id": 1443,
             "materials": [],
             "duration": "",
-            "html_body": "<p></p><p></p><p><br></p>123<div><br></div><div><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div><p><br></p><p></p><p><br></p><br><p></p></div>"
+            "html_body": "<p>123</p><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div>"
         },
         {
             "num": 3,
@@ -94,7 +94,7 @@
         },
         {
             "num": 4,
-            "title": "Part 3. Getting started. Drawing",
+            "title": "Getting started. Drawing",
             "demo": false,
             "avo_lesson_id": 1445,
             "video": {
@@ -105,7 +105,7 @@
         },
         {
             "num": 5,
-            "title": "Part 4. Getting started in color",
+            "title": "Getting started in color",
             "demo": false,
             "avo_lesson_id": 1446,
             "video": {
@@ -116,7 +116,7 @@
         },
         {
             "num": 6,
-            "title": "Part 5. Painting the main flower (king)",
+            "title": "Painting the main flower (king)",
             "demo": false,
             "avo_lesson_id": 1447,
             "video": {
@@ -127,7 +127,7 @@
         },
         {
             "num": 7,
-            "title": "Part 6. The use of soap in painting",
+            "title": "The use of soap in painting",
             "demo": false,
             "avo_lesson_id": 1448,
             "video": {
@@ -138,7 +138,7 @@
         },
         {
             "num": 8,
-            "title": "Part 7. The use of napkins",
+            "title": "The use of napkins",
             "demo": false,
             "avo_lesson_id": 1449,
             "video": {
@@ -149,7 +149,7 @@
         },
         {
             "num": 9,
-            "title": "Part 8. Getting started on the second flower",
+            "title": "Getting started on the second flower",
             "demo": false,
             "avo_lesson_id": 1450,
             "video": {
@@ -160,7 +160,7 @@
         },
         {
             "num": 10,
-            "title": "Part 9. Create leaves",
+            "title": "Create leaves",
             "demo": false,
             "avo_lesson_id": 1451,
             "video": {
@@ -171,7 +171,7 @@
         },
         {
             "num": 11,
-            "title": "Part 10. Working with the background",
+            "title": "Working with the background",
             "demo": false,
             "avo_lesson_id": 1452,
             "video": {
@@ -182,7 +182,7 @@
         },
         {
             "num": 12,
-            "title": "Part 11. Painting smaller element",
+            "title": "Painting smaller element",
             "demo": false,
             "avo_lesson_id": 1453,
             "video": {
@@ -193,7 +193,7 @@
         },
         {
             "num": 13,
-            "title": "Part 12. Painting the vase",
+            "title": "Painting the vase",
             "demo": false,
             "avo_lesson_id": 1454,
             "video": {
@@ -204,7 +204,7 @@
         },
         {
             "num": 14,
-            "title": "Part 13. Bud",
+            "title": "Bud",
             "demo": false,
             "avo_lesson_id": 1455,
             "video": {
@@ -215,7 +215,7 @@
         },
         {
             "num": 15,
-            "title": "Part 14. Painting dried areas",
+            "title": "Painting dried areas",
             "demo": false,
             "avo_lesson_id": 1456,
             "video": {
@@ -226,7 +226,7 @@
         },
         {
             "num": 16,
-            "title": "Part 15. Go back to the vase. Periodically working with the background. White ink",
+            "title": "Go back to the vase. Periodically working with the background. White ink",
             "demo": false,
             "avo_lesson_id": 1457,
             "video": {
@@ -237,7 +237,7 @@
         },
         {
             "num": 17,
-            "title": "Part 16. We paint the background",
+            "title": "We paint the background",
             "demo": false,
             "avo_lesson_id": 1458,
             "video": {
@@ -248,7 +248,7 @@
         },
         {
             "num": 18,
-            "title": "Part 17. Adjust the flower and leaves.",
+            "title": "Adjust the flower and leaves.",
             "demo": false,
             "avo_lesson_id": 1459,
             "video": {
@@ -259,7 +259,7 @@
         },
         {
             "num": 19,
-            "title": "Part 18. Layer of small leaves",
+            "title": "Layer of small leaves",
             "demo": false,
             "avo_lesson_id": 1460,
             "video": {
@@ -270,7 +270,7 @@
         },
         {
             "num": 20,
-            "title": "Part 19. Vase. Small parts",
+            "title": "Vase. Small parts",
             "demo": false,
             "avo_lesson_id": 1461,
             "video": {
@@ -281,7 +281,7 @@
         },
         {
             "num": 21,
-            "title": "Part 20. Final work",
+            "title": "Final work",
             "demo": false,
             "avo_lesson_id": 1462,
             "video": {
@@ -292,7 +292,7 @@
         },
         {
             "num": 22,
-            "title": "Part 1. Talking about the picture. Composition, mood, color",
+            "title": "Talking about the picture. Composition, mood, color",
             "demo": false,
             "avo_lesson_id": 1463,
             "video": {
@@ -303,7 +303,7 @@
         },
         {
             "num": 23,
-            "title": "Part 2. Review of materials",
+            "title": "Review of materials",
             "demo": false,
             "avo_lesson_id": 1464,
             "video": {
@@ -325,7 +325,7 @@
         },
         {
             "num": 25,
-            "title": "Part 3. Pencil drawing",
+            "title": "Pencil drawing",
             "demo": false,
             "avo_lesson_id": 1466,
             "video": {
@@ -336,7 +336,7 @@
         },
         {
             "num": 26,
-            "title": "Part 4. Painting in color. Building background, windows, roof",
+            "title": "Painting in color. Building background, windows, roof",
             "demo": false,
             "avo_lesson_id": 1467,
             "video": {
@@ -347,7 +347,7 @@
         },
         {
             "num": 27,
-            "title": "Part 5. We continue to work in color. Drawing the rest of the building",
+            "title": "We continue to work in color. Drawing the rest of the building",
             "demo": false,
             "avo_lesson_id": 1468,
             "video": {
@@ -358,7 +358,7 @@
         },
         {
             "num": 28,
-            "title": "Part 6. Painting the background",
+            "title": "Painting the background",
             "demo": false,
             "avo_lesson_id": 1469,
             "video": {
@@ -369,7 +369,7 @@
         },
         {
             "num": 29,
-            "title": "Part 7. We are planning a house in the foreground and a well",
+            "title": "We are planning a house in the foreground and a well",
             "demo": false,
             "avo_lesson_id": 1470,
             "video": {
@@ -380,7 +380,7 @@
         },
         {
             "num": 30,
-            "title": "Part 8. Fill the right side of the picture",
+            "title": "Fill the right side of the picture",
             "demo": false,
             "avo_lesson_id": 1471,
             "video": {
@@ -391,7 +391,7 @@
         },
         {
             "num": 31,
-            "title": "Part 9. Outline the back of the alley",
+            "title": "Outline the back of the alley",
             "demo": false,
             "avo_lesson_id": 1472,
             "video": {
@@ -402,7 +402,7 @@
         },
         {
             "num": 32,
-            "title": "Part 10. The road of old stones",
+            "title": "The road of old stones",
             "demo": false,
             "avo_lesson_id": 1473,
             "video": {
@@ -413,7 +413,7 @@
         },
         {
             "num": 33,
-            "title": "Part 11. Painting the street on the left",
+            "title": "Painting the street on the left",
             "demo": false,
             "avo_lesson_id": 1474,
             "video": {
@@ -424,7 +424,7 @@
         },
         {
             "num": 34,
-            "title": "Part 12. Shape spherical trees in the center",
+            "title": "Shape spherical trees in the center",
             "demo": false,
             "avo_lesson_id": 1475,
             "video": {
@@ -435,7 +435,7 @@
         },
         {
             "num": 35,
-            "title": "Part 13. Painting the church",
+            "title": "Painting the church",
             "demo": false,
             "avo_lesson_id": 1476,
             "video": {
@@ -446,7 +446,7 @@
         },
         {
             "num": 36,
-            "title": "Part 14. Painting the trees",
+            "title": "Painting the trees",
             "demo": false,
             "avo_lesson_id": 1477,
             "video": {
@@ -457,7 +457,7 @@
         },
         {
             "num": 37,
-            "title": "Part 15. Create a veil and complete the picture",
+            "title": "Create a veil and complete the picture",
             "demo": false,
             "avo_lesson_id": 1478,
             "video": {

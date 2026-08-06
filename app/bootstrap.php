@@ -130,6 +130,14 @@ function wwm_render_admin(string $template, array $vars = []): void
     wwm_render('admin/' . $template, $vars);
 }
 
+function wwm_json_response(int $code, array $data): void
+{
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 function wwm_normalize_video_embed_url(string $url): ?string
 {
     $url = trim($url);
@@ -248,6 +256,42 @@ function wwm_sanitize_lesson_html(?string $html): string
     return trim($html);
 }
 
+function wwm_finalize_lesson_html(?string $html): string
+{
+    $html = wwm_sanitize_lesson_html($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $prev = '';
+    while ($html !== $prev) {
+        $prev = $html;
+        $html = preg_replace(
+            '/(<div class="video-block"><iframe src="([^"]+)"[^>]*><\/iframe><\/div>)\s*\1/',
+            '$1',
+            $html
+        ) ?? $html;
+    }
+
+    $html = preg_replace('/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/i', '', $html) ?? $html;
+    $html = preg_replace('/<div>(\s|&nbsp;|<br\s*\/?>)*<\/div>/i', '', $html) ?? $html;
+
+    $html = preg_replace_callback(
+        '/>([^<]+)</',
+        static function (array $matches): string {
+            $text = trim($matches[1]);
+            if ($text === '') {
+                return '><';
+            }
+
+            return '><p>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p><';
+        },
+        $html
+    ) ?? $html;
+
+    return trim($html);
+}
+
 /**
  * @param array<string, mixed> $lesson
  */
@@ -255,7 +299,7 @@ function wwm_lesson_body_html(array $lesson): string
 {
     $html = trim((string)($lesson['html_body'] ?? ''));
     if ($html !== '') {
-        return wwm_sanitize_lesson_html($html);
+        return wwm_finalize_lesson_html($html);
     }
 
     $parts = [];

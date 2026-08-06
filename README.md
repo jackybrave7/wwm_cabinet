@@ -78,6 +78,45 @@ http://localhost:8080/login — **demo@wwm.test** / **demo-demo-demo**
 - Geo: All
 - Заменить `REPLACE_WITH_REAL_ID` в `data/courses/*.json`
 
+### Demo webhook (AVO autofunnel → cabinet)
+
+AVO вызывает кабинет **напрямую** (блок «Отправить вебхук» в автоворонке):
+
+```
+AVO autofunnel → my.worldwatercolormasters.art/api/demo
+```
+
+**URL для AVO** (Elke ENG):
+
+```
+https://my.worldwatercolormasters.art/api/demo?email={email}&name={name}&course=elke-en&token=ВАШ_СЕКРЕТ
+```
+
+Elke DE: `course=elke-de`. Альтернатива: `id_goods=188` вместо `course`.
+
+**Secrets / config.php:**
+
+- `WWM_WEBHOOKS_ENABLED=true`
+- `WWM_WEBHOOK_DEMO_TOKEN` — длинная случайная строка (тот же `token` в URL AVO)
+- `avo_goods_to_course` — маппинг `id_goods` → slug (уже в deploy-config)
+
+Endpoint принимает **GET** (AVO) и **POST** (JSON + заголовок `X-WWM-Demo-Token`).
+
+**Проверка после деплоя:**
+
+```bash
+curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name=Test&course=elke-en&token=ВАШ_СЕКРЕТ"
+```
+
+Ожидание: `{"ok":true,...}` и письмо со ссылкой на `/reset`.
+
+**Локальный тест** (без HTTP):
+
+```powershell
+# config.php: webhooks.enabled=true, demo_token=local-test-token
+.\.tools\php\php.exe scripts\test-demo-webhook.php test@example.com elke-en
+```
+
 ### AVO
 
 Ссылки в письмах: `https://my.worldwatercolormasters.art/login`
@@ -92,7 +131,9 @@ http://localhost:8080/login — **demo@wwm.test** / **demo-demo-demo**
 | `data/courses/*.json` | Контент курсов |
 | `prototype/` | HTML-макеты студента и админки |
 | `scripts/migrate.php` | Схема БД |
-| `scripts/seed-demo.php` | Тестовый пользователь (только локально) |
+| `app/Services/DemoAccess.php` | Выдача demo-доступа (user + access) |
+| `scripts/bl-school/avo-demo-cabinet.php` | Опциональный прокси (не нужен при прямом URL в AVO) |
+| `scripts/test-demo-webhook.php` | Локальный тест demo без HTTP |
 
 ## Админка (локально)
 

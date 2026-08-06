@@ -125,7 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.innerHTML = `<iframe src="${escapeAttr(url)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen loading="lazy"></iframe>`;
       block.replaceWith(wrapper);
     });
-    return clone.innerHTML;
+
+    let html = clone.innerHTML;
+    let prev = '';
+    while (html !== prev) {
+      prev = html;
+      html = html.replace(
+        /(<div class="video-block"><iframe src="([^"]+)"[^>]*><\/iframe><\/div>)\s*\1/g,
+        '$1',
+      );
+    }
+
+    return html;
   };
 
   const deserializeToEditor = (html) => {

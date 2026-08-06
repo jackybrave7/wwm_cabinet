@@ -43,6 +43,12 @@ final class User
         $stmt->execute([\Wwm\Auth\Password::hash($password), $userId]);
     }
 
+    public static function updateName(PDO $pdo, int $userId, string $name): void
+    {
+        $stmt = $pdo->prepare('UPDATE users SET name = ? WHERE id = ?');
+        $stmt->execute([trim($name), $userId]);
+    }
+
     public static function touchLogin(PDO $pdo, int $userId): void
     {
         $stmt = $pdo->prepare('UPDATE users SET last_login_at = ? WHERE id = ?');

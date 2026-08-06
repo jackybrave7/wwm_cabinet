@@ -38,6 +38,9 @@ jobs:
           WWM_WEBHOOKS_ENABLED: ${{ secrets.WWM_WEBHOOKS_ENABLED }}
           WWM_DEMO_HOURS: ${{ secrets.WWM_DEMO_HOURS }}
 
+      - name: Mirror public → public_html (Spaceweb docroot)
+        run: rm -rf public_html && cp -a public public_html
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -54,6 +57,7 @@ jobs:
             **/.github/**
             **/prototype/**
             **/node_modules/**
+            public/**
             config/config.example.php
             data/wwm.sqlite
             data/wwm.sqlite-*

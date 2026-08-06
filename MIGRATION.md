@@ -19,7 +19,7 @@
 worldwatercolormasters.art          → лендинги курсов (Tilda)
 my.worldwatercolormasters.art       → WWM Cabinet (PHP + SQLite)
 bl-school.com/api/tilda-avo-*       → оплата → AVO (без изменений)
-bl-school.com/api/tilda-demo-avo-*  → демо → AVO (PR #64, пока disabled)
+my.worldwatercolormasters.art/api/demo → демо из AVO autofunnel (прямой webhook)
 kinescope.io                        → видео в уроках
 ```
 
@@ -82,18 +82,20 @@ git push -u origin master
 | `WWM_SMTP_USER` | (фаза 2) SMTP для сброса пароля |
 | `WWM_SMTP_PASS` | (фаза 2) |
 | `WWM_SMTP_HOST` | (фаза 2) |
-| `WWM_WEBHOOK_PAYMENT_TOKEN` | (фаза 2) |
-| `WWM_WEBHOOK_DEMO_TOKEN` | (фаза 2) |
+| `WWM_WEBHOOK_PAYMENT_TOKEN` | (фаза 2) оплата |
+| `WWM_WEBHOOK_DEMO_TOKEN` | Секрет для AVO → `/api/demo` (тот же `token` в URL воронки) |
+| `WWM_WEBHOOKS_ENABLED` | `true` — включить `/api/demo` |
 
 Деплой **не включать** до настройки DNS и первого ручного `migrate.php` на сервере.
 
 ### 3. Sweb
 
-1. Поддомен `my.worldwatercolormasters.art` → document root = `.../public/`.
-2. PHP 8.1+.
-3. Права на запись: `data/` (SQLite, логи).
-4. SSL Let's Encrypt.
-5. Первый раз по SSH:
+1. Поддомен `my.worldwatercolormasters.art` → document root = `.../public_html` (стандарт Spaceweb).
+2. GitHub Actions перед деплоем копирует `public/` → `public_html/`.
+3. PHP 8.1+.
+4. Права на запись: `data/` (SQLite, логи).
+5. SSL Let's Encrypt.
+6. Первый раз по SSH (опционально — bootstrap создаёт БД при первом запросе):
 
 ```bash
 cd /path/to/site
@@ -130,7 +132,11 @@ Cache для `/assets/*`.
 
 - Воронки и письма: ссылка входа → `https://my.worldwatercolormasters.art/login`
 - Оплата по-прежнему через webhook в `bl-school` (`tilda-avo-webhook.php`)
-- Демо-форма: `tilda-demo-avo-webhook.php` (PR #64) — включить после теста
+- **Демо:** блок «Отправить вебхук» в автоворонке Elke → прямой URL:
+  ```
+  https://my.worldwatercolormasters.art/api/demo?email={email}&name={name}&course=elke-en&token=WWM_WEBHOOK_DEMO_TOKEN
+  ```
+- Secrets: `WWM_WEBHOOKS_ENABLED=true`, `WWM_WEBHOOK_DEMO_TOKEN`
 
 ## Курсы (slug → AVO id_goods)
 

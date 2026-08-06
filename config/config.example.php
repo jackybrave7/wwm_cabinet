@@ -12,22 +12,18 @@ return [
     // Случайная строка ≥ 32 символов (сессии, токены сброса пароля)
     'app_secret' => 'CHANGE_ME_LONG_RANDOM_SECRET',
 
-    // Webhooks (фаза 2) — пока выключены
+    // Webhooks: AVO autofunnel → GET/POST /api/demo (token in URL or X-WWM-Demo-Token header)
     'webhooks' => [
         'payment_token' => '',
         'demo_token' => '',
         'enabled' => false,
     ],
 
-    // Письма (фаза 2). Пока сброс пароля логируется в data/mail.log
-    'mail' => [
-        'enabled' => false,
-        'from_email' => 'courses@bl-school.com',
-        'from_name' => 'World Watercolor Masters',
-        'smtp_host' => '',
-        'smtp_port' => 587,
-        'smtp_user' => '',
-        'smtp_pass' => '',
+    // AVO id_goods → course slug (for /api/demo id_goods param)
+    'avo_goods_to_course' => [
+        188 => 'elke-en',
+        191 => 'elke-de',
+        193 => 'alvaro',
     ],
 
     'demo_hours' => 48,
