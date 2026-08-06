@@ -82,6 +82,15 @@ function wwm_escape(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
+function wwm_asset_url(string $path): string
+{
+    $relative = ltrim($path, '/');
+    $file = WWM_ROOT . '/public/assets/' . $relative;
+    $version = is_readable($file) ? (string)filemtime($file) : '1';
+
+    return '/assets/' . $relative . '?v=' . $version;
+}
+
 function wwm_csrf_token(): string
 {
     if (empty($_SESSION['csrf_token'])) {

@@ -410,13 +410,8 @@ a:hover { text-decoration: underline; }
 .account-grid {
   display: grid;
   gap: 20px;
-}
-
-@media (min-width: 768px) {
-  .account-grid {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start;
 }
 
 .account-panel {
