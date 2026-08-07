@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Services;
 
 use Wwm\Models\Access;
-use Wwm\Models\PasswordReset;
+use Wwm\Models\LoginLink;
 use Wwm\Models\User;
 use Wwm\Services\Mailer;
 
@@ -18,7 +18,8 @@ final class DemoAccess
      *   demo_granted: bool,
      *   demo_active: bool,
      *   expires_at: string|null,
-     *   course_slug: string
+     *   course_slug: string,
+     *   login_url: string|null
      * }
      */
     public function grant(
@@ -91,8 +92,18 @@ final class DemoAccess
             ));
         }
 
-        if ($created && $this->demoDefaultPassword() === null) {
-            $this->sendWelcomeEmail($user, $course, $expiresAt);
+        $loginUrl = null;
+        if ($state['demo_active'] || $demoGranted) {
+            $loginUrl = LoginLink::issue(
+                $pdo,
+                $userId,
+                self::defaultNextPath($courseSlug),
+                LoginLink::ttlSeconds()
+            );
+        }
+
+        if ($demoGranted && $loginUrl !== null) {
+            $this->sendDemoLoginEmail($user, $course, $expiresAt, $loginUrl);
         }
 
         return [
@@ -105,6 +116,7 @@ final class DemoAccess
                 ? $this->currentDemoExpiresAt($pdo, $userId, $courseSlug)
                 : $expiresAt,
             'course_slug' => $courseSlug,
+            'login_url' => $loginUrl,
         ];
     }
 
@@ -127,34 +139,52 @@ final class DemoAccess
         return isset($map[$goodsId]) ? (string)$map[$goodsId] : null;
     }
 
+    public static function defaultNextPath(string $courseSlug): string
+    {
+        $catalog = new CourseCatalog();
+        $course = $catalog->get($courseSlug);
+        if ($course === null) {
+            return '/';
+        }
+
+        $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+        foreach ($lessons as $lesson) {
+            if (!is_array($lesson) || empty($lesson['demo'])) {
+                continue;
+            }
+            $num = (int)($lesson['num'] ?? 0);
+            if ($num > 0) {
+                return '/c/' . rawurlencode($courseSlug) . '/' . $num;
+            }
+        }
+
+        return '/c/' . rawurlencode($courseSlug);
+    }
+
     /**
      * @param array<string, mixed> $user
      * @param array<string, mixed> $course
      */
-    private function sendWelcomeEmail(array $user, array $course, string $expiresAt): void
+    private function sendDemoLoginEmail(array $user, array $course, string $expiresAt, string $loginUrl): void
     {
-        $token = bin2hex(random_bytes(32));
-        PasswordReset::create(wwm_pdo(), (int)$user['id'], $token, 72 * 3600);
-
-        $base = rtrim((string)wwm_config()['base_url'], '/');
-        $setPasswordUrl = $base . '/reset?token=' . urlencode($token);
-        $loginUrl = $base . '/login';
-        $courseTitle = (string)($course['title'] ?? $course['slug'] ?? 'course');
+        $courseSlug = (string)($course['slug'] ?? '');
+        $courseTitle = (string)($course['title'] ?? $courseSlug);
         $name = trim((string)($user['name'] ?? ''));
         $greeting = $name !== '' ? "Hello {$name}," : 'Hello,';
+        $expiresLocal = gmdate('Y-m-d H:i', strtotime($expiresAt)) . ' UTC';
 
         $body = implode("\n", [
             $greeting,
             '',
             "Your demo access to \"{$courseTitle}\" is ready.",
             '',
-            'Set your password and open lesson 1:',
-            $setPasswordUrl,
-            '',
-            'Or sign in later at:',
+            'Open this link to sign in instantly (no password needed):',
             $loginUrl,
             '',
-            'Demo access expires: ' . gmdate('Y-m-d H:i') . ' UTC',
+            'You can also sign in with email and password at:',
+            rtrim((string)wwm_config()['base_url'], '/') . '/login',
+            '',
+            'Demo access expires: ' . $expiresLocal,
             '',
             'World Watercolor Masters',
         ]);

@@ -5,6 +5,7 @@ namespace Wwm\Controllers;
 
 use Wwm\Auth\Password;
 use Wwm\Auth\Session;
+use Wwm\Models\LoginLink;
 use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
 use Wwm\Services\Mailer;
@@ -19,6 +20,7 @@ final class AuthController
         wwm_render('login', [
             'pageTitle' => 'Sign in',
             'error' => null,
+            'message' => null,
             'next' => (string)($_GET['next'] ?? '/'),
         ]);
     }
@@ -52,6 +54,73 @@ final class AuthController
         User::touchLogin(wwm_pdo(), (int)$user['id']);
         wwm_log('login user_id=' . $user['id']);
         wwm_redirect($next);
+    }
+
+    public function consumeMagicLink(): void
+    {
+        $token = trim((string)($_GET['token'] ?? ''));
+        $row = $token !== '' ? LoginLink::findValid(wwm_pdo(), $token) : null;
+        if ($row === null) {
+            wwm_render('error', [
+                'pageTitle' => 'Invalid link',
+                'code' => 400,
+                'message' => 'This sign-in link is invalid or has expired.',
+            ]);
+            return;
+        }
+
+        LoginLink::markUsed(wwm_pdo(), (int)$row['id']);
+        Session::login((int)$row['user_id']);
+        User::touchLogin(wwm_pdo(), (int)$row['user_id']);
+        wwm_log('magic login user_id=' . $row['user_id']);
+
+        $next = LoginLink::sanitizeNextPath((string)($row['next_path'] ?? '/'));
+        wwm_redirect($next);
+    }
+
+    public function requestMagicLink(): void
+    {
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(400);
+            wwm_render('login', [
+                'pageTitle' => 'Sign in',
+                'error' => 'Invalid request.',
+                'message' => null,
+                'next' => '/',
+            ]);
+            return;
+        }
+
+        $email = trim((string)($_POST['email'] ?? ''));
+        $next = LoginLink::sanitizeNextPath((string)($_POST['next'] ?? '/'));
+        $user = User::findByEmail(wwm_pdo(), $email);
+
+        if ($user !== null) {
+            $loginUrl = LoginLink::issue(wwm_pdo(), (int)$user['id'], $next, LoginLink::ttlSeconds());
+            Mailer::send(
+                (string)$user['email'],
+                'Your sign-in link — World Watercolor Masters',
+                implode("\n", [
+                    'Hello,',
+                    '',
+                    'Open this link to sign in to your account:',
+                    $loginUrl,
+                    '',
+                    'The link is single-use and expires in ' . (int)(LoginLink::ttlSeconds() / 3600) . ' hours.',
+                    '',
+                    'If you did not request this, you can ignore this email.',
+                    '',
+                    'World Watercolor Masters',
+                ])
+            );
+        }
+
+        wwm_render('login', [
+            'pageTitle' => 'Sign in',
+            'error' => null,
+            'message' => 'If this email is registered, we sent a sign-in link.',
+            'next' => $next,
+        ]);
     }
 
     public function logout(): void

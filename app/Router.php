@@ -28,6 +28,14 @@ final class Router
             (new AuthController())->login();
             return;
         }
+        if ($method === 'GET' && $path === '/auth/magic') {
+            (new AuthController())->consumeMagicLink();
+            return;
+        }
+        if ($method === 'POST' && $path === '/auth/magic/request') {
+            (new AuthController())->requestMagicLink();
+            return;
+        }
         if ($method === 'GET' && $path === '/logout') {
             (new AuthController())->logout();
             return;

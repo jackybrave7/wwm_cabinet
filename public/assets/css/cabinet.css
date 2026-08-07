@@ -656,6 +656,25 @@ a:hover { text-decoration: underline; }
   color: var(--mute);
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 20px;
+  color: var(--mute);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
 .form-hint {
   margin-top: 20px;
   padding: 12px 14px;
