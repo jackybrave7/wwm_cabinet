@@ -7,6 +7,7 @@ use Wwm\Auth\Session;
 use Wwm\Models\User;
 use Wwm\Services\AccessChecker;
 use Wwm\Services\CourseCatalog;
+use Wwm\Services\CourseWriter;
 
 final class LessonController
 {
@@ -62,6 +63,14 @@ final class LessonController
             $lessonAccess[(int)($item['num'] ?? 0)] = $la;
         }
 
+        $adjacent = CourseWriter::adjacentLessons($course, $num);
+        $prevLesson = $adjacent['prev'];
+        $nextLesson = $adjacent['next'];
+        $prevLocked = $prevLesson !== null
+            && empty($lessonAccess[(int)($prevLesson['num'] ?? 0)]['can_view_lesson']);
+        $nextLocked = $nextLesson !== null
+            && empty($lessonAccess[(int)($nextLesson['num'] ?? 0)]['can_view_lesson']);
+
         wwm_render('lesson', [
             'pageTitle' => (string)($lesson['title'] ?? 'Lesson'),
             'user' => $user,
@@ -69,6 +78,10 @@ final class LessonController
             'lesson' => $lesson,
             'lessonAccess' => $lessonAccess,
             'accessLabel' => $access['access_label'],
+            'prevLesson' => $prevLesson,
+            'nextLesson' => $nextLesson,
+            'prevLocked' => $prevLocked,
+            'nextLocked' => $nextLocked,
         ]);
     }
 }

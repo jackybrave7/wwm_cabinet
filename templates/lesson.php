@@ -51,6 +51,33 @@ $lessonNum = (int)($lesson['num'] ?? 0);
           </div>
         <?php endif; ?>
       </article>
+
+      <?php if (!empty($prevLesson) || !empty($nextLesson)): ?>
+        <nav class="lesson-pager" aria-label="Lesson navigation">
+          <div class="lesson-pager-side">
+            <?php if (!empty($prevLesson)): ?>
+              <?php $prevNum = (int)($prevLesson['num'] ?? 0); ?>
+              <a href="/c/<?= wwm_escape((string)$course['slug']) ?>/<?= $prevNum ?>" class="btn btn-ghost">
+                ← Previous lesson
+              </a>
+              <?php if (!empty($prevLocked)): ?>
+                <span class="lesson-pager-hint">Locked in demo mode</span>
+              <?php endif; ?>
+            <?php endif; ?>
+          </div>
+          <div class="lesson-pager-side lesson-pager-side-end">
+            <?php if (!empty($nextLesson)): ?>
+              <?php $nextNum = (int)($nextLesson['num'] ?? 0); ?>
+              <a href="/c/<?= wwm_escape((string)$course['slug']) ?>/<?= $nextNum ?>" class="btn btn-ghost">
+                Next lesson →
+              </a>
+              <?php if (!empty($nextLocked)): ?>
+                <span class="lesson-pager-hint">Locked in demo mode</span>
+              <?php endif; ?>
+            <?php endif; ?>
+          </div>
+        </nav>
+      <?php endif; ?>
     </div>
   </div>
 </section>

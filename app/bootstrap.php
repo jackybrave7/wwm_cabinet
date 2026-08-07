@@ -5,10 +5,14 @@ const WWM_ROOT = __DIR__ . '/..';
 
 $configPath = WWM_ROOT . '/config/config.php';
 if (!is_readable($configPath)) {
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, "WWM Cabinet: missing config/config.php (copy from config.example.php)\n");
+        exit(1);
+    }
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'WWM Cabinet: missing config/config.php (copy from config.example.php)';
-    exit;
+    exit(1);
 }
 
 /** @var array<string, mixed> $config */
@@ -234,6 +238,44 @@ function wwm_sanitize_video_embed_url(string $url): ?string
     return null;
 }
 
+function wwm_sanitize_lesson_image_url(string $url): ?string
+{
+    $url = trim($url);
+    if ($url === '') {
+        return null;
+    }
+
+    if (str_starts_with($url, '/')) {
+        if (!preg_match('#^/assets/courses/[a-z0-9\-./_]+$#i', $url)) {
+            return null;
+        }
+        return $url;
+    }
+
+    if (!str_starts_with($url, 'https://')) {
+        return null;
+    }
+
+    $host = strtolower((string)(parse_url($url, PHP_URL_HOST) ?? ''));
+    $allowedHosts = [
+        'my.worldwatercolormasters.art',
+        'worldwatercolormasters.art',
+        'localhost',
+        '127.0.0.1',
+    ];
+    foreach ($allowedHosts as $allowed) {
+        if ($host === $allowed || str_ends_with($host, '.' . $allowed)) {
+            $path = (string)(parse_url($url, PHP_URL_PATH) ?? '');
+            if (preg_match('#^/assets/courses/[a-z0-9\-./_]+$#i', $path)) {
+                return $path;
+            }
+            return null;
+        }
+    }
+
+    return null;
+}
+
 function wwm_sanitize_lesson_html(?string $html): string
 {
     $html = trim((string)$html);
@@ -242,6 +284,30 @@ function wwm_sanitize_lesson_html(?string $html): string
     }
 
     $videoBlocks = [];
+    $imageBlocks = [];
+    $html = preg_replace_callback(
+        '/<img[^>]*>/i',
+        static function (array $matches) use (&$imageBlocks): string {
+            $tag = $matches[0];
+            if (!preg_match('/\bsrc=["\']([^"\']+)["\']/i', $tag, $srcMatch)) {
+                return '';
+            }
+            $src = wwm_sanitize_lesson_image_url($srcMatch[1]);
+            if ($src === null) {
+                return '';
+            }
+            $alt = '';
+            if (preg_match('/\balt=["\']([^"\']*)["\']/i', $tag, $altMatch)) {
+                $alt = htmlspecialchars($altMatch[1], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+            $altAttr = $alt !== '' ? ' alt="' . $alt . '"' : ' alt=""';
+            $safeSrc = htmlspecialchars($src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $imageBlocks[] = '<img src="' . $safeSrc . '"' . $altAttr . ' loading="lazy" class="lesson-image">';
+            return '%%WWIMG' . (count($imageBlocks) - 1) . '%%';
+        },
+        $html
+    ) ?? $html;
+
     $html = preg_replace_callback(
         '/<div[^>]*\bvideo-block\b[^>]*>.*?<\/div>/is',
         static function (array $matches) use (&$videoBlocks): string {
@@ -271,6 +337,9 @@ function wwm_sanitize_lesson_html(?string $html): string
     foreach ($videoBlocks as $i => $block) {
         $html = str_replace('%%WWVIDEO' . $i . '%%', $block, $html);
     }
+    foreach ($imageBlocks as $i => $block) {
+        $html = str_replace('%%WWIMG' . $i . '%%', $block, $html);
+    }
 
     return trim($html);
 }
@@ -295,18 +364,20 @@ function wwm_finalize_lesson_html(?string $html): string
     $html = preg_replace('/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/i', '', $html) ?? $html;
     $html = preg_replace('/<div>(\s|&nbsp;|<br\s*\/?>)*<\/div>/i', '', $html) ?? $html;
 
-    $html = preg_replace_callback(
-        '/>([^<]+)</',
-        static function (array $matches): string {
-            $text = trim($matches[1]);
-            if ($text === '') {
-                return '><';
-            }
+    if (!preg_match('/<(div|ol|ul|h2|h3)\b/i', $html)) {
+        $html = preg_replace_callback(
+            '/>([^<]+)</',
+            static function (array $matches): string {
+                $text = trim($matches[1]);
+                if ($text === '') {
+                    return '><';
+                }
 
-            return '><p>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p><';
-        },
-        $html
-    ) ?? $html;
+                return '><p>' . htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p><';
+            },
+            $html
+        ) ?? $html;
+    }
 
     return trim($html);
 }

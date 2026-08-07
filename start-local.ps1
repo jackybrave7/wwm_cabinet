@@ -20,9 +20,33 @@ function Write-Step([string]$Message) {
     Write-Host "`n>> $Message" -ForegroundColor Cyan
 }
 
+function Ensure-Config {
+    $configPath = Join-Path $Root "config\config.php"
+    $examplePath = Join-Path $Root "config\config.example.php"
+    if (Test-Path $configPath) {
+        return
+    }
+    if (-not (Test-Path $examplePath)) {
+        throw "Missing config/config.example.php"
+    }
+    Write-Step "Creating config/config.php from example..."
+    Copy-Item $examplePath $configPath
+}
+
 function Stop-PortListeners([int]$ListenPort) {
-    $pids = Get-NetTCPConnection -LocalPort $ListenPort -State Listen -ErrorAction SilentlyContinue |
-        Select-Object -ExpandProperty OwningProcess -Unique
+    $pids = @()
+    if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
+        $pids = Get-NetTCPConnection -LocalPort $ListenPort -State Listen -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty OwningProcess -Unique
+    } else {
+        $matches = netstat -ano | Select-String ":$ListenPort\s"
+        foreach ($line in $matches) {
+            if ($line -match '\s+(\d+)\s*$') {
+                $pids += [int]$Matches[1]
+            }
+        }
+        $pids = $pids | Select-Object -Unique
+    }
     foreach ($procId in $pids) {
         if ($procId -and $procId -ne 0) {
             Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
@@ -54,6 +78,7 @@ function Ensure-Php {
 }
 
 $php = Ensure-Php
+Ensure-Config
 Write-Step "Using PHP: $php"
 & $php -v | Select-Object -First 1
 
@@ -79,9 +104,10 @@ Write-Step "Freeing port $Port..."
 Stop-PortListeners -ListenPort $Port
 Start-Sleep -Milliseconds 500
 
-Write-Step "Starting server at http://localhost:$Port"
+Write-Step "Starting server at http://127.0.0.1:$Port"
 Write-Host @"
 
+Open:   http://127.0.0.1:$Port/login
 Login:  demo@wwm.test / demo-demo-demo
         student@example.com / password
 
@@ -91,7 +117,7 @@ Press Ctrl+C to stop.
 
 Push-Location (Join-Path $Root "public")
 try {
-    & $php -S "localhost:$Port" router.php
+    & $php -S "127.0.0.1:$Port" router.php
 } finally {
     Pop-Location
 }

@@ -68,8 +68,11 @@
             "demo": true,
             "avo_lesson_id": 1442,
             "materials": [],
-            "duration": "",
-            "html_body": "<p><p><br></p><br></p>"
+            "duration": "4:31",
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/s7kS2ybXFabUvKjVJHFdwj"
+            }
         },
         {
             "num": 2,
@@ -77,41 +80,43 @@
             "demo": true,
             "avo_lesson_id": 1443,
             "materials": [],
-            "duration": "",
-            "html_body": "<p>123</p><div class=\"video-block\"><iframe src=\"https://kinescope.io/embed/r11d1T5NkGJnCcXmWBStkv\" allow=\"autoplay; fullscreen; picture-in-picture; encrypted-media\" allowfullscreen loading=\"lazy\"></iframe></div>"
+            "duration": "9:31",
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/9NnV89AhabsdARSzshZtfC"
+            }
         },
         {
             "num": 3,
             "title": "List of materials and photo reference",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1444,
-            "video": {
-                "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
-            },
-            "materials": []
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Elke Memmler uses for the flower painting in this course.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Elke always uses the big format 56 × 76 Fabriano or HAHNEMUHLE, 600–640 gr. The surface of the paper is heavily glued, smooth and satin, so the paint stays on the surface for a long time and only gradually penetrates into the lower layers, which gives time to react.</li>\r\n<li><strong>Brushes.</strong> Elke as a rule uses 5 brushes, both synthetic and natural:\r\n<ul>\r\n<li>The thickest round brush with a thin tip (synthetic) by Elke Memmler — German brand Lineum, released on special order</li>\r\n<li>Thick round brush protein (stores a lot of water and paint)</li>\r\n<li>Medium round squirrel brush, Kolinsky</li>\r\n<li>Thin round school brush (for drawing details)</li>\r\n<li>Fleyts (soft)</li>\r\n</ul>\r\n</li>\r\n<li><strong>Paints.</strong> Elke uses paints by the South Korean firm MIJELLO. She does not highlight preferred colors and uses the versatility of the full palette.</li>\r\n<li><strong>Special blend.</strong> For the landscape, Elke used a mixture she made herself: titanium white and neapolitan yellow, water and some alcohol. It is used to draw trees and create a veil on the picture.</li>\r\n<li><strong>White mascara.</strong></li>\r\n<li><strong>Palette.</strong> Elke uses a large plastic palette (sized for thick brushes). It is divided into three parts: yellow and red shades; cold blues and greens; warm browns and greens.</li>\r\n<li><strong>Pencil.</strong> Elke usually does not use a simple pencil, as she does not create sketches. If required, she recommends any soft pencil to avoid damaging the paper.</li>\r\n<li><strong>Spray with water.</strong></li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo reference</h3>\r\n<p>Reference photo Elke used as the basis for this work.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/elke-en/flower-reference.jpg\" alt=\"Flower reference photo\"></div>\r\n<a class=\"reference-download\" href=\"/assets/courses/elke-en/flower-reference.jpg\" download=\"elke-memmler_pions.jpg\">Download reference image</a>\r\n</div>\r\n</div>"
         },
         {
             "num": 4,
             "title": "Getting started. Drawing",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1445,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/ojQirVJjPaMAhawR5EUZz1"
             },
-            "materials": []
+            "materials": [],
+            "duration": "5:29"
         },
         {
             "num": 5,
             "title": "Getting started in color",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1446,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/5sxVEz2dg1jgTgs4EyYxbk"
             },
-            "materials": []
+            "materials": [],
+            "duration": "0:54"
         },
         {
             "num": 6,
@@ -120,9 +125,10 @@
             "avo_lesson_id": 1447,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/82siy8LSCn54LwqixF6k1k"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:58"
         },
         {
             "num": 7,
@@ -131,9 +137,10 @@
             "avo_lesson_id": 1448,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/e6QNRcJsriRSRXQGxuD31o"
             },
-            "materials": []
+            "materials": [],
+            "duration": "2:30"
         },
         {
             "num": 8,
@@ -142,9 +149,10 @@
             "avo_lesson_id": 1449,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/6b1q4ywhg63cHEBmoC7FD7"
             },
-            "materials": []
+            "materials": [],
+            "duration": "0:55"
         },
         {
             "num": 9,
@@ -153,9 +161,10 @@
             "avo_lesson_id": 1450,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/kmpwVLiQGBsQafLcq1yah8"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:12"
         },
         {
             "num": 10,
@@ -164,9 +173,10 @@
             "avo_lesson_id": 1451,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/ni2wimqdsCW6RyNDJ65fkn"
             },
-            "materials": []
+            "materials": [],
+            "duration": "6:18"
         },
         {
             "num": 11,
@@ -175,9 +185,10 @@
             "avo_lesson_id": 1452,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/gEXQ3rNmwxCmUiJGrGZG3J"
             },
-            "materials": []
+            "materials": [],
+            "duration": "2:46"
         },
         {
             "num": 12,
@@ -186,9 +197,10 @@
             "avo_lesson_id": 1453,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/w9aHRjcMjoqd6XQ3j2jQjm"
             },
-            "materials": []
+            "materials": [],
+            "duration": "7:27"
         },
         {
             "num": 13,
@@ -197,9 +209,10 @@
             "avo_lesson_id": 1454,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/mq9mH7Q7o9ooJYoe9M7rmw"
             },
-            "materials": []
+            "materials": [],
+            "duration": "2:33"
         },
         {
             "num": 14,
@@ -208,9 +221,10 @@
             "avo_lesson_id": 1455,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/rsasRLT5xRwQ82zQWjTP5b"
             },
-            "materials": []
+            "materials": [],
+            "duration": "1:35"
         },
         {
             "num": 15,
@@ -219,9 +233,10 @@
             "avo_lesson_id": 1456,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/3QfZX2u1rNFS8uY3f5Wiuy"
             },
-            "materials": []
+            "materials": [],
+            "duration": "7:41"
         },
         {
             "num": 16,
@@ -230,9 +245,10 @@
             "avo_lesson_id": 1457,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/91jRqbJEFkEGCtcpN6fAJ5"
             },
-            "materials": []
+            "materials": [],
+            "duration": "7:57"
         },
         {
             "num": 17,
@@ -241,9 +257,10 @@
             "avo_lesson_id": 1458,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/2wQyicEECrPERVqak2fii7"
             },
-            "materials": []
+            "materials": [],
+            "duration": "7:21"
         },
         {
             "num": 18,
@@ -252,9 +269,10 @@
             "avo_lesson_id": 1459,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/my3HPujWS6ycp4fPxx5pWU"
             },
-            "materials": []
+            "materials": [],
+            "duration": "12:39"
         },
         {
             "num": 19,
@@ -263,9 +281,10 @@
             "avo_lesson_id": 1460,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/nQZWi2C7nWk2Ej7iz4Z77h"
             },
-            "materials": []
+            "materials": [],
+            "duration": "1:54"
         },
         {
             "num": 20,
@@ -274,9 +293,10 @@
             "avo_lesson_id": 1461,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/j76ChdU2VBGagDdE53LC75"
             },
-            "materials": []
+            "materials": [],
+            "duration": "1:57"
         },
         {
             "num": 21,
@@ -285,20 +305,22 @@
             "avo_lesson_id": 1462,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/agYngiU2n75FVGUgHDKXYN"
             },
-            "materials": []
+            "materials": [],
+            "duration": "7:27"
         },
         {
             "num": 22,
             "title": "Talking about the picture. Composition, mood, color",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1463,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/hPmo3LFqabWDtLHjpRxeto"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:49"
         },
         {
             "num": 23,
@@ -307,20 +329,18 @@
             "avo_lesson_id": 1464,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/9NnV89AhabsdARSzshZtfC"
             },
-            "materials": []
+            "materials": [],
+            "duration": "9:31"
         },
         {
             "num": 24,
             "title": "List of materials and photo reference",
             "demo": false,
             "avo_lesson_id": 1465,
-            "video": {
-                "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
-            },
-            "materials": []
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Elke Memmler uses for the cityscape painting in this course.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Elke always uses the big format 56 × 76 Fabriano or HAHNEMUHLE, 600–640 gr. The surface of the paper is heavily glued, smooth and satin, so the paint stays on the surface for a long time and only gradually penetrates into the lower layers, which gives time to react.</li>\r\n<li><strong>Brushes.</strong> Elke as a rule uses 5 brushes, both synthetic and natural:\r\n<ul>\r\n<li>The thickest round brush with a thin tip (synthetic) by Elke Memmler — German brand Lineum, released on special order</li>\r\n<li>Thick round brush protein (stores a lot of water and paint)</li>\r\n<li>Medium round squirrel brush, Kolinsky</li>\r\n<li>Thin round school brush (for drawing details)</li>\r\n<li>Fleyts (soft)</li>\r\n</ul>\r\n</li>\r\n<li><strong>Paints.</strong> Elke uses paints by the South Korean firm MIJELLO. She does not highlight preferred colors and uses the versatility of the full palette.</li>\r\n<li><strong>Special blend.</strong> For the landscape, Elke used a mixture she made herself: titanium white and neapolitan yellow, water and some alcohol. It is used to draw trees and create a veil on the picture.</li>\r\n<li><strong>White mascara.</strong></li>\r\n<li><strong>Palette.</strong> Elke uses a large plastic palette (sized for thick brushes). It is divided into three parts: yellow and red shades; cold blues and greens; warm browns and greens.</li>\r\n<li><strong>Pencil.</strong> Elke usually does not use a simple pencil, as she does not create sketches. If required, she recommends any soft pencil to avoid damaging the paper.</li>\r\n<li><strong>Spray with water.</strong></li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo reference</h3>\r\n<p>Reference photo Elke used as the basis for this work.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/elke-en/cityscape-reference.jpg\" alt=\"Cityscape reference photo\"></div>\r\n<a class=\"reference-download\" href=\"/assets/courses/elke-en/cityscape-reference.jpg\" download=\"elke-memmler_town.jpg\">Download reference image</a>\r\n</div>\r\n</div>"
         },
         {
             "num": 25,
@@ -329,9 +349,10 @@
             "avo_lesson_id": 1466,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/pB5HxFVNP9pV5MuXMnZnoT"
             },
-            "materials": []
+            "materials": [],
+            "duration": "8:50"
         },
         {
             "num": 26,
@@ -340,9 +361,10 @@
             "avo_lesson_id": 1467,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/iRuVhsagf5aY8RPhQ6U1z5"
             },
-            "materials": []
+            "materials": [],
+            "duration": "4:11"
         },
         {
             "num": 27,
@@ -351,9 +373,10 @@
             "avo_lesson_id": 1468,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/orGjoTRWnTgn7RBUipiMjC"
             },
-            "materials": []
+            "materials": [],
+            "duration": "5:59"
         },
         {
             "num": 28,
@@ -362,20 +385,22 @@
             "avo_lesson_id": 1469,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/sAtvHmZq311Knguka1jrDF"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:09"
         },
         {
             "num": 29,
             "title": "We are planning a house in the foreground and a well",
-            "demo": false,
+            "demo": true,
             "avo_lesson_id": 1470,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/ddsQUJarxzjSojZT6wMq5E"
             },
-            "materials": []
+            "materials": [],
+            "duration": "5:01"
         },
         {
             "num": 30,
@@ -384,9 +409,10 @@
             "avo_lesson_id": 1471,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/7nHYqunT8b1ohHMV81fEyx"
             },
-            "materials": []
+            "materials": [],
+            "duration": "5:27"
         },
         {
             "num": 31,
@@ -395,9 +421,10 @@
             "avo_lesson_id": 1472,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/d8wuV4dfdRwcHep3nkxoa5"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:13"
         },
         {
             "num": 32,
@@ -406,9 +433,10 @@
             "avo_lesson_id": 1473,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/orH4bwnepiLwU3idxtgTmV"
             },
-            "materials": []
+            "materials": [],
+            "duration": "2:16"
         },
         {
             "num": 33,
@@ -417,9 +445,10 @@
             "avo_lesson_id": 1474,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/6kSYc24KT1X8LfSWCL9Kjk"
             },
-            "materials": []
+            "materials": [],
+            "duration": "3:07"
         },
         {
             "num": 34,
@@ -428,9 +457,10 @@
             "avo_lesson_id": 1475,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/iEuG2moy6kt7q6jWxkQF5w"
             },
-            "materials": []
+            "materials": [],
+            "duration": "1:40"
         },
         {
             "num": 35,
@@ -439,9 +469,10 @@
             "avo_lesson_id": 1476,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/rduqgbQavxH3YHnm9WjwmA"
             },
-            "materials": []
+            "materials": [],
+            "duration": "4:47"
         },
         {
             "num": 36,
@@ -450,9 +481,10 @@
             "avo_lesson_id": 1477,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/uswjWUuPLssej68Dg11aYR"
             },
-            "materials": []
+            "materials": [],
+            "duration": "13:11"
         },
         {
             "num": 37,
@@ -461,9 +493,10 @@
             "avo_lesson_id": 1478,
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/vhvN1pe9BYGjoejRcRGKS8"
             },
-            "materials": []
+            "materials": [],
+            "duration": "11:26"
         },
         {
             "num": 38,

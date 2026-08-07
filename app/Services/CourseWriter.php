@@ -69,6 +69,79 @@ final class CourseWriter
 
     /**
      * @param array<string, mixed> $course
+     * @return list<int>
+     */
+    public static function orderedLessonNums(array $course): array
+    {
+        $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+        $lessonByNum = [];
+        foreach ($lessons as $lesson) {
+            if (!is_array($lesson)) {
+                continue;
+            }
+            $num = (int)($lesson['num'] ?? 0);
+            if ($num > 0) {
+                $lessonByNum[$num] = $lesson;
+            }
+        }
+
+        $nums = [];
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : null;
+        if ($sections !== null && $sections !== []) {
+            foreach ($sections as $section) {
+                if (!is_array($section)) {
+                    continue;
+                }
+                $refs = is_array($section['lessons'] ?? null) ? $section['lessons'] : [];
+                foreach ($refs as $ref) {
+                    $num = is_array($ref) ? (int)($ref['num'] ?? 0) : (int)$ref;
+                    if ($num > 0 && isset($lessonByNum[$num])) {
+                        $nums[] = $num;
+                    }
+                }
+            }
+            return $nums;
+        }
+
+        foreach ($lessons as $lesson) {
+            if (!is_array($lesson)) {
+                continue;
+            }
+            $num = (int)($lesson['num'] ?? 0);
+            if ($num > 0) {
+                $nums[] = $num;
+            }
+        }
+
+        return $nums;
+    }
+
+    /**
+     * @param array<string, mixed> $course
+     * @return array{prev: ?array<string, mixed>, next: ?array<string, mixed>}
+     */
+    public static function adjacentLessons(array $course, int $num): array
+    {
+        $order = self::orderedLessonNums($course);
+        $index = array_search($num, $order, true);
+        if ($index === false) {
+            return ['prev' => null, 'next' => null];
+        }
+
+        $prev = null;
+        $next = null;
+        if ($index > 0) {
+            $prev = self::findLesson($course, $order[$index - 1]);
+        }
+        if ($index < count($order) - 1) {
+            $next = self::findLesson($course, $order[$index + 1]);
+        }
+
+        return ['prev' => $prev, 'next' => $next];
+    }
+
+    /**
+     * @param array<string, mixed> $course
      */
     public static function sectionCount(array $course): int
     {
