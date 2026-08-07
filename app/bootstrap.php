@@ -89,10 +89,26 @@ function wwm_escape(?string $value): string
 function wwm_asset_url(string $path): string
 {
     $relative = ltrim($path, '/');
-    $file = WWM_ROOT . '/public/assets/' . $relative;
-    $version = is_readable($file) ? (string)filemtime($file) : '1';
+    $candidates = [
+        WWM_ROOT . '/public_html/assets/' . $relative,
+        WWM_ROOT . '/public/assets/' . $relative,
+    ];
+    $version = (string)(wwm_config()['asset_version'] ?? '');
+    foreach ($candidates as $file) {
+        if (is_readable($file)) {
+            $version = (string)filemtime($file);
+            break;
+        }
+    }
+    if ($version === '') {
+        $version = '1';
+    }
+    $configVersion = (string)(wwm_config()['asset_version'] ?? '');
+    if ($configVersion !== '') {
+        $version .= '-' . $configVersion;
+    }
 
-    return '/assets/' . $relative . '?v=' . $version;
+    return '/assets/' . $relative . '?v=' . rawurlencode($version);
 }
 
 function wwm_csrf_token(): string

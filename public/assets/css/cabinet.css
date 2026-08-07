@@ -322,8 +322,155 @@ a:hover { text-decoration: underline; }
 }
 
 .lesson-content p { margin-bottom: 1em; color: var(--ink-soft); }
-.lesson-content ul, .lesson-content ol { margin: 0 0 1em 1.25em; color: var(--ink-soft); }
+.lesson-content ul,
+.lesson-content ol { margin: 0 0 1em 1.25em; color: var(--ink-soft); }
 .lesson-content li { margin-bottom: 0.35em; }
+
+.lesson-body .materials-sheet {
+  display: grid;
+  gap: 28px;
+}
+
+.lesson-body .materials-intro {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--mute);
+  max-width: 62ch;
+}
+
+.lesson-body ol.materials-items,
+.lesson-content .lesson-body ol.materials-items {
+  list-style: none;
+  counter-reset: material;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+  overflow: hidden;
+  background: #fff;
+}
+
+.lesson-body ol.materials-items > li,
+.lesson-content .lesson-body ol.materials-items > li {
+  counter-increment: material;
+  position: relative;
+  padding: 18px 20px 18px 58px;
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.lesson-body ol.materials-items > li:last-child,
+.lesson-content .lesson-body ol.materials-items > li:last-child {
+  border-bottom: 0;
+}
+
+.lesson-body ol.materials-items > li::before,
+.lesson-content .lesson-body ol.materials-items > li::before {
+  content: counter(material);
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.lesson-body ol.materials-items strong,
+.lesson-content .lesson-body ol.materials-items strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.lesson-body ol.materials-items ul,
+.lesson-content .lesson-body ol.materials-items ul {
+  margin: 10px 0 0;
+  padding-left: 1.15em;
+  list-style: disc;
+}
+
+.lesson-body ol.materials-items ul li,
+.lesson-content .lesson-body ol.materials-items ul li {
+  margin-bottom: 0.45em;
+}
+
+.lesson-body ol.materials-items ul li:last-child,
+.lesson-content .lesson-body ol.materials-items ul li:last-child {
+  margin-bottom: 0;
+}
+
+.lesson-body .reference-panel,
+.lesson-content .lesson-body .reference-panel {
+  padding: 24px;
+  background: linear-gradient(180deg, #fff 0%, var(--paper) 100%);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.lesson-body .reference-panel h3,
+.lesson-content .lesson-body .reference-panel h3 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.lesson-body .reference-panel > p,
+.lesson-content .lesson-body .reference-panel > p {
+  margin: 0 0 18px;
+  color: var(--mute);
+  font-size: 0.95rem;
+}
+
+.lesson-body .reference-media,
+.lesson-content .lesson-body .reference-media {
+  margin: 0 0 18px;
+  max-width: min(100%, 520px);
+  border-radius: calc(var(--radius) + 2px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 28px rgba(10, 10, 10, 0.08);
+  background: #fff;
+}
+
+.lesson-body .reference-media .lesson-image,
+.lesson-content .lesson-body .reference-media .lesson-image {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  max-width: 100%;
+}
+
+.lesson-body .reference-download,
+.lesson-content .lesson-body .reference-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none !important;
+  transition: background 0.15s ease;
+}
+
+.lesson-body .reference-download:hover,
+.lesson-content .lesson-body .reference-download:hover {
+  background: var(--accent-dark);
+  text-decoration: none !important;
+}
 
 .lesson-body .video-block,
 .video-block {
@@ -347,141 +494,11 @@ a:hover { text-decoration: underline; }
 .lesson-body .lesson-image,
 .lesson-content .lesson-image {
   display: block;
-  max-width: 100%;
+  max-width: min(100%, 520px);
   height: auto;
   margin: 16px 0;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-}
-
-.materials-sheet {
-  display: grid;
-  gap: 28px;
-}
-
-.materials-intro {
-  margin: 0;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: var(--mute);
-  max-width: 62ch;
-}
-
-.materials-items {
-  list-style: none;
-  counter-reset: material;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 2px);
-  overflow: hidden;
-  background: #fff;
-}
-
-.materials-items > li {
-  counter-increment: material;
-  position: relative;
-  padding: 18px 20px 18px 58px;
-  border-bottom: 1px solid var(--line);
-  margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.6;
-}
-
-.materials-items > li:last-child {
-  border-bottom: 0;
-}
-
-.materials-items > li::before {
-  content: counter(material);
-  position: absolute;
-  left: 18px;
-  top: 18px;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-weight: 700;
-  font-size: 0.82rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
-.materials-items strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.materials-items ul {
-  margin: 10px 0 0;
-  padding-left: 1.15em;
-  list-style: disc;
-}
-
-.materials-items ul li {
-  margin-bottom: 0.45em;
-}
-
-.materials-items ul li:last-child {
-  margin-bottom: 0;
-}
-
-.reference-panel {
-  padding: 24px;
-  background: linear-gradient(180deg, #fff 0%, var(--paper) 100%);
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 2px);
-}
-
-.reference-panel h3 {
-  margin: 0 0 6px;
-  font-size: 1.15rem;
-}
-
-.reference-panel > p {
-  margin: 0 0 18px;
-  color: var(--mute);
-  font-size: 0.95rem;
-}
-
-.reference-media {
-  margin: 0 0 18px;
-  max-width: min(100%, 520px);
-  border-radius: calc(var(--radius) + 2px);
-  overflow: hidden;
-  border: 1px solid var(--line);
-  box-shadow: 0 8px 28px rgba(10, 10, 10, 0.08);
-  background: #fff;
-}
-
-.reference-media .lesson-image {
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-}
-
-.reference-download {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 11px 20px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #fff !important;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-decoration: none !important;
-  transition: background 0.15s ease;
-}
-
-.reference-download:hover {
-  background: var(--accent-dark);
-  text-decoration: none !important;
 }
 
 .materials-box {
