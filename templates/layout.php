@@ -36,7 +36,7 @@
   </main>
   <footer class="site-footer">
     <div class="wrap">
-      <p>&copy; <?= date('Y') ?> Bratec Lis School · <a href="https://worldwatercolormasters.art" target="_blank" rel="noopener">worldwatercolormasters.art</a></p>
+      <p>&copy; <?= date('Y') ?> Bratec Lis School · <a href="https://worldwatercolormasters.art" target="_blank" rel="noopener">worldwatercolormasters.art</a> · <a href="mailto:support@worldwatercolormasters.art">support@worldwatercolormasters.art</a></p>
     </div>
   </footer>
 </body>
