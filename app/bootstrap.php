@@ -276,6 +276,53 @@ function wwm_sanitize_lesson_image_url(string $url): ?string
     return null;
 }
 
+/** @return list<string> */
+function wwm_lesson_allowed_classes(): array
+{
+    return [
+        'materials-sheet',
+        'materials-intro',
+        'materials-items',
+        'reference-panel',
+        'reference-media',
+        'reference-download',
+    ];
+}
+
+function wwm_sanitize_lesson_opening_tag(string $tag, string $attrs): string
+{
+    $tag = strtolower($tag);
+    $parts = [];
+
+    if (preg_match('/\bclass=["\']([^"\']+)["\']/i', $attrs, $classMatch)) {
+        $allowed = wwm_lesson_allowed_classes();
+        $classes = array_values(array_intersect(
+            preg_split('/\s+/', trim($classMatch[1])) ?: [],
+            $allowed
+        ));
+        if ($classes !== []) {
+            $parts[] = 'class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+        }
+    }
+
+    if ($tag === 'a') {
+        if (preg_match('/\bhref=["\']([^"\']+)["\']/i', $attrs, $hrefMatch)) {
+            $href = wwm_sanitize_lesson_image_url($hrefMatch[1]);
+            if ($href !== null) {
+                $parts[] = 'href="' . htmlspecialchars($href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+            }
+        }
+        if (preg_match('/\bdownload=["\']([^"\']*)["\']/i', $attrs, $downloadMatch)) {
+            $download = preg_replace('/[^a-zA-Z0-9._-]/', '', basename($downloadMatch[1]));
+            if ($download !== '') {
+                $parts[] = 'download="' . htmlspecialchars($download, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+            }
+        }
+    }
+
+    return '<' . $tag . ($parts !== [] ? ' ' . implode(' ', $parts) : '') . '>';
+}
+
 function wwm_sanitize_lesson_html(?string $html): string
 {
     $html = trim((string)$html);
@@ -331,8 +378,22 @@ function wwm_sanitize_lesson_html(?string $html): string
         $html
     ) ?? $html;
 
+    $openTags = [];
+    $html = preg_replace_callback(
+        '/<(div|ol|p|a|span)\b([^>]*)>/i',
+        static function (array $matches) use (&$openTags): string {
+            $openTags[] = wwm_sanitize_lesson_opening_tag($matches[1], $matches[2] ?? '');
+            return '%%WWOTAG' . (count($openTags) - 1) . '%%';
+        },
+        $html
+    ) ?? $html;
+
     $allowed = '<h2><h3><p><strong><em><b><i><u><ul><ol><li><a><br><div><span>';
     $html = strip_tags($html, $allowed);
+
+    foreach ($openTags as $i => $tag) {
+        $html = str_replace('%%WWOTAG' . $i . '%%', $tag, $html);
+    }
 
     foreach ($videoBlocks as $i => $block) {
         $html = str_replace('%%WWVIDEO' . $i . '%%', $block, $html);
