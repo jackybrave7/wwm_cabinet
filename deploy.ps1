@@ -32,6 +32,7 @@ $paths = @(
     'templates',
     'public',
     'data/courses',
+    'scripts/write-deploy-config.mjs',
     'scripts/sync-elke-kinescope.php',
     'start-local.ps1',
     'start-local.bat',
@@ -50,6 +51,9 @@ if (-not $pending) {
     if ($dirty) {
         Write-Host 'No deploy paths changed. Unstaged local changes:' -ForegroundColor Yellow
         git status --short
+        Write-Host ''
+        Write-Host 'Tip: only app/, templates/, public/, data/courses/, and deploy scripts are deployed.' -ForegroundColor DarkGray
+        Write-Host 'Local-only files (config.php, *.bak, data/.schema_version) are not included.' -ForegroundColor DarkGray
         exit 1
     }
     Write-Host 'Nothing to deploy — working tree is clean.' -ForegroundColor Green
