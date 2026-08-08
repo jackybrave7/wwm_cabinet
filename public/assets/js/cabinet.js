@@ -4,7 +4,7 @@
     return;
   }
 
-  var formatter = new Intl.DateTimeFormat(undefined, {
+  var formatter = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
