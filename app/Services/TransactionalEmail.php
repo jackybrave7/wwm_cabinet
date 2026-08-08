@@ -59,11 +59,11 @@ final class TransactionalEmail
                 self::button($magicLoginUrl, 'Start watching'),
                 self::spacer(8),
                 self::paragraph(
-                    'Or open this link — your email and password will be filled in automatically:',
+                    'Or sign in with your email and password prefilled:',
                     '14px',
                     '#6e6e6e'
                 ),
-                self::linkBlock($prefilledLoginUrl),
+                self::button($prefilledLoginUrl, 'Sign in with saved password'),
                 self::credentialsBox($email, $password),
                 self::courseLink($coursePageUrl),
                 self::supportBlock(),
@@ -245,11 +245,11 @@ final class TransactionalEmail
             . self::e($label) . '</a></td></tr></table>';
     }
 
-    private static function linkBlock(string $url): string
+    private static function linkBlock(string $url, string $label = 'Open link'): string
     {
-        return '<p style="margin:0 0 16px;font-size:14px;line-height:1.5;word-break:break-all;">'
-            . '<a href="' . self::e($url) . '" style="color:#b81e16;text-decoration:none;">'
-            . self::e($url) . '</a></p>';
+        return '<p style="margin:0 0 16px;font-size:16px;line-height:1.5;">'
+            . '<a href="' . self::e($url) . '" target="_blank" style="color:#b81e16;text-decoration:underline;">'
+            . self::e($label) . '</a></p>';
     }
 
     private static function credentialsBox(
@@ -270,8 +270,8 @@ final class TransactionalEmail
             . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;text-transform:uppercase;'
             . 'letter-spacing:0.04em;">Sign-in details</p>'
             . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
-            . '<strong>Cabinet:</strong> <a href="' . self::e($loginUrl) . '" style="color:#b81e16;text-decoration:none;">'
-            . self::e($loginUrl) . '</a></p>'
+            . '<strong>Cabinet:</strong> <a href="' . self::e($loginUrl) . '" target="_blank" style="color:#b81e16;text-decoration:underline;">'
+            . 'Sign in to your cabinet</a></p>'
             . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
             . '<strong>Email:</strong> ' . self::e($email) . '</p>'
             . '<p style="margin:0;font-size:16px;line-height:1.5;color:#2a2a2a;">'
