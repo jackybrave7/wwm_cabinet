@@ -308,6 +308,12 @@ a:hover { text-decoration: underline; }
   display: block;
 }
 
+@media (min-width: 901px) {
+  .course-sidebar-panel .course-sidebar-body {
+    display: block !important;
+  }
+}
+
 .section-block { margin-bottom: 12px; }
 .section-block:last-child { margin-bottom: 0; }
 

@@ -91,7 +91,7 @@ $sectionContainsCurrent = static function (array $sectionLessons, ?int $currentL
 };
 ?>
 <aside class="course-sidebar">
-  <details class="course-sidebar-panel"<?= ($currentLessonNum ?? null) === null ? ' open' : '' ?>>
+  <details class="course-sidebar-panel" open>
     <summary class="course-sidebar-toggle">Course content</summary>
     <div class="course-sidebar-body">
 
