@@ -128,11 +128,33 @@ function wwm_verify_csrf(?string $token): bool
 function wwm_redirect(string $path, int $code = 302): never
 {
     if (!str_starts_with($path, 'http')) {
-        $base = rtrim((string)(wwm_config()['base_url'] ?? ''), '/');
-        $path = $base . ($path === '' ? '/' : $path);
+        $path = wwm_base_url() . ($path === '' ? '/' : $path);
     }
     header('Location: ' . $path, true, $code);
     exit;
+}
+
+function wwm_base_url(): string
+{
+    static $resolved = null;
+    if ($resolved !== null) {
+        return $resolved;
+    }
+
+    $base = rtrim((string)(wwm_config()['base_url'] ?? ''), '/');
+    if ($base !== '' && str_starts_with($base, 'http')) {
+        return $resolved = $base;
+    }
+
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host !== '') {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+            || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+        return $resolved = ($https ? 'https' : 'http') . '://' . $host;
+    }
+
+    return $resolved = 'https://my.worldwatercolormasters.art';
 }
 
 function wwm_sanitize_internal_path(string $path): string
@@ -157,7 +179,7 @@ function wwm_login_url(string $email, ?string $password = null, string $next = '
         $params['next'] = $next;
     }
 
-    $base = rtrim((string)wwm_config()['base_url'], '/');
+    $base = wwm_base_url();
     return $base . '/login?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 }
 

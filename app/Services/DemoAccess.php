@@ -188,7 +188,7 @@ final class DemoAccess
             $loginUrl,
             '',
             'You can also sign in manually at:',
-            rtrim((string)wwm_config()['base_url'], '/') . '/login',
+            wwm_base_url() . '/login',
             '',
             'Demo access expires: ' . $expiresLocal,
             '',

@@ -21,13 +21,9 @@
     </label>
     <button type="submit" class="btn btn-primary btn-block">Sign in</button>
   </form>
-  <?php if (!empty($email) && ($password ?? '') !== ''): ?>
-    <script>
-      document.currentScript.previousElementSibling.requestSubmit();
-    </script>
-  <?php endif; ?>
   <p class="form-footer"><a href="/forgot">Forgot password?</a></p>
 
+  <?php if (!empty(wwm_config()['magic_link_login'])): ?>
   <div class="auth-divider" aria-hidden="true"><span>or</span></div>
 
   <form method="post" action="/auth/magic/request" class="form">
@@ -40,6 +36,7 @@
     <button type="submit" class="btn btn-ghost btn-block">Email me a sign-in link</button>
   </form>
   <p class="form-hint">We will send a one-time link. No password needed.</p>
+  <?php endif; ?>
 
   <?php if (str_contains((string)(wwm_config()['base_url'] ?? ''), 'localhost')): ?>
     <p class="form-hint">Local dev: <code>demo@wwm.test</code> / <code>demo-demo-demo</code> (admin) · <code>student@example.com</code> / <code>password</code></p>

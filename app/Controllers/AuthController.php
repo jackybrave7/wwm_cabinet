@@ -28,11 +28,25 @@ final class AuthController
             $password = '';
         }
 
+        $next = wwm_sanitize_internal_path((string)($_GET['next'] ?? '/'));
+        $error = null;
+
+        if ($email !== '' && $password !== '') {
+            $user = User::findByEmail(wwm_pdo(), $email);
+            if ($user !== null && Password::verify($password, (string)($user['password_hash'] ?? ''))) {
+                Session::login((int)$user['id']);
+                User::touchLogin(wwm_pdo(), (int)$user['id']);
+                wwm_log('login via url user_id=' . $user['id']);
+                wwm_redirect($next);
+            }
+            $error = 'Invalid email or password.';
+        }
+
         wwm_render('login', [
             'pageTitle' => 'Sign in',
-            'error' => null,
+            'error' => $error,
             'message' => null,
-            'next' => wwm_sanitize_internal_path((string)($_GET['next'] ?? '/')),
+            'next' => $next,
             'email' => $email,
             'password' => $password,
         ]);
@@ -168,8 +182,7 @@ final class AuthController
         if ($user !== null) {
             $token = bin2hex(random_bytes(32));
             PasswordReset::create(wwm_pdo(), (int)$user['id'], $token);
-            $base = rtrim((string)wwm_config()['base_url'], '/');
-            $link = $base . '/reset?token=' . urlencode($token);
+            $link = wwm_base_url() . '/reset?token=' . urlencode($token);
             Mailer::send(
                 (string)$user['email'],
                 'Reset your WWM password',

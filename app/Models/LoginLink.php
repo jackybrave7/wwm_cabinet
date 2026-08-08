@@ -12,8 +12,7 @@ final class LoginLink
         $token = bin2hex(random_bytes(32));
         self::create($pdo, $userId, $token, $nextPath, $ttlSeconds);
 
-        $base = rtrim((string)wwm_config()['base_url'], '/');
-        return $base . '/auth/magic?token=' . urlencode($token);
+        return wwm_base_url() . '/auth/magic?token=' . urlencode($token);
     }
 
     public static function create(
