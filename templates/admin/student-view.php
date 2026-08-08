@@ -1,4 +1,6 @@
 <?php
+use Wwm\Services\StudentAttribution;
+
 $formatDate = static function (?string $iso): string {
     if ($iso === null || $iso === '') {
         return '—';
@@ -11,6 +13,10 @@ $pct = $total_lessons > 0 ? min(100, (int)round($total_opened / $total_lessons *
 $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo' ? 'badge-demo' : 'badge-draft');
 $periods = is_array($access_periods ?? null) ? $access_periods : [];
 $accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
+$location = StudentAttribution::locationLabel($student);
+$channel = StudentAttribution::channelLabel($student);
+$channelDetail = StudentAttribution::channelDetail($student);
+$lastLocation = StudentAttribution::locationLabel($student, false);
 ?>
 <div class="admin-topbar">
   <div>
@@ -40,6 +46,20 @@ $accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
   <div class="admin-stat-card">
     <span class="admin-stat-label">Access</span>
     <strong class="admin-stat-value" style="font-size:1.35rem"><span class="badge <?= $badgeClass ?>"><?= wwm_escape($access_label) ?></span></strong>
+  </div>
+  <div class="admin-stat-card">
+    <span class="admin-stat-label">Location</span>
+    <strong class="admin-stat-value" style="font-size:1.1rem"><?= wwm_escape($location) ?></strong>
+    <?php if ($lastLocation !== $location && $lastLocation !== '—'): ?>
+      <span class="admin-stat-note">Last login: <?= wwm_escape($lastLocation) ?></span>
+    <?php endif; ?>
+  </div>
+  <div class="admin-stat-card">
+    <span class="admin-stat-label">Marketing channel</span>
+    <strong class="admin-stat-value" style="font-size:1.1rem"><?= wwm_escape($channel) ?></strong>
+    <?php if ($channelDetail !== null): ?>
+      <span class="admin-stat-note"><?= wwm_escape($channelDetail) ?></span>
+    <?php endif; ?>
   </div>
 </div>
 

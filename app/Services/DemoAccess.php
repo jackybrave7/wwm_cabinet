@@ -7,6 +7,7 @@ use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
 use Wwm\Services\Mailer;
+use Wwm\Services\StudentAttribution;
 
 final class DemoAccess
 {
@@ -27,7 +28,8 @@ final class DemoAccess
         string $name,
         string $courseSlug,
         string $source = 'avo',
-        ?string $sourceRef = null
+        ?string $sourceRef = null,
+        array $utm = []
     ): array {
         $email = strtolower(trim($email));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -58,6 +60,7 @@ final class DemoAccess
         }
 
         $userId = (int)$user['id'];
+        StudentAttribution::recordForUser($pdo, $userId, $created, $utm);
         $state = Access::courseState($pdo, $userId, $courseSlug);
 
         if ($state['has_paid']) {

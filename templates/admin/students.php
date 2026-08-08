@@ -1,4 +1,6 @@
 <?php
+use Wwm\Services\StudentAttribution;
+
 $formatDate = static function (?string $iso): string {
     if ($iso === null || $iso === '') {
         return '—';
@@ -40,6 +42,8 @@ $formatDate = static function (?string $iso): string {
     <thead>
       <tr>
         <th>Student</th>
+        <th>Location</th>
+        <th>Channel</th>
         <th>Access</th>
         <th>Progress</th>
         <th>Last activity</th>
@@ -48,7 +52,7 @@ $formatDate = static function (?string $iso): string {
     </thead>
     <tbody>
       <?php if ($students === []): ?>
-        <tr><td colspan="5" style="color:var(--mute)">No students found.</td></tr>
+        <tr><td colspan="7" style="color:var(--mute)">No students found.</td></tr>
       <?php endif; ?>
       <?php foreach ($students as $row): ?>
         <?php
@@ -59,11 +63,21 @@ $formatDate = static function (?string $iso): string {
           $pct = $total > 0 ? min(100, (int)round($opened / $total * 100)) : 0;
           $label = (string)$row['access_label'];
           $badgeClass = $label === 'Paid' ? 'badge-paid' : ($label === 'Demo' ? 'badge-demo' : 'badge-draft');
+          $location = StudentAttribution::locationLabel($u);
+          $channel = StudentAttribution::channelLabel($u);
+          $channelDetail = StudentAttribution::channelDetail($u);
         ?>
         <tr>
           <td>
             <strong><?= wwm_escape((string)($u['name'] ?: $u['email'])) ?></strong><br>
             <span style="color:var(--mute);font-size:0.85rem"><?= wwm_escape((string)$u['email']) ?></span>
+          </td>
+          <td class="admin-meta-cell"><?= wwm_escape($location) ?></td>
+          <td class="admin-meta-cell">
+            <?= wwm_escape($channel) ?>
+            <?php if ($channelDetail !== null): ?>
+              <span class="admin-meta-sub"><?= wwm_escape($channelDetail) ?></span>
+            <?php endif; ?>
           </td>
           <td><span class="badge <?= $badgeClass ?>" style="margin:0"><?= wwm_escape($label) ?></span></td>
           <td class="progress-cell">

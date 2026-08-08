@@ -28,7 +28,7 @@ final class CourseController
         $firstLesson = $lessons[0] ?? null;
         $access = $firstLesson
             ? $checker->lesson($userId, $course, $firstLesson)
-            : ['can_view_course' => false, 'can_view_lesson' => false, 'access_label' => 'No access'];
+            : ['can_view_course' => false, 'can_view_lesson' => false, 'access_label' => 'No access', 'demo_expires_at' => null];
 
         if (!$access['can_view_course']) {
             wwm_render('no-access', [
@@ -65,6 +65,7 @@ final class CourseController
             'course' => $course,
             'lessonAccess' => $lessonAccess,
             'accessLabel' => $access['access_label'],
+            'demoExpiresAt' => $access['demo_expires_at'] ?? null,
         ]);
     }
 }

@@ -229,6 +229,10 @@ a:hover { text-decoration: underline; }
     justify-content: center;
   }
 
+  .demo-access-until {
+    white-space: normal;
+  }
+
   .site-main {
     padding: 24px 0 48px;
   }
@@ -276,6 +280,21 @@ a:hover { text-decoration: underline; }
 .badge-demo {
   background: #fff0ef;
   color: var(--accent-dark);
+}
+
+.access-badge-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.demo-access-until {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--mute);
+  white-space: nowrap;
 }
 
 .page-head { margin-bottom: 28px; }

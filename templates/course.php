@@ -1,13 +1,12 @@
 <?php
 $accessLabel = (string)($accessLabel ?? '');
-$isDemo = stripos($accessLabel, 'demo') !== false;
 ?>
 <section class="course-page">
   <div class="page-head page-head-compact">
     <div class="page-title-row">
       <h1 class="page-title page-title-sm"><?= wwm_escape((string)$course['title']) ?></h1>
       <?php if ($accessLabel !== ''): ?>
-        <span class="badge<?= $isDemo ? ' badge-demo' : '' ?>"><?= wwm_escape($accessLabel) ?></span>
+        <?php require __DIR__ . '/partials/access-badge.php'; ?>
       <?php endif; ?>
     </div>
     <?php if (!empty($course['subtitle'])): ?>

@@ -11,7 +11,7 @@ final class AccessChecker
     private PDO $pdo;
     private ?int $loadedUserId = null;
 
-    /** @var array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}> */
+    /** @var array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}> */
     private array $userStateMap = [];
 
     public function __construct(PDO $pdo)
@@ -20,7 +20,7 @@ final class AccessChecker
     }
 
     /**
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
      */
     public function courseState(int $userId, string $courseSlug): array
     {
@@ -31,23 +31,28 @@ final class AccessChecker
             'has_demo' => false,
             'demo_active' => false,
             'paid_active' => false,
+            'demo_expires_at' => null,
         ];
     }
 
     /**
-     * @return array{can_view_course: bool, can_view_lesson: bool, access_label: string}
+     * @return array{can_view_course: bool, can_view_lesson: bool, access_label: string, demo_expires_at: ?string}
      */
     public function lesson(int $userId, array $course, array $lesson): array
     {
         $slug = (string)$course['slug'];
         $state = $this->courseState($userId, $slug);
         $isDemoLesson = !empty($lesson['demo']);
+        $demoExpiresAt = (!$state['has_paid'] && $state['demo_active'])
+            ? ($state['demo_expires_at'] ?? null)
+            : null;
 
         if ($state['has_paid']) {
             return [
                 'can_view_course' => true,
                 'can_view_lesson' => true,
                 'access_label' => 'Full access',
+                'demo_expires_at' => null,
             ];
         }
 
@@ -56,6 +61,7 @@ final class AccessChecker
                 'can_view_course' => true,
                 'can_view_lesson' => true,
                 'access_label' => 'Demo access',
+                'demo_expires_at' => $demoExpiresAt,
             ];
         }
 
@@ -64,6 +70,7 @@ final class AccessChecker
                 'can_view_course' => true,
                 'can_view_lesson' => false,
                 'access_label' => 'Demo — first lesson only',
+                'demo_expires_at' => $demoExpiresAt,
             ];
         }
 
@@ -71,6 +78,7 @@ final class AccessChecker
             'can_view_course' => false,
             'can_view_lesson' => false,
             'access_label' => 'No access',
+            'demo_expires_at' => null,
         ];
     }
 

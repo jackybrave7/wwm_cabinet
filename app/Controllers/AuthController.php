@@ -9,6 +9,7 @@ use Wwm\Models\LoginLink;
 use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
 use Wwm\Services\Mailer;
+use Wwm\Services\StudentAttribution;
 
 final class AuthController
 {
@@ -36,6 +37,7 @@ final class AuthController
             if ($user !== null && Password::verify($password, (string)($user['password_hash'] ?? ''))) {
                 Session::login((int)$user['id']);
                 User::touchLogin(wwm_pdo(), (int)$user['id']);
+                StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
                 wwm_log('login via url user_id=' . $user['id']);
                 wwm_redirect($next);
             }
@@ -81,6 +83,7 @@ final class AuthController
 
         Session::login((int)$user['id']);
         User::touchLogin(wwm_pdo(), (int)$user['id']);
+        StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
         wwm_log('login user_id=' . $user['id']);
         wwm_redirect($next);
     }
@@ -101,6 +104,7 @@ final class AuthController
         LoginLink::markUsed(wwm_pdo(), (int)$row['id']);
         Session::login((int)$row['user_id']);
         User::touchLogin(wwm_pdo(), (int)$row['user_id']);
+        StudentAttribution::recordForUser(wwm_pdo(), (int)$row['user_id']);
         wwm_log('magic login user_id=' . $row['user_id']);
 
         $next = LoginLink::sanitizeNextPath((string)($row['next_path'] ?? '/'));

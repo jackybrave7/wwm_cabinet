@@ -55,6 +55,83 @@ final class User
         $stmt->execute([gmdate('c'), $userId]);
     }
 
+    /**
+     * @param array{
+     *   ip?: ?string,
+     *   country?: ?string,
+     *   city?: ?string,
+     *   utm?: array<string, string>,
+     *   is_new_user?: bool
+     * } $data
+     */
+    public static function recordAttribution(PDO $pdo, int $userId, array $data): void
+    {
+        $user = self::findById($pdo, $userId);
+        if ($user === null) {
+            return;
+        }
+
+        $ip = isset($data['ip']) && is_string($data['ip']) && $data['ip'] !== '' ? $data['ip'] : null;
+        $country = isset($data['country']) && is_string($data['country']) && $data['country'] !== ''
+            ? $data['country']
+            : null;
+        $city = isset($data['city']) && is_string($data['city']) && $data['city'] !== ''
+            ? $data['city']
+            : null;
+        $utm = is_array($data['utm'] ?? null) ? $data['utm'] : [];
+
+        $sets = [];
+        $params = [];
+
+        if ($ip !== null) {
+            $sets[] = 'last_ip = ?';
+            $params[] = $ip;
+            if ($country !== null) {
+                $sets[] = 'last_country = ?';
+                $params[] = $country;
+            }
+            if ($city !== null) {
+                $sets[] = 'last_city = ?';
+                $params[] = $city;
+            }
+        }
+
+        $isNewUser = !empty($data['is_new_user']);
+        $needsSignup = trim((string)($user['signup_ip'] ?? '')) === '';
+        if ($ip !== null && ($isNewUser || $needsSignup)) {
+            $sets[] = 'signup_ip = ?';
+            $params[] = $ip;
+            if ($country !== null) {
+                $sets[] = 'signup_country = ?';
+                $params[] = $country;
+            }
+            if ($city !== null) {
+                $sets[] = 'signup_city = ?';
+                $params[] = $city;
+            }
+        }
+
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+            if (trim((string)($user[$key] ?? '')) !== '') {
+                continue;
+            }
+            $value = trim((string)($utm[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+            $sets[] = $key . ' = ?';
+            $params[] = mb_substr($value, 0, 255);
+        }
+
+        if ($sets === []) {
+            return;
+        }
+
+        $params[] = $userId;
+        $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?');
+        $stmt->execute($params);
+    }
+
     public static function isAdmin(array $user, ?array $config = null): bool
     {
         if (!empty($user['is_admin'])) {

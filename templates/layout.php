@@ -47,5 +47,6 @@
       <p>&copy; <?= date('Y') ?> Bratec Lis School · <a href="https://worldwatercolormasters.art" target="_blank" rel="noopener">worldwatercolormasters.art</a> · <a href="mailto:support@worldwatercolormasters.art">support@worldwatercolormasters.art</a></p>
     </div>
   </footer>
+  <script src="<?= wwm_escape(wwm_asset_url('js/cabinet.js')) ?>" defer></script>
 </body>
 </html>

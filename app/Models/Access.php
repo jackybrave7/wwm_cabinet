@@ -36,7 +36,7 @@ final class Access
 
     /**
      * @param list<array<string, mixed>> $rows
-     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}>
+     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}>
      */
     public static function stateMapFromRows(array $rows): array
     {
@@ -54,7 +54,7 @@ final class Access
     }
 
     /**
-     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}>
+     * @return array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}>
      */
     public static function stateMapForUser(PDO $pdo, int $userId): array
     {
@@ -173,7 +173,7 @@ final class Access
     }
 
     /**
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
      */
     public static function courseState(PDO $pdo, int $userId, string $courseSlug): array
     {
@@ -188,7 +188,7 @@ final class Access
 
     /**
      * @param list<array<string, mixed>> $rows
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
      */
     private static function courseStateFromRows(array $rows): array
     {
@@ -196,6 +196,7 @@ final class Access
         $paidActive = false;
         $hasDemo = false;
         $demoActive = false;
+        $demoExpiresAt = null;
 
         foreach ($rows as $row) {
             if ($row['access_type'] === 'paid') {
@@ -208,6 +209,10 @@ final class Access
                 $hasDemo = true;
                 if (self::isGrantActive($row)) {
                     $demoActive = true;
+                    $expires = $row['expires_at'] ?? null;
+                    if (is_string($expires) && $expires !== '') {
+                        $demoExpiresAt = $expires;
+                    }
                 }
             }
         }
@@ -217,6 +222,7 @@ final class Access
             'has_demo' => $hasDemo,
             'demo_active' => $demoActive,
             'paid_active' => $paidActive,
+            'demo_expires_at' => $demoExpiresAt,
         ];
     }
 }

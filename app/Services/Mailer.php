@@ -15,6 +15,11 @@ final class Mailer
             return true;
         }
 
+        $smtpHost = trim((string)($cfg['smtp_host'] ?? ''));
+        if ($smtpHost !== '') {
+            return (new SmtpClient())->send($cfg, $to, $subject, $body);
+        }
+
         $from = (string)($cfg['from_email'] ?? 'noreply@localhost');
         $fromName = (string)($cfg['from_name'] ?? 'WWM');
         $headers = [
@@ -22,6 +27,7 @@ final class Mailer
             'Content-type: text/plain; charset=utf-8',
             'From: ' . $fromName . ' <' . $from . '>',
         ];
+
         return @mail($to, $subject, $body, implode("\r\n", $headers));
     }
 }

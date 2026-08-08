@@ -76,10 +76,11 @@ return [
 
     'mail' => [
         'enabled' => ${mailEnabled ? 'true' : 'false'},
-        'from_email' => ${phpString(env('WWM_SMTP_FROM', 'courses@bl-school.com'))},
+        'from_email' => ${phpString(env('WWM_SMTP_FROM', 'robot@worldwatercolormasters.art'))},
         'from_name' => ${phpString(env('WWM_SMTP_FROM_NAME', 'World Watercolor Masters'))},
-        'smtp_host' => ${phpString(env('WWM_SMTP_HOST'))},
-        'smtp_port' => ${Number(env('WWM_SMTP_PORT', '587')) || 587},
+        'smtp_host' => ${phpString(env('WWM_SMTP_HOST', 'smtp.spaceweb.ru'))},
+        'smtp_port' => ${Number(env('WWM_SMTP_PORT', '465')) || 465},
+        'smtp_encryption' => ${phpString(env('WWM_SMTP_ENCRYPTION', 'ssl'))},
         'smtp_user' => ${phpString(smtpUser)},
         'smtp_pass' => ${phpString(smtpPass)},
     ],

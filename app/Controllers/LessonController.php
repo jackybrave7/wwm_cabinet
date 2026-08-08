@@ -78,6 +78,7 @@ final class LessonController
             'lesson' => $lesson,
             'lessonAccess' => $lessonAccess,
             'accessLabel' => $access['access_label'],
+            'demoExpiresAt' => $access['demo_expires_at'] ?? null,
             'prevLesson' => $prevLesson,
             'nextLesson' => $nextLesson,
             'prevLocked' => $prevLocked,

@@ -53,6 +53,32 @@ if (PHP_SAPI !== 'cli') {
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
+    Wwm\Services\StudentAttribution::captureFromRequest();
+}
+
+function wwm_client_ip(): ?string
+{
+    $candidates = [];
+
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $candidates[] = (string)$_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        foreach (explode(',', (string)$_SERVER['HTTP_X_FORWARDED_FOR']) as $part) {
+            $candidates[] = trim($part);
+        }
+    }
+    if (!empty($_SERVER['REMOTE_ADDR'])) {
+        $candidates[] = (string)$_SERVER['REMOTE_ADDR'];
+    }
+
+    foreach ($candidates as $ip) {
+        if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+
+    return null;
 }
 
 function wwm_config(): array

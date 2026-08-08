@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Controllers\Api;
 
 use Wwm\Services\DemoAccess;
+use Wwm\Services\StudentAttribution;
 
 final class DemoWebhookController
 {
@@ -50,7 +51,8 @@ final class DemoWebhookController
                 $name,
                 $courseSlug,
                 $source,
-                $sourceRef !== '' ? $sourceRef : null
+                $sourceRef !== '' ? $sourceRef : null,
+                StudentAttribution::utmFromPayload($payload)
             );
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);

@@ -378,6 +378,20 @@ body.admin-body {
 .admin-table-compact th,
 .admin-table-compact td { padding: 9px 10px; }
 
+.admin-meta-cell {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  max-width: 180px;
+}
+
+.admin-meta-sub {
+  display: block;
+  margin-top: 4px;
+  color: var(--mute);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .student-course-head {
   display: flex;
   align-items: center;
