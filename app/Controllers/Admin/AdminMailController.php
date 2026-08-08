@@ -18,6 +18,8 @@ final class AdminMailController
         }
 
         $cfg = wwm_config()['mail'] ?? [];
+        $smtpUser = trim((string)($cfg['smtp_user'] ?? ''));
+        $smtpPass = (string)($cfg['smtp_pass'] ?? '');
         $sent = Mailer::send(
             $to,
             'WWM Cabinet test email',
@@ -28,6 +30,8 @@ final class AdminMailController
             'ok' => $sent,
             'mail_enabled' => !empty($cfg['enabled']),
             'smtp_host' => (string)($cfg['smtp_host'] ?? ''),
+            'smtp_user' => $smtpUser,
+            'smtp_pass_length' => strlen($smtpPass),
             'from_email' => (string)($cfg['from_email'] ?? ''),
             'error' => Mailer::lastError(),
         ]);

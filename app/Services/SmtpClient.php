@@ -24,7 +24,7 @@ final class SmtpClient
         $this->lastError = null;
         $host = trim((string)($cfg['smtp_host'] ?? ''));
         $user = trim((string)($cfg['smtp_user'] ?? ''));
-        $pass = (string)($cfg['smtp_pass'] ?? '');
+        $pass = trim((string)($cfg['smtp_pass'] ?? ''));
         $port = (int)($cfg['smtp_port'] ?? 587);
         if ($port <= 0) {
             $port = 587;
