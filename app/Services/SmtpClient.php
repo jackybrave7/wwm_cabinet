@@ -8,6 +8,8 @@ final class SmtpClient
     /** @var resource|null */
     private $socket;
 
+    private string $lastResponse = '';
+
     /**
      * @param array<string, mixed> $cfg
      */
@@ -65,15 +67,15 @@ final class SmtpClient
                 'Content-Transfer-Encoding: 8bit',
                 '',
                 $this->normalizeBody($body),
-                '',
-            ]) . "\r\n.";
+            ]);
 
-            $this->command($message, [250]);
+            $this->sendData($message);
             $this->command('QUIT', [221]);
 
             return true;
         } catch (\Throwable $e) {
-            wwm_log('smtp failed: ' . $e->getMessage());
+            $detail = trim($this->lastResponse);
+            wwm_log('smtp failed: ' . $e->getMessage() . ($detail !== '' ? ' | ' . $detail : ''));
             return false;
         } finally {
             $this->disconnect();
@@ -136,6 +138,21 @@ final class SmtpClient
         $this->expect($expectedCodes);
     }
 
+    private function sendData(string $message): void
+    {
+        if (!is_resource($this->socket)) {
+            throw new \RuntimeException('SMTP socket is not connected');
+        }
+
+        $payload = str_replace(["\r\n", "\r"], "\n", $message);
+        $payload = str_replace("\n", "\r\n", $payload) . "\r\n.\r\n";
+        if (@fwrite($this->socket, $payload) === false) {
+            throw new \RuntimeException('SMTP DATA write failed');
+        }
+
+        $this->expect([250]);
+    }
+
     /**
      * @param list<int> $expectedCodes
      */
@@ -156,6 +173,8 @@ final class SmtpClient
         if ($response === '') {
             throw new \RuntimeException('SMTP empty response');
         }
+
+        $this->lastResponse = trim($response);
 
         $code = (int)substr($response, 0, 3);
         if (!in_array($code, $expectedCodes, true)) {

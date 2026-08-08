@@ -17,7 +17,11 @@ final class Mailer
 
         $smtpHost = trim((string)($cfg['smtp_host'] ?? ''));
         if ($smtpHost !== '') {
-            return (new SmtpClient())->send($cfg, $to, $subject, $body);
+            $ok = (new SmtpClient())->send($cfg, $to, $subject, $body);
+            if (!$ok) {
+                wwm_log('mail send failed via SMTP to ' . $to . ' — ' . $subject);
+            }
+            return $ok;
         }
 
         $from = (string)($cfg['from_email'] ?? 'noreply@localhost');

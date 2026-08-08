@@ -187,11 +187,14 @@ final class AuthController
             $token = bin2hex(random_bytes(32));
             PasswordReset::create(wwm_pdo(), (int)$user['id'], $token);
             $link = wwm_base_url() . '/reset?token=' . urlencode($token);
-            Mailer::send(
+            $sent = Mailer::send(
                 (string)$user['email'],
                 'Reset your WWM password',
                 "Open this link to set a new password (valid 1 hour):\n\n" . $link . "\n"
             );
+            wwm_log('password reset mail to user_id=' . $user['id'] . ' sent=' . ($sent ? 'yes' : 'no'));
+        } else {
+            wwm_log('password reset requested for unknown email: ' . $email);
         }
 
         wwm_render('forgot', [

@@ -6,6 +6,7 @@ namespace Wwm;
 use Wwm\Controllers\AccountController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
+use Wwm\Controllers\Admin\AdminMailController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Api\DemoWebhookController;
 use Wwm\Controllers\AuthController;
@@ -136,6 +137,11 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/delete$#', $path, $m)) {
             (new AdminStudentController())->destroy((int)$m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/admin/mail-test') {
+            (new AdminMailController())->test();
             return;
         }
 
