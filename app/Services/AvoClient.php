@@ -1,0 +1,300 @@
+<?php
+declare(strict_types=1);
+
+namespace Wwm\Services;
+
+final class AvoClient
+{
+    private ?string $lastError = null;
+
+    /** @var array<string, mixed> */
+    private array $cfg;
+
+    public function __construct(?array $config = null)
+    {
+        $config ??= wwm_config();
+        $avo = $config['avo'] ?? [];
+        $this->cfg = is_array($avo) ? $avo : [];
+    }
+
+    public function isEnabled(): bool
+    {
+        if (empty($this->cfg['enabled'])) {
+            return false;
+        }
+
+        $shop = trim((string)($this->cfg['shop_id'] ?? ''));
+        $keySet = trim((string)($this->cfg['api_key_set'] ?? ''));
+        $keyGet = trim((string)($this->cfg['api_key_get'] ?? ''));
+
+        return $shop !== '' && ($keySet !== '' || $keyGet !== '');
+    }
+
+    public function lastError(): ?string
+    {
+        return $this->lastError;
+    }
+
+    public function tagId(string $name): int
+    {
+        $tags = $this->cfg['tags'] ?? [];
+        if (!is_array($tags)) {
+            return 0;
+        }
+
+        return (int)($tags[$name] ?? 0);
+    }
+
+    public function findContactIdByEmail(string $email): ?int
+    {
+        $email = strtolower(trim($email));
+        if ($email === '') {
+            return null;
+        }
+
+        $response = $this->request('GET', 'contacts', [
+            'search' => ['email' => $email],
+            'param' => ['pagesize' => 1],
+        ], null, 'get');
+        if ($response === null) {
+            return null;
+        }
+
+        foreach ($this->extractRows($response) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $id = (int)($row['id_contact'] ?? 0);
+            $rowEmail = strtolower(trim((string)($row['email'] ?? '')));
+            if ($id > 0 && ($rowEmail === '' || $rowEmail === $email)) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    public function contactHasTag(int $contactId, int $tagId): bool
+    {
+        if ($contactId <= 0 || $tagId <= 0) {
+            return false;
+        }
+
+        $response = $this->request('GET', 'contacttaglnk', [
+            'search' => [
+                'id_contact' => (string)$contactId,
+                'id_contact_tag' => (string)$tagId,
+            ],
+            'param' => ['pagesize' => 1],
+        ], null, 'get');
+        if ($response === null) {
+            return false;
+        }
+
+        foreach ($this->extractRows($response) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ((int)($row['id_contact'] ?? 0) === $contactId
+                && (int)($row['id_contact_tag'] ?? 0) === $tagId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function assignTag(int $contactId, int $tagId): bool
+    {
+        if ($contactId <= 0 || $tagId <= 0) {
+            $this->lastError = 'invalid_contact_or_tag';
+            return false;
+        }
+
+        if ($this->contactHasTag($contactId, $tagId)) {
+            return true;
+        }
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<contacttaglnk>'
+            . '<id_contact>' . $contactId . '</id_contact>'
+            . '<id_contact_tag>' . $tagId . '</id_contact_tag>'
+            . '</contacttaglnk>';
+
+        $response = $this->request('POST', 'contacttaglnk', [], $xml, 'set');
+        if ($response === null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $query
+     * @return array<string, mixed>|list<mixed>|null
+     */
+    private function request(string $method, string $resource, array $query, ?string $xmlBody, string $keyType): ?array
+    {
+        $this->lastError = null;
+        $shop = trim((string)($this->cfg['shop_id'] ?? ''));
+        $key = $keyType === 'set'
+            ? trim((string)($this->cfg['api_key_set'] ?? ''))
+            : trim((string)($this->cfg['api_key_get'] ?? ''));
+
+        if ($shop === '' || $key === '') {
+            $this->lastError = 'avo_not_configured';
+            return null;
+        }
+
+        if ($keyType === 'set' && in_array($method, ['POST', 'PUT', 'DELETE'], true)) {
+            // use set key
+        } elseif ($method === 'GET') {
+            // use get key (already selected)
+        } elseif ($keyType === 'set' && $method === 'GET') {
+            $key = trim((string)($this->cfg['api_key_get'] ?? $key));
+        }
+
+        $params = ['r' => 'api/rest/' . $resource, 'key' => $key];
+        foreach ($query as $name => $value) {
+            if ($name === 'search' && is_array($value)) {
+                foreach ($value as $searchKey => $searchValue) {
+                    $params['search[' . $searchKey . ']'] = (string)$searchValue;
+                }
+                continue;
+            }
+            if ($name === 'param' && is_array($value)) {
+                foreach ($value as $paramKey => $paramValue) {
+                    $params['param[' . $paramKey . ']'] = (string)$paramValue;
+                }
+                continue;
+            }
+            $params[$name] = is_scalar($value) ? (string)$value : '';
+        }
+
+        $url = 'https://' . rawurlencode($shop) . '.autoweboffice.ru/?' . http_build_query($params);
+        $headers = ['Accept: application/json'];
+        if ($xmlBody !== null) {
+            $headers[] = 'Content-Type: application/xml; charset=UTF-8';
+        }
+
+        $body = $this->http($method, $url, $headers, $xmlBody);
+        if ($body === null) {
+            return null;
+        }
+
+        if ($body === '') {
+            return [];
+        }
+
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded)) {
+            $this->lastError = 'invalid_json_response';
+            wwm_log('avo api invalid json (' . $resource . '): ' . mb_substr($body, 0, 500));
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param list<string> $headers
+     */
+    private function http(string $method, string $url, array $headers, ?string $body): ?string
+    {
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 15,
+                CURLOPT_POSTFIELDS => $body,
+            ]);
+            $response = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if (!is_string($response)) {
+                $this->lastError = $error !== '' ? $error : 'curl_failed';
+                return null;
+            }
+
+            if ($status >= 400) {
+                $this->lastError = 'http_' . $status;
+                wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+                return null;
+            }
+
+            return $response;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => $method,
+                'header' => implode("\r\n", $headers),
+                'content' => $body ?? '',
+                'timeout' => 15,
+                'ignore_errors' => true,
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+        $status = 0;
+        if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', (string)$http_response_header[0], $m)) {
+            $status = (int)$m[1];
+        }
+
+        if (!is_string($response)) {
+            $this->lastError = 'http_failed';
+            return null;
+        }
+
+        if ($status >= 400) {
+            $this->lastError = 'http_' . $status;
+            wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+            return null;
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param array<string, mixed>|list<mixed> $response
+     * @return list<mixed>
+     */
+    private function extractRows(array $response): array
+    {
+        if ($this->isList($response)) {
+            return $response;
+        }
+
+        foreach (['contacttaglnk', 'contacts', 'data', 'rows', 'items', 'result'] as $key) {
+            if (!isset($response[$key]) || !is_array($response[$key])) {
+                continue;
+            }
+            $value = $response[$key];
+            if ($this->isList($value)) {
+                return $value;
+            }
+            return [$value];
+        }
+
+        if (isset($response['id_contact']) || isset($response['id_contact_tag'])) {
+            return [$response];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function isList(array $value): bool
+    {
+        if ($value === []) {
+            return true;
+        }
+
+        return array_keys($value) === range(0, count($value) - 1);
+    }
+}

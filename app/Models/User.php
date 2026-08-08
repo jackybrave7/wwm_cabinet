@@ -56,6 +56,36 @@ final class User
     }
 
     /**
+     * @param array{avo_contact_id?: int, avo_logged_in_tagged?: int, avo_demo_opened_tagged?: int} $flags
+     */
+    public static function setAvoFlags(PDO $pdo, int $userId, array $flags): void
+    {
+        $allowed = ['avo_contact_id', 'avo_logged_in_tagged', 'avo_demo_opened_tagged'];
+        $sets = [];
+        $params = [];
+
+        foreach ($allowed as $column) {
+            if (!array_key_exists($column, $flags)) {
+                continue;
+            }
+            $value = (int)$flags[$column];
+            if ($column === 'avo_contact_id' && $value <= 0) {
+                continue;
+            }
+            $sets[] = $column . ' = ?';
+            $params[] = $value;
+        }
+
+        if ($sets === []) {
+            return;
+        }
+
+        $params[] = $userId;
+        $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?');
+        $stmt->execute($params);
+    }
+
+    /**
      * @param array{
      *   ip?: ?string,
      *   country?: ?string,

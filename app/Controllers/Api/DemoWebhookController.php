@@ -10,19 +10,7 @@ final class DemoWebhookController
 {
     public function grant(): void
     {
-        $cfg = wwm_config()['webhooks'] ?? [];
-        if (empty($cfg['enabled'])) {
-            wwm_json_response(503, ['ok' => false, 'error' => 'webhooks_disabled']);
-        }
-
-        $expectedToken = trim((string)($cfg['demo_token'] ?? ''));
-        if ($expectedToken === '') {
-            wwm_json_response(503, ['ok' => false, 'error' => 'demo_token_not_configured']);
-        }
-
-        if (!$this->isAuthorized($expectedToken)) {
-            wwm_json_response(403, ['ok' => false, 'error' => 'invalid_token']);
-        }
+        WebhookAuth::requireEnabled();
 
         $payload = $this->readPayload();
         $email = trim((string)($payload['email'] ?? ''));
@@ -33,6 +21,7 @@ final class DemoWebhookController
         );
         $source = trim((string)($payload['source'] ?? 'avo'));
         $sourceRef = trim((string)($payload['source_ref'] ?? ''));
+        $avoContactId = (int)($payload['id_contact'] ?? 0);
         if ($source === '') {
             $source = 'avo';
         }
@@ -52,7 +41,8 @@ final class DemoWebhookController
                 $courseSlug,
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
-                StudentAttribution::utmFromPayload($payload)
+                StudentAttribution::utmFromPayload($payload),
+                $avoContactId > 0 ? $avoContactId : null
             );
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
@@ -65,16 +55,6 @@ final class DemoWebhookController
         }
 
         wwm_json_response(200, ['ok' => true] + $result);
-    }
-
-    private function isAuthorized(string $expectedToken): bool
-    {
-        $provided = trim((string)($_SERVER['HTTP_X_WWM_DEMO_TOKEN'] ?? ''));
-        if ($provided === '') {
-            $provided = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
-        }
-
-        return $provided !== '' && hash_equals($expectedToken, $provided);
     }
 
     /**

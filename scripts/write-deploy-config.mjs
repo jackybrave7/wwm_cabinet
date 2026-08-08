@@ -9,6 +9,8 @@
  *   WWM_WEBHOOK_PAYMENT_TOKEN, WWM_WEBHOOK_DEMO_TOKEN
  *   WWM_MAIL_ENABLED            (true/false)
  *   WWM_WEBHOOKS_ENABLED        (true/false)
+ *   WWM_AVO_ENABLED, WWM_AVO_SHOP_ID, WWM_AVO_API_KEY_GET, WWM_AVO_API_KEY_SET
+ *   WWM_AVO_TAG_LOGGED_IN, WWM_AVO_TAG_DEMO_OPENED
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -53,6 +55,9 @@ const smtpUser = env('WWM_SMTP_USER');
 const smtpPass = env('WWM_SMTP_PASS');
 const mailEnabled = envBool('WWM_MAIL_ENABLED', Boolean(smtpUser && smtpPass));
 const webhooksEnabled = envBool('WWM_WEBHOOKS_ENABLED', false);
+const avoEnabled = envBool('WWM_AVO_ENABLED', false);
+const avoTagLoggedIn = Number(env('WWM_AVO_TAG_LOGGED_IN', '0')) || 0;
+const avoTagDemoOpened = Number(env('WWM_AVO_TAG_DEMO_OPENED', '0')) || 0;
 
 const config = `<?php
 /**
@@ -99,6 +104,17 @@ return [
         188 => 'elke-en',
         191 => 'elke-de',
         193 => 'alvaro',
+    ],
+
+    'avo' => [
+        'enabled' => ${avoEnabled ? 'true' : 'false'},
+        'shop_id' => ${phpString(env('WWM_AVO_SHOP_ID', 'bl-school'))},
+        'api_key_get' => ${phpString(env('WWM_AVO_API_KEY_GET'))},
+        'api_key_set' => ${phpString(env('WWM_AVO_API_KEY_SET'))},
+        'tags' => [
+            'logged_in' => ${avoTagLoggedIn},
+            'demo_opened' => ${avoTagDemoOpened},
+        ],
     ],
 
     'admin_emails' => ${phpAdminEmails(env('WWM_ADMIN_EMAILS', 'eaalferov@yandex.ru'))},

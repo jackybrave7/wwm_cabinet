@@ -6,6 +6,7 @@ namespace Wwm\Controllers;
 use Wwm\Auth\Session;
 use Wwm\Models\User;
 use Wwm\Services\AccessChecker;
+use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 
@@ -52,7 +53,10 @@ final class LessonController
             return;
         }
 
-        \Wwm\Models\LessonOpen::record(wwm_pdo(), $userId, $slug, $num);
+        $firstOpen = \Wwm\Models\LessonOpen::record(wwm_pdo(), $userId, $slug, $num);
+        if ($firstOpen && !empty($lesson['demo'])) {
+            AvoEngagementSync::onDemoLessonOpen($userId);
+        }
 
         $lessonAccess = [];
         foreach ($lessons as $item) {

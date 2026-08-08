@@ -9,6 +9,7 @@ use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminMailController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Api\DemoWebhookController;
+use Wwm\Controllers\Api\EngagementController;
 use Wwm\Controllers\AuthController;
 use Wwm\Controllers\CourseController;
 use Wwm\Controllers\DashboardController;
@@ -64,6 +65,10 @@ final class Router
         }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/demo') {
             (new DemoWebhookController())->grant();
+            return;
+        }
+        if ($method === 'GET' && $path === '/api/engagement') {
+            (new EngagementController())->show();
             return;
         }
 

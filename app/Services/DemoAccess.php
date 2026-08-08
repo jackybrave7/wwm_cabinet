@@ -29,7 +29,8 @@ final class DemoAccess
         string $courseSlug,
         string $source = 'avo',
         ?string $sourceRef = null,
-        array $utm = []
+        array $utm = [],
+        ?int $avoContactId = null
     ): array {
         $email = strtolower(trim($email));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -60,6 +61,9 @@ final class DemoAccess
         }
 
         $userId = (int)$user['id'];
+        if ($avoContactId !== null && $avoContactId > 0) {
+            User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $avoContactId]);
+        }
         StudentAttribution::recordForUser($pdo, $userId, $created, $utm);
         $state = Access::courseState($pdo, $userId, $courseSlug);
 

@@ -7,8 +7,14 @@ use PDO;
 
 final class LessonOpen
 {
-    public static function record(PDO $pdo, int $userId, string $courseSlug, int $lessonNum): void
+    public static function record(PDO $pdo, int $userId, string $courseSlug, int $lessonNum): bool
     {
+        $check = $pdo->prepare(
+            'SELECT 1 FROM lesson_opens WHERE user_id = ? AND course_slug = ? AND lesson_num = ? LIMIT 1'
+        );
+        $check->execute([$userId, $courseSlug, $lessonNum]);
+        $isFirst = $check->fetchColumn() === false;
+
         $now = gmdate('c');
         $stmt = $pdo->prepare(
             'INSERT INTO lesson_opens (user_id, course_slug, lesson_num, first_opened_at, last_opened_at)
@@ -16,6 +22,8 @@ final class LessonOpen
              ON CONFLICT(user_id, course_slug, lesson_num) DO UPDATE SET last_opened_at = excluded.last_opened_at'
         );
         $stmt->execute([$userId, $courseSlug, $lessonNum, $now, $now]);
+
+        return $isFirst;
     }
 
     public static function countForUserCourse(PDO $pdo, int $userId, string $courseSlug): int
