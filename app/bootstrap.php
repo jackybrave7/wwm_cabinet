@@ -135,6 +135,32 @@ function wwm_redirect(string $path, int $code = 302): never
     exit;
 }
 
+function wwm_sanitize_internal_path(string $path): string
+{
+    $path = trim($path);
+    if ($path === '' || !str_starts_with($path, '/') || str_starts_with($path, '//')) {
+        return '/';
+    }
+
+    return $path;
+}
+
+function wwm_login_url(string $email, ?string $password = null, string $next = '/'): string
+{
+    $email = trim($email);
+    $next = wwm_sanitize_internal_path($next);
+    $params = ['email' => $email];
+    if ($password !== null && $password !== '') {
+        $params['password'] = $password;
+    }
+    if ($next !== '/') {
+        $params['next'] = $next;
+    }
+
+    $base = rtrim((string)wwm_config()['base_url'], '/');
+    return $base . '/login?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+}
+
 function wwm_course_cover_url(?string $url): ?string
 {
     $url = trim((string)$url);

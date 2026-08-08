@@ -17,11 +17,24 @@ final class AuthController
         if (Session::userId() !== null) {
             wwm_redirect('/');
         }
+
+        $email = trim((string)($_GET['email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $email = '';
+        }
+
+        $password = (string)($_GET['password'] ?? '');
+        if (strlen($password) > 128) {
+            $password = '';
+        }
+
         wwm_render('login', [
             'pageTitle' => 'Sign in',
             'error' => null,
             'message' => null,
-            'next' => (string)($_GET['next'] ?? '/'),
+            'next' => wwm_sanitize_internal_path((string)($_GET['next'] ?? '/')),
+            'email' => $email,
+            'password' => $password,
         ]);
     }
 
@@ -46,6 +59,8 @@ final class AuthController
                 'pageTitle' => 'Sign in',
                 'error' => 'Invalid email or password.',
                 'next' => $next,
+                'email' => $email,
+                'password' => '',
             ]);
             return;
         }

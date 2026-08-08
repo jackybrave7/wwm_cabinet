@@ -297,6 +297,15 @@ a:hover { text-decoration: underline; }
   color: var(--mute);
 }
 
+.lesson-buy-cta {
+  margin-top: 20px;
+}
+
+.btn-sm {
+  padding: 9px 18px;
+  font-size: 0.88rem;
+}
+
 .lesson-content {
   background: var(--bg);
   border: 1px solid var(--line);

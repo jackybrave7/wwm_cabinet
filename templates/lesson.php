@@ -78,6 +78,12 @@ $lessonNum = (int)($lesson['num'] ?? 0);
           </div>
         </nav>
       <?php endif; ?>
+
+      <?php if ($isDemo && !empty($course['buy_url'])): ?>
+        <p class="lesson-buy-cta">
+          <a href="<?= wwm_escape((string)$course['buy_url']) ?>" class="btn btn-primary btn-sm" target="_blank" rel="noopener">Purchase full course</a>
+        </p>
+      <?php endif; ?>
     </div>
   </div>
 </section>

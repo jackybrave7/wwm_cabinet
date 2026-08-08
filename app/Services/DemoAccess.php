@@ -94,12 +94,18 @@ final class DemoAccess
 
         $loginUrl = null;
         if ($state['demo_active'] || $demoGranted) {
-            $loginUrl = LoginLink::issue(
-                $pdo,
-                $userId,
-                self::defaultNextPath($courseSlug),
-                LoginLink::ttlSeconds()
-            );
+            $nextPath = self::defaultNextPath($courseSlug);
+            $demoPassword = $this->demoDefaultPassword();
+            if ($demoPassword !== null) {
+                $loginUrl = wwm_login_url($email, $demoPassword, $nextPath);
+            } else {
+                $loginUrl = LoginLink::issue(
+                    $pdo,
+                    $userId,
+                    $nextPath,
+                    LoginLink::ttlSeconds()
+                );
+            }
         }
 
         if ($demoGranted && $loginUrl !== null) {
@@ -178,10 +184,10 @@ final class DemoAccess
             '',
             "Your demo access to \"{$courseTitle}\" is ready.",
             '',
-            'Open this link to sign in instantly (no password needed):',
+            'Open this link — your email and password will be filled in automatically:',
             $loginUrl,
             '',
-            'You can also sign in with email and password at:',
+            'You can also sign in manually at:',
             rtrim((string)wwm_config()['base_url'], '/') . '/login',
             '',
             'Demo access expires: ' . $expiresLocal,

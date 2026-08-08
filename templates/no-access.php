@@ -8,7 +8,7 @@
     <p>Start with a free demo or purchase on the course page.</p>
   <?php endif; ?>
   <?php if (!empty($course['buy_url'])): ?>
-    <a class="btn btn-primary" href="<?= wwm_escape((string)$course['buy_url']) ?>" target="_blank" rel="noopener">Get access</a>
+    <a class="btn btn-primary" href="<?= wwm_escape((string)$course['buy_url']) ?>" target="_blank" rel="noopener">Purchase full course</a>
   <?php else: ?>
     <a class="btn btn-primary" href="https://worldwatercolormasters.art" target="_blank" rel="noopener">Browse courses</a>
   <?php endif; ?>

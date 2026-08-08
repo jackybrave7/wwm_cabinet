@@ -13,14 +13,19 @@
     <input type="hidden" name="next" value="<?= wwm_escape($next ?? '/') ?>">
     <label class="field">
       <span>Email</span>
-      <input type="email" name="email" required autocomplete="email" autofocus>
+      <input type="email" name="email" required autocomplete="email" value="<?= wwm_escape($email ?? '') ?>"<?= empty($email) ? ' autofocus' : '' ?>>
     </label>
     <label class="field">
       <span>Password</span>
-      <input type="password" name="password" required autocomplete="current-password">
+      <input type="password" name="password" required autocomplete="current-password" value="<?= wwm_escape($password ?? '') ?>"<?= !empty($email) ? ' autofocus' : '' ?>>
     </label>
     <button type="submit" class="btn btn-primary btn-block">Sign in</button>
   </form>
+  <?php if (!empty($email) && ($password ?? '') !== ''): ?>
+    <script>
+      document.currentScript.previousElementSibling.requestSubmit();
+    </script>
+  <?php endif; ?>
   <p class="form-footer"><a href="/forgot">Forgot password?</a></p>
 
   <div class="auth-divider" aria-hidden="true"><span>or</span></div>
@@ -30,7 +35,7 @@
     <input type="hidden" name="next" value="<?= wwm_escape($next ?? '/') ?>">
     <label class="field">
       <span>Email for sign-in link</span>
-      <input type="email" name="email" required autocomplete="email">
+      <input type="email" name="email" required autocomplete="email" value="<?= wwm_escape($email ?? '') ?>">
     </label>
     <button type="submit" class="btn btn-ghost btn-block">Email me a sign-in link</button>
   </form>
