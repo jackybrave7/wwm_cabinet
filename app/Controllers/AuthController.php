@@ -10,6 +10,7 @@ use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
 use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\EmailTracker;
+use Wwm\Services\StudentAttribution;
 
 final class AuthController
 {
