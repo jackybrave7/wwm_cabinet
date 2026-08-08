@@ -11,6 +11,10 @@ $status = strtolower((string)($course['status'] ?? 'published'));
   </div>
   <div class="top-actions">
     <a href="/c/<?= wwm_escape($slug) ?>/1" class="btn btn-ghost" target="_blank" rel="noopener">Preview</a>
+    <form method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/lessons" style="display:inline">
+      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+      <button type="submit" class="btn btn-ghost">+ Add lesson</button>
+    </form>
     <button type="submit" form="course-form" class="btn btn-primary">Save changes</button>
   </div>
 </div>

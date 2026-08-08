@@ -3,6 +3,7 @@
     <p class="badge badge-admin">Administrator</p>
     <h1 class="page-title page-title-sm">Courses</h1>
   </div>
+  <a href="/admin/courses/new" class="btn btn-primary">+ Add course</a>
 </div>
 
 <div class="admin-stats">

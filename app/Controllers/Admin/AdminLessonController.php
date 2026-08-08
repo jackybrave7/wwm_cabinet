@@ -118,4 +118,73 @@ final class AdminLessonController
 
         wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?saved=1');
     }
+
+    public function store(string $slug): void
+    {
+        Session::requireAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->getAdmin($slug);
+        if ($course === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Course not found.']);
+            return;
+        }
+
+        $title = trim((string)($_POST['title'] ?? 'New lesson'));
+        $sectionIndex = isset($_POST['section_index']) && $_POST['section_index'] !== ''
+            ? (int)$_POST['section_index']
+            : null;
+
+        $result = CourseWriter::addLesson($course, $title, $sectionIndex);
+        $course = $result['course'];
+        $num = (int)$result['num'];
+
+        try {
+            (new CourseWriter())->save($slug, $course);
+        } catch (\Throwable $e) {
+            wwm_log('Lesson create failed: ' . $e->getMessage());
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=save');
+        }
+
+        wwm_log('admin created lesson course=' . $slug . ' num=' . $num);
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?saved=1');
+    }
+
+    public function destroy(string $slug, int $num): void
+    {
+        Session::requireAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?error=csrf');
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->getAdmin($slug);
+        if ($course === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Course not found.']);
+            return;
+        }
+
+        if (CourseWriter::findLesson($course, $num) === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Lesson not found.']);
+            return;
+        }
+
+        $course = CourseWriter::removeLesson($course, $num);
+
+        try {
+            (new CourseWriter())->save($slug, $course);
+        } catch (\Throwable $e) {
+            wwm_log('Lesson delete failed: ' . $e->getMessage());
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?error=save');
+        }
+
+        wwm_log('admin deleted lesson course=' . $slug . ' num=' . $num);
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
+    }
 }

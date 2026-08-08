@@ -114,6 +114,15 @@ if ($htmlBody !== '' && $embedUrl !== '' && !str_contains($htmlBody, 'video-bloc
       </div>
 
       <div class="admin-card">
+        <h2>Danger zone</h2>
+        <p class="field-hint" style="margin-bottom:12px">Delete this lesson permanently. Student progress for this lesson number will remain in the database but the lesson will no longer be accessible.</p>
+        <form method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/lessons/<?= $num ?>/delete" onsubmit="return confirm('Delete lesson #<?= $num ?>? This cannot be undone.');">
+          <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+          <button type="submit" class="btn btn-ghost" style="color:var(--accent-dark)">Delete lesson</button>
+        </form>
+      </div>
+
+      <div class="admin-card">
         <h2>Materials</h2>
         <div id="materials-list" class="materials-list">
           <?php if ($materials === []): ?>

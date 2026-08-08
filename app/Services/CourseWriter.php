@@ -274,4 +274,94 @@ final class CourseWriter
 
         return $course;
     }
+
+    public function exists(string $slug): bool
+    {
+        $slug = preg_replace('/[^a-z0-9\-]/', '', $slug);
+        if ($slug === '') {
+            return false;
+        }
+
+        return is_readable($this->coursesDir . '/' . $slug . '.json');
+    }
+
+    /**
+     * @param array<string, mixed> $course
+     */
+    public static function nextLessonNum(array $course): int
+    {
+        $max = 0;
+        $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+        foreach ($lessons as $lesson) {
+            if (!is_array($lesson)) {
+                continue;
+            }
+            $max = max($max, (int)($lesson['num'] ?? 0));
+        }
+
+        return $max + 1;
+    }
+
+    /**
+     * @param array<string, mixed> $course
+     * @return array{course: array<string, mixed>, num: int}
+     */
+    public static function addLesson(array $course, string $title = 'New lesson', ?int $sectionIndex = null): array
+    {
+        $num = self::nextLessonNum($course);
+        $lesson = [
+            'num' => $num,
+            'title' => $title !== '' ? $title : 'New lesson',
+            'demo' => false,
+            'materials' => [],
+        ];
+
+        $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+        $lessons[] = $lesson;
+        $course['lessons'] = $lessons;
+
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        if ($sections !== []) {
+            if ($sectionIndex === null || !isset($sections[$sectionIndex])) {
+                $sectionIndex = count($sections) - 1;
+            }
+            if ($sectionIndex >= 0 && isset($sections[$sectionIndex]) && is_array($sections[$sectionIndex])) {
+                $refs = is_array($sections[$sectionIndex]['lessons'] ?? null)
+                    ? $sections[$sectionIndex]['lessons']
+                    : [];
+                $refs[] = $num;
+                $course['sections'][$sectionIndex]['lessons'] = $refs;
+            }
+        }
+
+        return ['course' => $course, 'num' => $num];
+    }
+
+    /**
+     * @param array<string, mixed> $course
+     * @return array<string, mixed>
+     */
+    public static function removeLesson(array $course, int $num): array
+    {
+        $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+        $course['lessons'] = array_values(array_filter(
+            $lessons,
+            static fn($lesson) => !is_array($lesson) || (int)($lesson['num'] ?? 0) !== $num
+        ));
+
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        foreach ($sections as $i => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $refs = is_array($section['lessons'] ?? null) ? $section['lessons'] : [];
+            $sections[$i]['lessons'] = array_values(array_filter(
+                $refs,
+                static fn($ref) => (is_array($ref) ? (int)($ref['num'] ?? 0) : (int)$ref) !== $num
+            ));
+        }
+        $course['sections'] = $sections;
+
+        return $course;
+    }
 }

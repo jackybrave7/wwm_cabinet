@@ -70,12 +70,28 @@ final class Router
             (new AdminCourseController())->index();
             return;
         }
+        if ($method === 'GET' && $path === '/admin/courses/new') {
+            (new AdminCourseController())->createForm();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/courses') {
+            (new AdminCourseController())->store();
+            return;
+        }
         if ($method === 'GET' && preg_match('#^/admin/courses/([a-z0-9\-]+)$#', $path, $m)) {
             (new AdminCourseController())->edit($m[1]);
             return;
         }
         if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)$#', $path, $m)) {
             (new AdminCourseController())->update($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons/(\d+)/delete$#', $path, $m)) {
+            (new AdminLessonController())->destroy($m[1], (int)$m[2]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons$#', $path, $m)) {
+            (new AdminLessonController())->store($m[1]);
             return;
         }
         if ($method === 'GET' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons/(\d+)$#', $path, $m)) {

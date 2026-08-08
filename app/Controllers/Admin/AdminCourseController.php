@@ -113,4 +113,79 @@ final class AdminCourseController
 
         wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
     }
+
+    public function createForm(): void
+    {
+        $userId = Session::requireAdmin();
+        $user = User::findById(wwm_pdo(), $userId);
+
+        wwm_render_admin('course-create', [
+            'pageTitle' => 'Add course — Admin',
+            'user' => $user,
+            'adminNav' => 'courses',
+            'error' => match ($_GET['error'] ?? '') {
+                'csrf' => 'Session expired. Please try again.',
+                default => null,
+            },
+        ]);
+    }
+
+    public function store(): void
+    {
+        Session::requireAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/courses/new?error=csrf');
+        }
+
+        $title = trim((string)($_POST['title'] ?? ''));
+        $slug = strtolower(trim((string)($_POST['slug'] ?? '')));
+        $slug = preg_replace('/[^a-z0-9\-]/', '', $slug) ?? '';
+
+        if ($title === '' || $slug === '') {
+            wwm_render_admin('course-create', [
+                'pageTitle' => 'Add course — Admin',
+                'user' => User::findById(wwm_pdo(), Session::userId() ?? 0),
+                'adminNav' => 'courses',
+                'error' => 'Title and URL slug are required.',
+            ]);
+            return;
+        }
+
+        $catalog = new CourseCatalog();
+        if ($catalog->getAdmin($slug) !== null || (new CourseWriter())->exists($slug)) {
+            wwm_render_admin('course-create', [
+                'pageTitle' => 'Add course — Admin',
+                'user' => User::findById(wwm_pdo(), Session::userId() ?? 0),
+                'adminNav' => 'courses',
+                'error' => 'A course with this slug already exists.',
+            ]);
+            return;
+        }
+
+        $course = [
+            'slug' => $slug,
+            'title' => $title,
+            'subtitle' => trim((string)($_POST['subtitle'] ?? '')),
+            'buy_url' => trim((string)($_POST['buy_url'] ?? '')),
+            'status' => 'draft',
+            'demo_hours' => max(1, (int)($_POST['demo_hours'] ?? 48)),
+            'lessons' => [],
+        ];
+
+        try {
+            (new CourseWriter())->save($slug, $course);
+        } catch (\Throwable $e) {
+            wwm_log('Course create failed: ' . $e->getMessage());
+            wwm_render_admin('course-create', [
+                'pageTitle' => 'Add course — Admin',
+                'user' => User::findById(wwm_pdo(), Session::userId() ?? 0),
+                'adminNav' => 'courses',
+                'error' => 'Failed to create course.',
+            ]);
+            return;
+        }
+
+        wwm_log('admin created course slug=' . $slug);
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
+    }
 }
