@@ -25,6 +25,9 @@ $status = strtolower((string)($course['status'] ?? 'published'));
 <?php if (!empty($_GET['deleted'])): ?>
   <div class="alert alert-success">Lesson deleted.</div>
 <?php endif; ?>
+<?php if (!empty($_GET['section_deleted'])): ?>
+  <div class="alert alert-success">Section deleted. Its lessons were moved to the nearest section.</div>
+<?php endif; ?>
 <?php if (($error ?? '') === 'csrf'): ?>
   <div class="alert alert-error">Session expired. Please try again.</div>
 <?php elseif (($error ?? '') === 'save'): ?>
@@ -99,36 +102,50 @@ $status = strtolower((string)($course['status'] ?? 'published'));
       </div>
     </div>
 
-    <div class="tab-panel" data-panel="structure">
+    <div class="tab-panel" data-panel="structure" id="structure">
       <div class="admin-card">
         <h2>Sections &amp; lessons</h2>
-        <p class="field-hint" style="margin-bottom:16px">Drag lessons by the ⋮⋮ handle to reorder within each section. Save changes to apply.</p>
+        <p class="field-hint" style="margin-bottom:16px">Edit section titles below, drag lessons to reorder within a section, then click <strong>Save changes</strong>.</p>
+        <?php if ($sections === [] && $lessons !== []): ?>
+          <p class="field-hint" style="margin-bottom:16px">This course has a flat lesson list. Add a section below to group lessons.</p>
+        <?php endif; ?>
         <?php if ($sections !== []): ?>
           <?php foreach ($sections as $sectionIndex => $section): ?>
             <?php if (!is_array($section)) continue; ?>
-            <?php if (!empty($section['title'])): ?>
-              <div class="section-admin-title"><?= wwm_escape((string)$section['title']) ?></div>
-            <?php endif; ?>
-            <div class="lesson-sortable">
-              <?php
-                $sectionLessonRefs = is_array($section['lessons'] ?? null) ? $section['lessons'] : [];
-                foreach ($sectionLessonRefs as $ref):
-                  $lessonNum = is_array($ref) ? (int)($ref['num'] ?? 0) : (int)$ref;
-                  $lesson = null;
-                  foreach ($lessons as $l) {
-                      if (is_array($l) && (int)($l['num'] ?? 0) === $lessonNum) {
-                          $lesson = $l;
-                          break;
-                      }
-                  }
-                  if ($lesson === null) {
-                      continue;
-                  }
-                  $flatList = false;
-                  require __DIR__ . '/partials/lesson-row.php';
-                endforeach;
-              ?>
-            </div>
+            <section class="section-admin-block">
+              <div class="section-admin-header">
+                <label class="field section-admin-title-field">
+                  <span>Section <?= (int)$sectionIndex + 1 ?></span>
+                  <input type="text" name="section_title[<?= (int)$sectionIndex ?>]" class="section-admin-title-input" value="<?= wwm_escape((string)($section['title'] ?? '')) ?>" placeholder="Section title">
+                </label>
+                <button
+                  type="submit"
+                  form="section-delete-<?= (int)$sectionIndex ?>"
+                  class="btn btn-ghost btn-sm section-admin-delete"
+                  onclick="return confirm('Delete this section? Its lessons will move to the nearest section.');"
+                >Delete section</button>
+              </div>
+              <div class="lesson-sortable">
+                <?php
+                  $sectionLessonRefs = is_array($section['lessons'] ?? null) ? $section['lessons'] : [];
+                  foreach ($sectionLessonRefs as $ref):
+                    $lessonNum = is_array($ref) ? (int)($ref['num'] ?? 0) : (int)$ref;
+                    $lesson = null;
+                    foreach ($lessons as $l) {
+                        if (is_array($l) && (int)($l['num'] ?? 0) === $lessonNum) {
+                            $lesson = $l;
+                            break;
+                        }
+                    }
+                    if ($lesson === null) {
+                        continue;
+                    }
+                    $flatList = false;
+                    require __DIR__ . '/partials/lesson-row.php';
+                  endforeach;
+                ?>
+              </div>
+            </section>
           <?php endforeach; ?>
         <?php else: ?>
           <div class="lesson-sortable">
@@ -145,8 +162,31 @@ $status = strtolower((string)($course['status'] ?? 'published'));
           </div>
         <?php endif; ?>
       </div>
+
+      <div class="admin-card section-add-card">
+        <h2>Add section</h2>
+        <form method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/sections" class="section-add-form">
+          <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+          <div class="field-row section-add-row">
+            <label class="field">
+              <span>Section title</span>
+              <input type="text" name="title" placeholder="e.g. Lesson 2. Cityscape" required>
+            </label>
+            <button type="submit" class="btn btn-ghost">+ Add section</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </form>
+
+<?php if ($sections !== []): ?>
+  <?php foreach ($sections as $sectionIndex => $section): ?>
+    <?php if (!is_array($section)) continue; ?>
+    <form id="section-delete-<?= (int)$sectionIndex ?>" method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/sections/<?= (int)$sectionIndex ?>/delete" hidden>
+      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    </form>
+  <?php endforeach; ?>
+<?php endif; ?>
 
 <p style="margin-top:8px"><a href="/admin/courses">← Back to courses</a></p>

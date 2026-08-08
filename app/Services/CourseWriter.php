@@ -325,6 +325,40 @@ final class CourseWriter
         return $course;
     }
 
+    /**
+     * @param array<string, mixed> $course
+     * @return array<string, mixed>
+     */
+    public static function removeSection(array $course, int $sectionIndex): array
+    {
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        if (!isset($sections[$sectionIndex]) || !is_array($sections[$sectionIndex])) {
+            return $course;
+        }
+
+        $removedLessons = is_array($sections[$sectionIndex]['lessons'] ?? null)
+            ? $sections[$sectionIndex]['lessons']
+            : [];
+        unset($sections[$sectionIndex]);
+        $sections = array_values($sections);
+
+        if ($removedLessons !== [] && $sections !== []) {
+            $targetIndex = min($sectionIndex, count($sections) - 1);
+            $targetLessons = is_array($sections[$targetIndex]['lessons'] ?? null)
+                ? $sections[$targetIndex]['lessons']
+                : [];
+            $sections[$targetIndex]['lessons'] = array_values(array_merge($targetLessons, $removedLessons));
+        }
+
+        if ($sections === []) {
+            unset($course['sections']);
+        } else {
+            $course['sections'] = $sections;
+        }
+
+        return $course;
+    }
+
     public function exists(string $slug): bool
     {
         $slug = preg_replace('/[^a-z0-9\-]/', '', $slug);

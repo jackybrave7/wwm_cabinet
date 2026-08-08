@@ -86,6 +86,14 @@ final class Router
             (new AdminCourseController())->update($m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/sections$#', $path, $m)) {
+            (new AdminCourseController())->storeSection($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/sections/(\d+)/delete$#', $path, $m)) {
+            (new AdminCourseController())->destroySection($m[1], (int)$m[2]);
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/courses/([a-z0-9\-]+)/lessons/(\d+)/delete$#', $path, $m)) {
             (new AdminLessonController())->destroy($m[1], (int)$m[2]);
             return;

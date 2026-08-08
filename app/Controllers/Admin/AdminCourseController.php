@@ -228,6 +228,39 @@ final class AdminCourseController
         }
 
         wwm_log('admin created section course=' . $slug);
-        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1#structure');
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
+    }
+
+    public function destroySection(string $slug, int $sectionIndex): void
+    {
+        Session::requireAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->getAdmin($slug);
+        if ($course === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Course not found.']);
+            return;
+        }
+
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        if (!isset($sections[$sectionIndex])) {
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=save');
+        }
+
+        $course = CourseWriter::removeSection($course, $sectionIndex);
+
+        try {
+            (new CourseWriter())->save($slug, $course);
+        } catch (\Throwable $e) {
+            wwm_log('Section delete failed: ' . $e->getMessage());
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=save');
+        }
+
+        wwm_log('admin deleted section course=' . $slug . ' index=' . $sectionIndex);
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?section_deleted=1');
     }
 }
