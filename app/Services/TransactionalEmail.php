@@ -14,7 +14,6 @@ final class TransactionalEmail
         string $courseTitle,
         ?string $courseCoverUrl,
         ?string $coursePageUrl,
-        string $magicLoginUrl,
         string $prefilledLoginUrl,
         string $password
     ): array {
@@ -28,10 +27,7 @@ final class TransactionalEmail
             '',
             'Your full access to "' . $courseTitle . '" is ready.',
             '',
-            'One-click sign-in:',
-            $magicLoginUrl,
-            '',
-            'Sign in with email and password filled in:',
+            'Sign in to your cabinet (email and password are prefilled):',
             $prefilledLoginUrl,
             '',
             'Manual sign-in:',
@@ -56,15 +52,8 @@ final class TransactionalEmail
                     . self::e($courseTitle)
                     . '</strong> is ready.'
                 ),
-                self::button($magicLoginUrl, 'Start watching'),
-                self::spacer(8),
-                self::paragraph(
-                    'Or sign in with your email and password prefilled:',
-                    '14px',
-                    '#6e6e6e'
-                ),
                 self::button($prefilledLoginUrl, 'Sign in with saved password'),
-                self::credentialsBox($email, $password),
+                self::credentialsBox($email, $password, $prefilledLoginUrl),
                 self::courseLink($coursePageUrl),
                 self::supportBlock(),
             ])

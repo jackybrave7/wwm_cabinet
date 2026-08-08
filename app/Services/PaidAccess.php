@@ -100,7 +100,6 @@ final class PaidAccess
             $emailSent = $this->sendPaidAccessEmail(
                 $user,
                 $course,
-                $loginUrl,
                 wwm_login_url((string)$user['email'], $plainPassword, $nextPath),
                 $plainPassword
             );
@@ -139,7 +138,6 @@ final class PaidAccess
     private function sendPaidAccessEmail(
         array $user,
         array $course,
-        string $magicLoginUrl,
         string $prefilledLoginUrl,
         string $password
     ): bool {
@@ -156,13 +154,11 @@ final class PaidAccess
             $courseTitle,
             $coverUrl,
             $coursePageUrl !== '' ? $coursePageUrl : null,
-            $magicLoginUrl,
             $prefilledLoginUrl,
             $password
         );
 
         $links = [
-            ['url' => $magicLoginUrl, 'label' => 'Start watching'],
             ['url' => $prefilledLoginUrl, 'label' => 'Sign in'],
         ];
         if ($coursePageUrl !== '') {
