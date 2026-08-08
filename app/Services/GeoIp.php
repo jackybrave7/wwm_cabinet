@@ -14,21 +14,7 @@ final class GeoIp
             return ['country' => null, 'city' => null];
         }
 
-        $country = self::countryFromCloudflare();
-        $city = null;
-
-        $remote = self::lookupRemote($ip);
-        if ($remote['country'] !== null) {
-            $country = $remote['country'];
-        }
-        if ($remote['city'] !== null) {
-            $city = $remote['city'];
-        }
-
-        return [
-            'country' => $country,
-            'city' => $city,
-        ];
+        return self::lookupRemote($ip);
     }
 
     private static function isPublicIp(string $ip): bool
@@ -38,16 +24,6 @@ final class GeoIp
             FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
         ) !== false;
-    }
-
-    private static function countryFromCloudflare(): ?string
-    {
-        $code = strtoupper(trim((string)($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '')));
-        if ($code === '' || $code === 'XX' || $code === 'T1') {
-            return null;
-        }
-
-        return $code;
     }
 
     /**

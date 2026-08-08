@@ -660,3 +660,21 @@ body.admin-body {
   gap: 10px;
   margin-top: 20px;
 }
+
+.email-link-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.email-link-stats li {
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.email-link-stats strong {
+  color: var(--accent-dark);
+  font-weight: 600;
+}

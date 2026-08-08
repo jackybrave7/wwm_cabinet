@@ -5,6 +5,7 @@ namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
 use Wwm\Models\Access;
+use Wwm\Models\EmailMessage;
 use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
@@ -278,6 +279,7 @@ final class AdminStudentController
             'avo_has_demo_opened_tag' => $avoContactId > 0 && $avoClient->tagId('demo_opened') > 0
                 ? $avoClient->contactHasTag($avoContactId, $avoClient->tagId('demo_opened'))
                 : null,
+            'email_messages' => EmailMessage::forUser($pdo, $id),
             'message' => match ($_GET['created'] ?? '') {
                 '1' => 'Student created.',
                 'access' => 'Access updated.',

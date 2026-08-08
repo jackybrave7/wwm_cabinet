@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 5;
+    public const SCHEMA_VERSION = 6;
 
     public static function connect(string $path): PDO
     {
@@ -123,6 +123,35 @@ CREATE TABLE IF NOT EXISTS login_links (
 );
 
 CREATE INDEX IF NOT EXISTS idx_login_links_user ON login_links(user_id);
+
+CREATE TABLE IF NOT EXISTS email_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  to_email TEXT NOT NULL COLLATE NOCASE,
+  email_type TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'sent', 'failed')),
+  error_message TEXT,
+  sent_at TEXT NOT NULL,
+  open_token TEXT NOT NULL UNIQUE,
+  opened_at TEXT,
+  open_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_messages_user ON email_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_messages_sent ON email_messages(sent_at);
+
+CREATE TABLE IF NOT EXISTS email_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL REFERENCES email_messages(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  target_url TEXT NOT NULL,
+  link_label TEXT NOT NULL DEFAULT '',
+  clicked_at TEXT,
+  click_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_links_message ON email_links(message_id);
 SQL);
     }
 

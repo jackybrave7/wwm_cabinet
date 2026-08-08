@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
+use Wwm\Services\EmailTracker;
 use Wwm\Services\Mailer;
 
 final class AdminMailController
@@ -20,11 +21,9 @@ final class AdminMailController
         $cfg = wwm_config()['mail'] ?? [];
         $smtpUser = trim((string)($cfg['smtp_user'] ?? ''));
         $smtpPass = (string)($cfg['smtp_pass'] ?? '');
-        $sent = Mailer::send(
-            $to,
-            'WWM Cabinet test email',
-            "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n"
-        );
+        $body = "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n";
+        $sent = EmailTracker::compose(null, $to, 'test', 'WWM Cabinet test email')
+            ->deliver($body, null, []);
 
         wwm_json_response(200, [
             'ok' => $sent,

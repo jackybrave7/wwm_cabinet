@@ -13,10 +13,11 @@ $pct = $total_lessons > 0 ? min(100, (int)round($total_opened / $total_lessons *
 $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo' ? 'badge-demo' : 'badge-draft');
 $periods = is_array($access_periods ?? null) ? $access_periods : [];
 $accessCourses = is_array($access_courses ?? null) ? $access_courses : [];
-$location = StudentAttribution::locationLabel($student);
-$channel = StudentAttribution::channelLabel($student);
-$channelDetail = StudentAttribution::channelDetail($student);
-$lastLocation = StudentAttribution::locationLabel($student, false);
+$location = StudentAttribution::lastLoginLocationLabel($student);
+if ($location === '—') {
+    $location = StudentAttribution::signupLocationLabel($student);
+}
+$signupLocation = StudentAttribution::signupLocationLabel($student);
 ?>
 <div class="admin-topbar">
   <div>
@@ -50,8 +51,8 @@ $lastLocation = StudentAttribution::locationLabel($student, false);
   <div class="admin-stat-card">
     <span class="admin-stat-label">Location</span>
     <strong class="admin-stat-value" style="font-size:1.1rem"><?= wwm_escape($location) ?></strong>
-    <?php if ($lastLocation !== $location && $lastLocation !== '—'): ?>
-      <span class="admin-stat-note">Last login: <?= wwm_escape($lastLocation) ?></span>
+    <?php if ($signupLocation !== '—' && $signupLocation !== $location): ?>
+      <span class="admin-stat-note">At signup: <?= wwm_escape($signupLocation) ?></span>
     <?php endif; ?>
   </div>
   <div class="admin-stat-card">
@@ -79,6 +80,76 @@ $lastLocation = StudentAttribution::locationLabel($student, false);
   </form>
 </div>
 <?php endif; ?>
+
+<?php $emailMessages = is_array($email_messages ?? null) ? $email_messages : []; ?>
+<div class="admin-card">
+  <h2>Emails</h2>
+  <?php if ($emailMessages === []): ?>
+    <p class="field-hint">No cabinet emails logged for this student yet.</p>
+  <?php else: ?>
+    <table class="admin-table admin-table-compact">
+      <thead>
+        <tr>
+          <th>Sent</th>
+          <th>Type</th>
+          <th>Subject</th>
+          <th>Status</th>
+          <th>Opened</th>
+          <th>Link clicks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($emailMessages as $mail): ?>
+          <?php
+            $links = is_array($mail['links'] ?? null) ? $mail['links'] : [];
+            $openedAt = (string)($mail['opened_at'] ?? '');
+            $openCount = (int)($mail['open_count'] ?? 0);
+          ?>
+          <tr>
+            <td><?= wwm_escape($formatDate((string)($mail['sent_at'] ?? ''))) ?></td>
+            <td><?= wwm_escape(\Wwm\Models\EmailMessage::typeLabel((string)($mail['email_type'] ?? ''))) ?></td>
+            <td><?= wwm_escape((string)($mail['subject'] ?? '')) ?></td>
+            <td>
+              <?php if (($mail['status'] ?? '') === 'sent'): ?>
+                <span class="badge badge-paid" style="margin:0">Sent</span>
+              <?php else: ?>
+                <span class="badge badge-draft" style="margin:0">Failed</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($openedAt !== ''): ?>
+                <span class="badge badge-demo" style="margin:0">Yes</span>
+                <span class="field-hint"><?= wwm_escape($formatDate($openedAt)) ?><?= $openCount > 1 ? ' · ' . $openCount . '×' : '' ?></span>
+              <?php else: ?>
+                <span class="field-hint">—</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($links === []): ?>
+                <span class="field-hint">—</span>
+              <?php else: ?>
+                <ul class="email-link-stats">
+                  <?php foreach ($links as $link): ?>
+                    <li>
+                      <span><?= wwm_escape((string)($link['link_label'] ?: 'Link')) ?>:</span>
+                      <?php if (!empty($link['clicked_at'])): ?>
+                        <strong>clicked</strong>
+                        <span class="field-hint"><?= wwm_escape($formatDate((string)$link['clicked_at'])) ?><?= (int)($link['click_count'] ?? 0) > 1 ? ' · ' . (int)$link['click_count'] . '×' : '' ?></span>
+                      <?php else: ?>
+                        <span class="field-hint">not clicked</span>
+                      <?php endif; ?>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    <p class="field-hint" style="margin-top:12px">Open tracking uses a pixel and may be blocked by some mail clients. Link clicks are more reliable.</p>
+  <?php endif; ?>
+</div>
 
 <div class="admin-card">
   <h2>Course access</h2>

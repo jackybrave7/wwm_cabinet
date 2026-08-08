@@ -6,7 +6,6 @@ namespace Wwm\Services;
 use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
-use Wwm\Services\Mailer;
 
 final class PaidAccess
 {
@@ -64,7 +63,7 @@ final class PaidAccess
         if ($avoContactId !== null && $avoContactId > 0) {
             User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $avoContactId]);
         }
-        StudentAttribution::recordForUser($pdo, $userId, $created, $utm);
+        StudentAttribution::recordForUser($pdo, $userId, $created, $utm, false);
 
         $state = Access::courseState($pdo, $userId, $courseSlug);
         if ($state['has_paid']) {
@@ -162,12 +161,16 @@ final class PaidAccess
             $password
         );
 
-        return Mailer::send(
-            (string)$user['email'],
-            $message['subject'],
-            $message['text'],
-            $message['html']
-        );
+        $links = [
+            ['url' => $magicLoginUrl, 'label' => 'Start watching'],
+            ['url' => $prefilledLoginUrl, 'label' => 'Sign in'],
+        ];
+        if ($coursePageUrl !== '') {
+            $links[] = ['url' => $coursePageUrl, 'label' => 'Course page'];
+        }
+
+        return EmailTracker::compose((int)$user['id'], (string)$user['email'], 'paid', $message['subject'])
+            ->deliver($message['text'], $message['html'], $links);
     }
 
     private static function generatePassword(): string

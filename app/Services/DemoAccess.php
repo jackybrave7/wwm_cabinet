@@ -6,7 +6,7 @@ namespace Wwm\Services;
 use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
-use Wwm\Services\Mailer;
+use Wwm\Services\EmailTracker;
 use Wwm\Services\StudentAttribution;
 
 final class DemoAccess
@@ -64,7 +64,7 @@ final class DemoAccess
         if ($avoContactId !== null && $avoContactId > 0) {
             User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $avoContactId]);
         }
-        StudentAttribution::recordForUser($pdo, $userId, $created, $utm);
+        StudentAttribution::recordForUser($pdo, $userId, $created, $utm, false);
         $state = Access::courseState($pdo, $userId, $courseSlug);
 
         if ($state['has_paid']) {
@@ -199,12 +199,13 @@ final class DemoAccess
             $this->demoDefaultPassword()
         );
 
-        Mailer::send(
-            (string)$user['email'],
-            $message['subject'],
-            $message['text'],
-            $message['html']
-        );
+        $links = [['url' => $loginUrl, 'label' => 'Watch demo']];
+        if ($coursePageUrl !== '') {
+            $links[] = ['url' => $coursePageUrl, 'label' => 'Course page'];
+        }
+
+        EmailTracker::compose((int)$user['id'], (string)$user['email'], 'demo', $message['subject'])
+            ->deliver($message['text'], $message['html'], $links);
     }
 
     private function demoDefaultPassword(): ?string

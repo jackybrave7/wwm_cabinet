@@ -76,20 +76,52 @@ final class StudentAttribution
 
     /**
      * @param array<string, string> $utmOverride
+     * @param bool $captureGeo Record IP/city/country (false for server-side webhooks)
      */
-    public static function recordForUser(PDO $pdo, int $userId, bool $isNewUser = false, array $utmOverride = []): void
-    {
-        $ip = wwm_client_ip();
-        $geo = GeoIp::lookup($ip);
+    public static function recordForUser(
+        PDO $pdo,
+        int $userId,
+        bool $isNewUser = false,
+        array $utmOverride = [],
+        bool $captureGeo = true
+    ): void {
         $utm = $utmOverride !== [] ? $utmOverride : self::utmFromSession();
-
-        User::recordAttribution($pdo, $userId, [
-            'ip' => $ip,
-            'country' => $geo['country'],
-            'city' => $geo['city'],
+        $data = [
             'utm' => $utm,
             'is_new_user' => $isNewUser,
-        ]);
+        ];
+
+        if ($captureGeo) {
+            $ip = wwm_client_ip();
+            $geo = GeoIp::lookup($ip);
+            $data['ip'] = $ip;
+            $data['country'] = $geo['country'];
+            $data['city'] = $geo['city'];
+        }
+
+        User::recordAttribution($pdo, $userId, $data);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    public static function signupLocationLabel(array $user): string
+    {
+        return self::locationFromFields(
+            trim((string)($user['signup_city'] ?? '')),
+            trim((string)($user['signup_country'] ?? ''))
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    public static function lastLoginLocationLabel(array $user): string
+    {
+        return self::locationFromFields(
+            trim((string)($user['last_city'] ?? '')),
+            trim((string)($user['last_country'] ?? ''))
+        );
     }
 
     /**
@@ -97,20 +129,25 @@ final class StudentAttribution
      */
     public static function locationLabel(array $user, bool $preferSignup = true): string
     {
-        $city = $preferSignup
-            ? self::firstNonEmpty($user, 'signup_city', 'last_city')
-            : self::firstNonEmpty($user, 'last_city', 'signup_city');
-        $country = $preferSignup
-            ? self::firstNonEmpty($user, 'signup_country', 'last_country')
-            : self::firstNonEmpty($user, 'last_country', 'signup_country');
+        $signup = self::signupLocationLabel($user);
+        $last = self::lastLoginLocationLabel($user);
 
-        if ($city !== null && $country !== null) {
+        if ($preferSignup) {
+            return $signup !== '—' ? $signup : $last;
+        }
+
+        return $last !== '—' ? $last : $signup;
+    }
+
+    private static function locationFromFields(string $city, string $country): string
+    {
+        if ($city !== '' && $country !== '') {
             return $city . ', ' . $country;
         }
-        if ($country !== null) {
+        if ($country !== '') {
             return $country;
         }
-        if ($city !== null) {
+        if ($city !== '') {
             return $city;
         }
 

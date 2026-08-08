@@ -14,6 +14,7 @@ use Wwm\Controllers\Api\PaymentWebhookController;
 use Wwm\Controllers\AuthController;
 use Wwm\Controllers\CourseController;
 use Wwm\Controllers\DashboardController;
+use Wwm\Controllers\EmailTrackingController;
 use Wwm\Controllers\LessonController;
 
 final class Router
@@ -74,6 +75,14 @@ final class Router
         }
         if ($method === 'GET' && $path === '/api/engagement') {
             (new EngagementController())->show();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/t/o/([a-f0-9]{32})$#', $path, $m)) {
+            (new EmailTrackingController())->open($m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/t/c/([a-f0-9]{32})$#', $path, $m)) {
+            (new EmailTrackingController())->click($m[1]);
             return;
         }
 

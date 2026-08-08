@@ -43,7 +43,7 @@ Wwm\Database::migrateIfNeeded($pdo);
 if (PHP_SAPI !== 'cli') {
     $requestPath = wwm_request_path();
     $requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-    $isApiRoute = str_starts_with($requestPath, '/api/');
+    $isApiRoute = str_starts_with($requestPath, '/api/') || str_starts_with($requestPath, '/t/');
 
     session_name('wwm_cabinet');
     session_set_cookie_params([
