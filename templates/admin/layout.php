@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/cabinet.css')) ?>">
   <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/admin.css')) ?>">
 </head>
 <body class="admin-body">

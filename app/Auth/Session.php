@@ -45,11 +45,17 @@ final class Session
             http_response_code(403);
             wwm_render('error', [
                 'pageTitle' => 'Forbidden',
+                'user' => $user,
                 'code' => 403,
-                'message' => 'Admin access required.',
+                'message' => 'Admin access required. Sign in with an administrator account.',
             ]);
             exit;
         }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         return $userId;
     }
 }

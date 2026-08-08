@@ -41,6 +41,9 @@ $pdo = Wwm\Database::connect((string)$config['db_path']);
 Wwm\Database::migrateIfNeeded($pdo);
 
 if (PHP_SAPI !== 'cli') {
+    $requestPath = wwm_request_path();
+    $isApiRoute = str_starts_with($requestPath, '/api/');
+
     session_name('wwm_cabinet');
     session_set_cookie_params([
         'lifetime' => 0,
@@ -50,10 +53,17 @@ if (PHP_SAPI !== 'cli') {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    if (session_status() !== PHP_SESSION_ACTIVE) {
+    if (!$isApiRoute && session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
+        Wwm\Services\StudentAttribution::captureFromRequest();
     }
-    Wwm\Services\StudentAttribution::captureFromRequest();
+}
+
+function wwm_request_path(): string
+{
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+
+    return rtrim($path, '/') ?: '/';
 }
 
 function wwm_client_ip(): ?string
