@@ -26,6 +26,19 @@ if (-not $remoteUrl) {
     throw 'Git remote "origin" is not configured.'
 }
 
+function Clear-AssumeUnchanged([string[]]$Paths) {
+    $tracked = @(git ls-files -v -- @Paths 2>$null)
+    foreach ($line in $tracked) {
+        if ($line.StartsWith('H ') -or $line.StartsWith('S ')) {
+            $file = $line.Substring(2).Trim()
+            if ($file -ne '') {
+                git update-index --no-assume-unchanged -- $file 2>$null | Out-Null
+                git update-index --no-skip-worktree -- $file 2>$null | Out-Null
+            }
+        }
+    }
+}
+
 Write-Step 'Staging deploy files (app, templates, course content, assets)...'
 $paths = @(
     'app',
@@ -41,6 +54,7 @@ $paths = @(
     'deploy.ps1',
     'deploy.bat'
 )
+Clear-AssumeUnchanged $paths
 git add -- $paths
 
 Get-ChildItem -Path 'data/courses' -Filter '*.bak' -ErrorAction SilentlyContinue | ForEach-Object {
