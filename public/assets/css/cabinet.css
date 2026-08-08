@@ -101,13 +101,16 @@ a:hover { text-decoration: underline; }
   margin-left: auto;
 }
 
-.header-menu > summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.header-menu > summary::-webkit-details-marker {
-  display: none;
+.site-nav-toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .header-menu-toggle {
@@ -120,6 +123,7 @@ a:hover { text-decoration: underline; }
   border-radius: 10px;
   background: var(--bg);
   color: var(--ink);
+  cursor: pointer;
 }
 
 .header-menu-toggle-box {
@@ -145,12 +149,22 @@ a:hover { text-decoration: underline; }
 @media (min-width: 720px) {
   .user-email { display: inline; }
 
-  .header-menu > summary {
+  .header-menu-toggle,
+  .site-nav-toggle {
     display: none;
   }
 
   .header-menu .header-nav {
     display: flex !important;
+    position: static;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    flex-direction: row;
+    align-items: center;
   }
 }
 
@@ -194,7 +208,7 @@ a:hover { text-decoration: underline; }
     z-index: 20;
   }
 
-  .header-menu[open] .header-nav {
+  .site-nav-toggle:checked ~ .header-nav {
     display: flex;
   }
 

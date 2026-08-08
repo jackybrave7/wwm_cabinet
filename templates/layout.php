@@ -17,13 +17,14 @@
     <div class="wrap header-inner">
       <a class="brand wwm-logo" href="/"><span class="wwm-logo-text">World Watercolor</span> <em>Masters</em></a>
       <?php if (!empty($user)): ?>
-        <details class="header-menu">
-          <summary class="header-menu-toggle" aria-label="Open menu">
+        <div class="header-menu">
+          <input type="checkbox" id="site-nav-toggle" class="site-nav-toggle">
+          <label for="site-nav-toggle" class="header-menu-toggle" aria-label="Open menu">
             <span class="header-menu-toggle-box" aria-hidden="true">
               <span></span><span></span><span></span>
             </span>
-          </summary>
-          <nav class="header-nav">
+          </label>
+          <nav class="header-nav" aria-label="Account">
             <a href="/">My courses</a>
             <a href="/account">Account</a>
             <?php if (\Wwm\Models\User::isAdmin($user)): ?>
@@ -32,7 +33,7 @@
             <span class="user-email"><?= wwm_escape((string)($user['email'] ?? '')) ?></span>
             <a href="/logout" class="btn btn-ghost">Sign out</a>
           </nav>
-        </details>
+        </div>
       <?php endif; ?>
     </div>
   </header>
