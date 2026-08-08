@@ -185,6 +185,6 @@ final class AdminLessonController
         }
 
         wwm_log('admin deleted lesson course=' . $slug . ' num=' . $num);
-        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?deleted=1');
     }
 }

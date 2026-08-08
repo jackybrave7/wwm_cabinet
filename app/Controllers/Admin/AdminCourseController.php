@@ -104,6 +104,19 @@ final class AdminCourseController
 
         $course = CourseWriter::applyLessonOrder($course, $_POST);
 
+        $sectionTitles = $_POST['section_title'] ?? [];
+        if (is_array($sectionTitles) && is_array($course['sections'] ?? null)) {
+            foreach ($course['sections'] as $i => $section) {
+                if (!is_array($section)) {
+                    continue;
+                }
+                $key = (string)$i;
+                if (array_key_exists($key, $sectionTitles)) {
+                    $course['sections'][$i]['title'] = trim((string)$sectionTitles[$key]);
+                }
+            }
+        }
+
         try {
             (new CourseWriter())->save($slug, $course);
         } catch (\Throwable $e) {
@@ -187,5 +200,34 @@ final class AdminCourseController
 
         wwm_log('admin created course slug=' . $slug);
         wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1');
+    }
+
+    public function storeSection(string $slug): void
+    {
+        Session::requireAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->getAdmin($slug);
+        if ($course === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Course not found.']);
+            return;
+        }
+
+        $title = trim((string)($_POST['title'] ?? 'New section'));
+        $course = CourseWriter::addSection($course, $title);
+
+        try {
+            (new CourseWriter())->save($slug, $course);
+        } catch (\Throwable $e) {
+            wwm_log('Section create failed: ' . $e->getMessage());
+            wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=save');
+        }
+
+        wwm_log('admin created section course=' . $slug);
+        wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?saved=1#structure');
     }
 }

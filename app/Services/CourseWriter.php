@@ -275,6 +275,56 @@ final class CourseWriter
         return $course;
     }
 
+    /**
+     * @param array<string, mixed> $course
+     * @return array<string, mixed>
+     */
+    public static function ensureSections(array $course): array
+    {
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        if ($sections !== []) {
+            return $course;
+        }
+
+        $nums = [];
+        foreach (is_array($course['lessons'] ?? null) ? $course['lessons'] : [] as $lesson) {
+            if (!is_array($lesson)) {
+                continue;
+            }
+            $num = (int)($lesson['num'] ?? 0);
+            if ($num > 0) {
+                $nums[] = $num;
+            }
+        }
+
+        if ($nums === []) {
+            return $course;
+        }
+
+        $course['sections'] = [
+            ['title' => 'Lessons', 'lessons' => $nums],
+        ];
+
+        return $course;
+    }
+
+    /**
+     * @param array<string, mixed> $course
+     * @return array<string, mixed>
+     */
+    public static function addSection(array $course, string $title = 'New section'): array
+    {
+        $course = self::ensureSections($course);
+        $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
+        $sections[] = [
+            'title' => $title !== '' ? $title : 'New section',
+            'lessons' => [],
+        ];
+        $course['sections'] = $sections;
+
+        return $course;
+    }
+
     public function exists(string $slug): bool
     {
         $slug = preg_replace('/[^a-z0-9\-]/', '', $slug);

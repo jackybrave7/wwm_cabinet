@@ -22,6 +22,9 @@ $status = strtolower((string)($course['status'] ?? 'published'));
 <?php if (!empty($saved)): ?>
   <div class="alert alert-success">Course saved successfully.</div>
 <?php endif; ?>
+<?php if (!empty($_GET['deleted'])): ?>
+  <div class="alert alert-success">Lesson deleted.</div>
+<?php endif; ?>
 <?php if (($error ?? '') === 'csrf'): ?>
   <div class="alert alert-error">Session expired. Please try again.</div>
 <?php elseif (($error ?? '') === 'save'): ?>

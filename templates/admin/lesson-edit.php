@@ -39,6 +39,10 @@ if ($htmlBody !== '' && $embedUrl !== '' && !str_contains($htmlBody, 'video-bloc
   <div class="alert alert-error">Failed to save lesson.</div>
 <?php endif; ?>
 
+<form id="lesson-delete-form" method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/lessons/<?= $num ?>/delete" hidden>
+  <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+</form>
+
 <form id="lesson-form" method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/lessons/<?= $num ?>">
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
   <textarea name="html_body" id="lesson-html-body" class="lesson-html-source" hidden><?= wwm_escape(wwm_sanitize_lesson_html($htmlBody)) ?></textarea>
@@ -116,10 +120,7 @@ if ($htmlBody !== '' && $embedUrl !== '' && !str_contains($htmlBody, 'video-bloc
       <div class="admin-card">
         <h2>Danger zone</h2>
         <p class="field-hint" style="margin-bottom:12px">Delete this lesson permanently. Student progress for this lesson number will remain in the database but the lesson will no longer be accessible.</p>
-        <form method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/lessons/<?= $num ?>/delete" onsubmit="return confirm('Delete lesson #<?= $num ?>? This cannot be undone.');">
-          <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-          <button type="submit" class="btn btn-ghost" style="color:var(--accent-dark)">Delete lesson</button>
-        </form>
+        <button type="submit" form="lesson-delete-form" class="btn btn-ghost" style="color:var(--accent-dark)" onclick="return confirm('Delete lesson #<?= $num ?>? This cannot be undone.');">Delete lesson</button>
       </div>
 
       <div class="admin-card">
