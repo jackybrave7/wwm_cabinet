@@ -173,7 +173,7 @@ final class Access
     }
 
     /**
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string, demo_granted_at: ?string}
      */
     public static function courseState(PDO $pdo, int $userId, string $courseSlug): array
     {
@@ -188,7 +188,7 @@ final class Access
 
     /**
      * @param list<array<string, mixed>> $rows
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string, demo_granted_at: ?string}
      */
     private static function courseStateFromRows(array $rows): array
     {
@@ -197,6 +197,7 @@ final class Access
         $hasDemo = false;
         $demoActive = false;
         $demoExpiresAt = null;
+        $demoGrantedAt = null;
 
         foreach ($rows as $row) {
             if ($row['access_type'] === 'paid') {
@@ -213,6 +214,10 @@ final class Access
                     if (is_string($expires) && $expires !== '') {
                         $demoExpiresAt = $expires;
                     }
+                    $granted = $row['granted_at'] ?? null;
+                    if (is_string($granted) && $granted !== '') {
+                        $demoGrantedAt = $granted;
+                    }
                 }
             }
         }
@@ -223,6 +228,7 @@ final class Access
             'demo_active' => $demoActive,
             'paid_active' => $paidActive,
             'demo_expires_at' => $demoExpiresAt,
+            'demo_granted_at' => $demoGrantedAt,
         ];
     }
 }

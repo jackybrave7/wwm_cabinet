@@ -63,6 +63,23 @@ $lastLocation = StudentAttribution::locationLabel($student, false);
   </div>
 </div>
 
+<?php if (!empty($avo_enabled)): ?>
+<div class="admin-card" style="margin-bottom:24px">
+  <h2>AVO sync</h2>
+  <p class="field-hint" style="margin-bottom:12px">
+    Contact ID: <?= $avo_contact_id !== null ? (int)$avo_contact_id : 'not found' ?>
+    · logged in: <?= !empty($avo_logged_in_tagged) ? 'local ✓' : 'local —' ?>
+    <?= $avo_has_logged_in_tag === true ? '· AVO ✓' : ($avo_has_logged_in_tag === false ? '· AVO —' : '') ?>
+    · demo opened: <?= !empty($avo_demo_opened_tagged) ? 'local ✓' : 'local —' ?>
+    <?= $avo_has_demo_opened_tag === true ? '· AVO ✓' : ($avo_has_demo_opened_tag === false ? '· AVO —' : '') ?>
+  </p>
+  <form method="post" action="/admin/students/<?= $id ?>/avo-sync" class="inline-form">
+    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    <button type="submit" class="btn btn-ghost btn-sm">Resync AVO tags</button>
+  </form>
+</div>
+<?php endif; ?>
+
 <div class="admin-card">
   <h2>Course access</h2>
   <table class="admin-table admin-table-compact access-table">

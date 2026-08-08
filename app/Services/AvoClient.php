@@ -64,7 +64,7 @@ final class AvoClient
             if (!is_array($row)) {
                 continue;
             }
-            $id = (int)($row['id_contact'] ?? 0);
+            $id = (int)($row['id_contact'] ?? $row['id'] ?? 0);
             $rowEmail = strtolower(trim((string)($row['email'] ?? '')));
             if ($id > 0 && ($rowEmail === '' || $rowEmail === $email)) {
                 return $id;
@@ -115,18 +115,38 @@ final class AvoClient
             return true;
         }
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'
-            . '<contacttaglnk>'
+        $xml = '<?xml version="1.0" encoding="utf-8"?>'
+            . '<root><item>'
             . '<id_contact>' . $contactId . '</id_contact>'
             . '<id_contact_tag>' . $tagId . '</id_contact_tag>'
-            . '</contacttaglnk>';
+            . '</item></root>';
 
         $response = $this->request('POST', 'contacttaglnk', [], $xml, 'set');
         if ($response === null) {
             return false;
         }
 
-        return true;
+        if ($response === []) {
+            return $this->contactHasTag($contactId, $tagId);
+        }
+
+        foreach ($this->extractRows($response) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            if ((int)($row['id_contact'] ?? 0) === $contactId
+                && (int)($row['id_contact_tag'] ?? 0) === $tagId) {
+                return true;
+            }
+        }
+
+        if (isset($response['id_contact'], $response['id_contact_tag'])
+            && (int)$response['id_contact'] === $contactId
+            && (int)$response['id_contact_tag'] === $tagId) {
+            return true;
+        }
+
+        return $this->contactHasTag($contactId, $tagId);
     }
 
     /**
@@ -154,7 +174,7 @@ final class AvoClient
             $key = trim((string)($this->cfg['api_key_get'] ?? $key));
         }
 
-        $params = ['r' => 'api/rest/' . $resource, 'key' => $key];
+        $params = ['r' => 'api/rest/' . $resource, 'key' => $key, 'donotfallonerror' => '1'];
         foreach ($query as $name => $value) {
             if ($name === 'search' && is_array($value)) {
                 foreach ($value as $searchKey => $searchValue) {
@@ -174,7 +194,9 @@ final class AvoClient
         $url = 'https://' . rawurlencode($shop) . '.autoweboffice.ru/?' . http_build_query($params);
         $headers = ['Accept: application/json'];
         if ($xmlBody !== null) {
-            $headers[] = 'Content-Type: application/xml; charset=UTF-8';
+            $headers[] = 'Content-type: text/xml;charset=utf-8';
+            $headers[] = 'Cache-Control: no-cache';
+            $headers[] = 'Pragma: no-cache';
         }
 
         $body = $this->http($method, $url, $headers, $xmlBody);

@@ -144,6 +144,10 @@ final class Router
             (new AdminStudentController())->destroy((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/avo-sync$#', $path, $m)) {
+            (new AdminStudentController())->resyncAvo((int)$m[1]);
+            return;
+        }
 
         if ($method === 'GET' && $path === '/admin/mail-test') {
             (new AdminMailController())->test();

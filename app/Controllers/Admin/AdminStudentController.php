@@ -10,6 +10,8 @@ use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
+use Wwm\Services\AvoEngagementSync;
+use Wwm\Services\AvoClient;
 
 final class AdminStudentController
 {
@@ -242,6 +244,18 @@ final class AdminStudentController
             }
         }
 
+        $avoClient = new AvoClient();
+        $avoContactId = (int)($student['avo_contact_id'] ?? 0);
+        if ($avoContactId <= 0 && $avoClient->isEnabled()) {
+            $email = trim((string)($student['email'] ?? ''));
+            if ($email !== '') {
+                $found = $avoClient->findContactIdByEmail($email);
+                if ($found !== null && $found > 0) {
+                    $avoContactId = $found;
+                }
+            }
+        }
+
         wwm_render_admin('student-view', [
             'pageTitle' => 'Student — ' . ($student['name'] ?: $student['email']),
             'user' => $admin,
@@ -254,10 +268,21 @@ final class AdminStudentController
             'total_opened' => $totalOpened,
             'total_lessons' => $totalLessons,
             'last_activity' => $lastActivity,
+            'avo_enabled' => $avoClient->isEnabled(),
+            'avo_contact_id' => $avoContactId > 0 ? $avoContactId : null,
+            'avo_logged_in_tagged' => !empty($student['avo_logged_in_tagged']),
+            'avo_demo_opened_tagged' => !empty($student['avo_demo_opened_tagged']),
+            'avo_has_logged_in_tag' => $avoContactId > 0 && $avoClient->tagId('logged_in') > 0
+                ? $avoClient->contactHasTag($avoContactId, $avoClient->tagId('logged_in'))
+                : null,
+            'avo_has_demo_opened_tag' => $avoContactId > 0 && $avoClient->tagId('demo_opened') > 0
+                ? $avoClient->contactHasTag($avoContactId, $avoClient->tagId('demo_opened'))
+                : null,
             'message' => match ($_GET['created'] ?? '') {
                 '1' => 'Student created.',
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
+                'avo' => 'AVO tags synced.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
@@ -389,6 +414,25 @@ final class AdminStudentController
         }
 
         return ['active' => $active, 'label' => $label, 'expires_at' => $expiresAt];
+    }
+
+    public function resyncAvo(int $id): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students/' . $id . '?error=csrf');
+        }
+
+        $student = User::findById(wwm_pdo(), $id);
+        if ($student === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Student not found.']);
+            return;
+        }
+
+        AvoEngagementSync::resync($id);
+        wwm_redirect('/admin/students/' . $id . '?created=avo');
     }
 
     private function renderCreateForm(string $error): void

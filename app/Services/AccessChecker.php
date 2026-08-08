@@ -11,7 +11,7 @@ final class AccessChecker
     private PDO $pdo;
     private ?int $loadedUserId = null;
 
-    /** @var array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}> */
+    /** @var array<string, array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string, demo_granted_at: ?string}> */
     private array $userStateMap = [];
 
     public function __construct(PDO $pdo)
@@ -20,7 +20,7 @@ final class AccessChecker
     }
 
     /**
-     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string}
+     * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string, demo_granted_at: ?string}
      */
     public function courseState(int $userId, string $courseSlug): array
     {
@@ -32,6 +32,7 @@ final class AccessChecker
             'demo_active' => false,
             'paid_active' => false,
             'demo_expires_at' => null,
+            'demo_granted_at' => null,
         ];
     }
 
@@ -44,7 +45,7 @@ final class AccessChecker
         $state = $this->courseState($userId, $slug);
         $isDemoLesson = !empty($lesson['demo']);
         $demoExpiresAt = (!$state['has_paid'] && $state['demo_active'])
-            ? ($state['demo_expires_at'] ?? null)
+            ? self::displayDemoExpiresAt($state, $course)
             : null;
 
         if ($state['has_paid']) {
@@ -112,5 +113,34 @@ final class AccessChecker
 
         $this->userStateMap = Access::stateMapForUser($this->pdo, $userId);
         $this->loadedUserId = $userId;
+    }
+
+    /**
+     * @param array{demo_expires_at?: ?string, demo_granted_at?: ?string, demo_active?: bool} $state
+     * @param array<string, mixed> $course
+     */
+    private static function displayDemoExpiresAt(array $state, array $course): ?string
+    {
+        $expires = $state['demo_expires_at'] ?? null;
+        if (is_string($expires) && $expires !== '') {
+            return $expires;
+        }
+
+        $grantedAt = $state['demo_granted_at'] ?? null;
+        if (!is_string($grantedAt) || $grantedAt === '') {
+            return null;
+        }
+
+        $hours = (int)($course['demo_hours'] ?? wwm_config()['demo_hours'] ?? 48);
+        if ($hours < 1) {
+            return null;
+        }
+
+        $ts = strtotime($grantedAt);
+        if ($ts === false) {
+            return null;
+        }
+
+        return gmdate('c', $ts + $hours * 3600);
     }
 }

@@ -17,6 +17,17 @@ final class AvoEngagementSync
         self::assignTag($userId, 'demo_opened', 'avo_demo_opened_tagged');
     }
 
+    public static function resync(int $userId): void
+    {
+        $pdo = wwm_pdo();
+        User::setAvoFlags($pdo, $userId, [
+            'avo_logged_in_tagged' => 0,
+            'avo_demo_opened_tagged' => 0,
+        ]);
+        self::onLogin($userId);
+        self::onDemoLessonOpen($userId);
+    }
+
     private static function assignTag(int $userId, string $tagName, string $flagColumn): void
     {
         try {
