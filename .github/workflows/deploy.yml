@@ -32,11 +32,19 @@ jobs:
           WWM_SMTP_PORT: ${{ secrets.WWM_SMTP_PORT }}
           WWM_SMTP_FROM: ${{ secrets.WWM_SMTP_FROM }}
           WWM_SMTP_FROM_NAME: ${{ secrets.WWM_SMTP_FROM_NAME }}
+          WWM_SMTP_ENCRYPTION: ${{ secrets.WWM_SMTP_ENCRYPTION }}
+          WWM_SMTP_VERIFY_SSL: ${{ secrets.WWM_SMTP_VERIFY_SSL }}
           WWM_MAIL_ENABLED: ${{ secrets.WWM_MAIL_ENABLED }}
           WWM_WEBHOOK_PAYMENT_TOKEN: ${{ secrets.WWM_WEBHOOK_PAYMENT_TOKEN }}
           WWM_WEBHOOK_DEMO_TOKEN: ${{ secrets.WWM_WEBHOOK_DEMO_TOKEN }}
           WWM_WEBHOOKS_ENABLED: ${{ secrets.WWM_WEBHOOKS_ENABLED }}
           WWM_DEMO_HOURS: ${{ secrets.WWM_DEMO_HOURS }}
+          WWM_AVO_ENABLED: ${{ secrets.WWM_AVO_ENABLED }}
+          WWM_AVO_SHOP_ID: ${{ secrets.WWM_AVO_SHOP_ID }}
+          WWM_AVO_API_KEY_GET: ${{ secrets.WWM_AVO_API_KEY_GET }}
+          WWM_AVO_API_KEY_SET: ${{ secrets.WWM_AVO_API_KEY_SET }}
+          WWM_AVO_TAG_LOGGED_IN: ${{ secrets.WWM_AVO_TAG_LOGGED_IN }}
+          WWM_AVO_TAG_DEMO_OPENED: ${{ secrets.WWM_AVO_TAG_DEMO_OPENED }}
 
       - name: Mirror public → public_html (Spaceweb docroot)
         run: rm -rf public_html && cp -a public public_html

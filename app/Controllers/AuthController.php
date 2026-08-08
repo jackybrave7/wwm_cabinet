@@ -32,6 +32,7 @@ final class AuthController
 
         $next = wwm_sanitize_internal_path((string)($_GET['next'] ?? '/'));
         $error = null;
+        $message = isset($_GET['reset']) ? 'Password updated. Sign in with your new password.' : null;
 
         if ($email !== '' && $password !== '') {
             $user = User::findByEmail(wwm_pdo(), $email);
@@ -49,7 +50,7 @@ final class AuthController
         wwm_render('login', [
             'pageTitle' => 'Sign in',
             'error' => $error,
-            'message' => null,
+            'message' => $message,
             'next' => $next,
             'email' => $email,
             'password' => $password,
@@ -233,7 +234,8 @@ final class AuthController
         }
 
         if (Session::userId() !== null) {
-            Session::logout();
+            // Clear login only — do not session_destroy() here or the reset form CSRF token is lost.
+            unset($_SESSION['user_id']);
         }
 
         wwm_render('reset', [
@@ -248,7 +250,14 @@ final class AuthController
     {
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             http_response_code(400);
-            wwm_render('reset', ['pageTitle' => 'New password', 'token' => '', 'error' => 'Invalid request.']);
+            $token = (string)($_POST['token'] ?? '');
+            $row = $token !== '' ? PasswordReset::findValid(wwm_pdo(), $token) : null;
+            wwm_render('reset', [
+                'pageTitle' => 'New password',
+                'token' => $token,
+                'email' => is_array($row) ? (string)($row['email'] ?? '') : '',
+                'error' => 'Session expired. Open the reset link from your email again and submit the form.',
+            ]);
             return;
         }
 
@@ -294,6 +303,6 @@ final class AuthController
             (string)($row['email'] ?? '')
         ));
         Session::logout();
-        wwm_redirect('/login');
+        wwm_redirect('/login?reset=1');
     }
 }

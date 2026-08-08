@@ -42,6 +42,17 @@ $payload = [
     'source_ref' => trim((string)($_GET['source_ref'] ?? $_POST['source_ref'] ?? 'autofunnel')),
 ];
 
+$idContact = (int)($_GET['id_contact'] ?? $_POST['id_contact'] ?? 0);
+if ($idContact <= 0) {
+    $row = extractAvoPayloadRow();
+    if (is_array($row)) {
+        $idContact = (int)($row['id_contact'] ?? 0);
+    }
+}
+if ($idContact > 0) {
+    $payload['id_contact'] = $idContact;
+}
+
 if ($course !== '') {
     $payload['course'] = $course;
 } elseif ($idGoods > 0) {
@@ -57,22 +68,31 @@ exit;
 
 function extractEmailFromAvoPayload(): string
 {
+    $data = extractAvoPayloadRow();
+    if ($data === null) {
+        return '';
+    }
+
+    return trim((string)($data['email'] ?? ''));
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function extractAvoPayloadRow(): ?array
+{
     $raw = file_get_contents('php://input');
     if (!is_string($raw) || $raw === '') {
-        return '';
+        return null;
     }
 
     $data = @unserialize($raw, ['allowed_classes' => false]);
     if (!is_array($data)) {
-        return '';
+        return null;
     }
 
     $first = $data[0] ?? $data;
-    if (!is_array($first)) {
-        return '';
-    }
-
-    return trim((string)($first['email'] ?? ''));
+    return is_array($first) ? $first : null;
 }
 
 /**
