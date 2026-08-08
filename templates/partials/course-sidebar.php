@@ -91,7 +91,9 @@ $sectionContainsCurrent = static function (array $sectionLessons, ?int $currentL
 };
 ?>
 <aside class="course-sidebar">
-  <h2>Course content</h2>
+  <details class="course-sidebar-panel"<?= ($currentLessonNum ?? null) === null ? ' open' : '' ?>>
+    <summary class="course-sidebar-toggle">Course content</summary>
+    <div class="course-sidebar-body">
 
   <?php if ($sections !== null && $sections !== []): ?>
     <?php foreach ($sections as $section): ?>
@@ -132,4 +134,7 @@ $sectionContainsCurrent = static function (array $sectionLessons, ?int $currentL
       </div>
     </div>
   <?php endif; ?>
+
+    </div>
+  </details>
 </aside>

@@ -15,7 +15,7 @@
 <body>
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand wwm-logo" href="/">World Watercolor <em>Masters</em></a>
+      <a class="brand wwm-logo" href="/"><span class="wwm-logo-text">World Watercolor</span> <em>Masters</em></a>
       <?php if (!empty($user)): ?>
         <nav class="header-nav">
           <a href="/">My courses</a>
