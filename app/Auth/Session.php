@@ -34,6 +34,11 @@ final class Session
             $next = $_SERVER['REQUEST_URI'] ?? '/';
             wwm_redirect('/login?next=' . rawurlencode($next));
         }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
         return $id;
     }
 

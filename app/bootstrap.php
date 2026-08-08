@@ -42,6 +42,7 @@ Wwm\Database::migrateIfNeeded($pdo);
 
 if (PHP_SAPI !== 'cli') {
     $requestPath = wwm_request_path();
+    $requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     $isApiRoute = str_starts_with($requestPath, '/api/');
 
     session_name('wwm_cabinet');
@@ -54,8 +55,14 @@ if (PHP_SAPI !== 'cli') {
         'samesite' => 'Lax',
     ]);
     if (!$isApiRoute && session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
-        Wwm\Services\StudentAttribution::captureFromRequest();
+        $readOnlySession = ($requestMethod === 'GET' || $requestMethod === 'HEAD')
+            && !wwm_session_needs_write();
+        if ($readOnlySession) {
+            session_start(['read_and_close' => true]);
+        } else {
+            session_start();
+            Wwm\Services\StudentAttribution::captureFromRequest();
+        }
     }
 }
 
@@ -64,6 +71,26 @@ function wwm_request_path(): string
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
     return rtrim($path, '/') ?: '/';
+}
+
+function wwm_session_needs_write(): bool
+{
+    $path = wwm_request_path();
+    if (in_array($path, ['/auth/magic', '/logout'], true)) {
+        return true;
+    }
+    if ($path === '/login'
+        && trim((string)($_GET['email'] ?? '')) !== ''
+        && (string)($_GET['password'] ?? '') !== '') {
+        return true;
+    }
+    foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+        if (trim((string)($_GET[$key] ?? '')) !== '') {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function wwm_client_ip(): ?string
