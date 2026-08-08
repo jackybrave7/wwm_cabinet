@@ -106,6 +106,8 @@ return [
         193 => 'alvaro',
     ],
 
+    'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro'],
+
     'avo' => [
         'enabled' => ${avoEnabled ? 'true' : 'false'},
         'shop_id' => ${phpString(env('WWM_AVO_SHOP_ID', 'bl-school'))},

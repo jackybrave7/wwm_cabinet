@@ -11,7 +11,7 @@ final class EngagementController
 {
     public function show(): void
     {
-        WebhookAuth::requireEnabled();
+        WebhookAuth::requireDemo();
 
         $email = trim((string)($_GET['email'] ?? ''));
         $courseSlug = DemoAccess::resolveCourseSlug(
