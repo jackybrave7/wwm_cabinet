@@ -1,5 +1,8 @@
 <section class="auth-card">
   <h1 class="page-title">New password</h1>
+  <?php if (!empty($email)): ?>
+    <p class="lede">Set a new password for <strong><?= wwm_escape($email) ?></strong>.</p>
+  <?php endif; ?>
   <?php if (!empty($error)): ?>
     <div class="alert alert-error"><?= wwm_escape($error) ?></div>
   <?php endif; ?>

@@ -1,5 +1,8 @@
 <section class="auth-card">
   <h1 class="page-title">Reset password</h1>
+  <?php if (!empty($loggedInEmail)): ?>
+    <div class="alert alert-error">You are signed in as <?= wwm_escape($loggedInEmail) ?>. The reset link will be sent to the email you enter below (it may be a different account).</div>
+  <?php endif; ?>
   <?php if (!empty($error)): ?>
     <div class="alert alert-error"><?= wwm_escape($error) ?></div>
   <?php endif; ?>

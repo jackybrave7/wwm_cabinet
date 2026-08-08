@@ -164,10 +164,21 @@ final class AuthController
 
     public function showForgot(): void
     {
+        $loggedInEmail = null;
+        $userId = Session::userId();
+        if ($userId !== null) {
+            $user = User::findById(wwm_pdo(), $userId);
+            $loggedInEmail = is_array($user) ? trim((string)($user['email'] ?? '')) : null;
+            if ($loggedInEmail === '') {
+                $loggedInEmail = null;
+            }
+        }
+
         wwm_render('forgot', [
             'pageTitle' => 'Reset password',
             'message' => null,
             'error' => null,
+            'loggedInEmail' => $loggedInEmail,
         ]);
     }
 
@@ -216,9 +227,15 @@ final class AuthController
             ]);
             return;
         }
+
+        if (Session::userId() !== null) {
+            Session::logout();
+        }
+
         wwm_render('reset', [
             'pageTitle' => 'New password',
             'token' => $token,
+            'email' => (string)($row['email'] ?? ''),
             'error' => null,
         ]);
     }
@@ -249,6 +266,7 @@ final class AuthController
             wwm_render('reset', [
                 'pageTitle' => 'New password',
                 'token' => $token,
+                'email' => (string)($row['email'] ?? ''),
                 'error' => 'Password must be at least 8 characters.',
             ]);
             return;
@@ -258,6 +276,7 @@ final class AuthController
             wwm_render('reset', [
                 'pageTitle' => 'New password',
                 'token' => $token,
+                'email' => (string)($row['email'] ?? ''),
                 'error' => 'Passwords do not match.',
             ]);
             return;
@@ -265,7 +284,12 @@ final class AuthController
 
         User::updatePassword(wwm_pdo(), (int)$row['user_id'], $password);
         PasswordReset::markUsed(wwm_pdo(), (int)$row['id']);
-        wwm_log('password reset user_id=' . $row['user_id']);
+        wwm_log(sprintf(
+            'password reset user_id=%d email=%s',
+            (int)$row['user_id'],
+            (string)($row['email'] ?? '')
+        ));
+        Session::logout();
         wwm_redirect('/login');
     }
 }
