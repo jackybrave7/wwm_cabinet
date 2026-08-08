@@ -39,6 +39,49 @@ final class StudentAttribution
 
     /**
      * @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    public static function utmFromAvoPayload(array $payload): array
+    {
+        $utm = self::utmFromPayload($payload);
+
+        $map = [
+            'utm_medium' => (string)($payload['advertising_channel_type_traffic'] ?? ''),
+            'utm_term' => (string)($payload['advertising_channel_keyword'] ?? ''),
+            'utm_content' => (string)($payload['advertising_channel_location'] ?? ''),
+        ];
+        foreach ($map as $key => $value) {
+            $value = trim($value);
+            if ($value !== '' && !isset($utm[$key])) {
+                $utm[$key] = mb_substr($value, 0, 255);
+            }
+        }
+
+        return $utm;
+    }
+
+    /**
+     * @param array<string, string> $base
+     * @param array<string, string> $extra
+     * @return array<string, string>
+     */
+    public static function mergeUtm(array $base, array $extra): array
+    {
+        foreach (self::UTM_KEYS as $key) {
+            if (isset($base[$key]) && $base[$key] !== '') {
+                continue;
+            }
+            $value = trim((string)($extra[$key] ?? ''));
+            if ($value !== '') {
+                $base[$key] = mb_substr($value, 0, 255);
+            }
+        }
+
+        return $base;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
      */
     public static function utmFromPayload(array $payload): array
     {

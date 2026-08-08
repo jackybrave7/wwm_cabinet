@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Api;
 
+use Wwm\Services\AvoUtmResolver;
+use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
-use Wwm\Services\StudentAttribution;
 
 final class DemoWebhookController
 {
@@ -12,7 +13,7 @@ final class DemoWebhookController
     {
         WebhookAuth::requireDemo();
 
-        $payload = $this->readPayload();
+        $payload = AvoWebhookPayload::read();
         $email = trim((string)($payload['email'] ?? ''));
         $name = trim((string)($payload['name'] ?? ''));
         $courseSlug = DemoAccess::resolveCourseSlug(
@@ -41,7 +42,7 @@ final class DemoWebhookController
                 $courseSlug,
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
-                StudentAttribution::utmFromPayload($payload),
+                (new AvoUtmResolver())->resolve($payload),
                 $avoContactId > 0 ? $avoContactId : null
             );
         } catch (\InvalidArgumentException $e) {
@@ -55,26 +56,5 @@ final class DemoWebhookController
         }
 
         wwm_json_response(200, ['ok' => true] + $result);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function readPayload(): array
-    {
-        $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
-        if (str_contains($contentType, 'application/json')) {
-            $raw = file_get_contents('php://input');
-            $decoded = is_string($raw) ? json_decode($raw, true) : null;
-            if (is_array($decoded)) {
-                return $decoded;
-            }
-        }
-
-        if ($_POST !== []) {
-            return $_POST;
-        }
-
-        return $_GET;
     }
 }

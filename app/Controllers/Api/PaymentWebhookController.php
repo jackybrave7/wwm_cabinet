@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Api;
 
+use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
 use Wwm\Services\PaidAccess;
-use Wwm\Services\StudentAttribution;
 
 final class PaymentWebhookController
 {
@@ -49,7 +49,7 @@ final class PaymentWebhookController
                 $courseSlug,
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
-                StudentAttribution::utmFromPayload($payload),
+                (new AvoUtmResolver())->resolve($payload),
                 $avoContactId > 0 ? $avoContactId : null,
                 $sendEmail
             );

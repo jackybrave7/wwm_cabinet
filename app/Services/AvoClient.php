@@ -104,6 +104,35 @@ final class AvoClient
         return false;
     }
 
+    /**
+     * @param array<string, scalar> $search
+     * @param array<string, scalar> $param
+     * @return list<array<string, mixed>>
+     */
+    public function searchRows(string $resource, array $search = [], array $param = []): array
+    {
+        if (!$this->isEnabled()) {
+            return [];
+        }
+
+        $response = $this->request('GET', $resource, [
+            'search' => $search,
+            'param' => $param,
+        ], null, 'get');
+        if ($response === null) {
+            return [];
+        }
+
+        $rows = [];
+        foreach ($this->extractRows($response) as $row) {
+            if (is_array($row)) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
     public function assignTag(int $contactId, int $tagId): bool
     {
         if ($contactId <= 0 || $tagId <= 0) {
@@ -290,7 +319,21 @@ final class AvoClient
             return $response;
         }
 
-        foreach (['contacttaglnk', 'contacts', 'data', 'rows', 'items', 'result'] as $key) {
+        foreach ([
+            'contacttaglnk',
+            'contacts',
+            'accounts',
+            'advertisingchannelstatistics',
+            'advertisingchannelcontactstatistics',
+            'contactadvertisingchannelpage',
+            'advertisingchannelcontact',
+            'advertisingchannelpage',
+            'advertisingchannelpages',
+            'data',
+            'rows',
+            'items',
+            'result',
+        ] as $key) {
             if (!isset($response[$key]) || !is_array($response[$key])) {
                 continue;
             }
@@ -301,7 +344,9 @@ final class AvoClient
             return [$value];
         }
 
-        if (isset($response['id_contact']) || isset($response['id_contact_tag'])) {
+        if (isset($response['id_contact']) || isset($response['id_contact_tag'])
+            || isset($response['id_account']) || isset($response['id_advertising_channel_page'])
+            || isset($response['utm_source'])) {
             return [$response];
         }
 
