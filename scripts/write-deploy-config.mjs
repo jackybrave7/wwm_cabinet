@@ -81,6 +81,7 @@ return [
         'smtp_host' => ${phpString(env('WWM_SMTP_HOST', 'smtp.spaceweb.ru'))},
         'smtp_port' => ${Number(env('WWM_SMTP_PORT', '465')) || 465},
         'smtp_encryption' => ${phpString(env('WWM_SMTP_ENCRYPTION', 'ssl'))},
+        'smtp_verify_ssl' => ${envBool('WWM_SMTP_VERIFY_SSL', false) ? 'true' : 'false'},
         'smtp_user' => ${phpString(smtpUser)},
         'smtp_pass' => ${phpString(smtpPass)},
     ],

@@ -9,12 +9,19 @@ final class SmtpClient
     private $socket;
 
     private string $lastResponse = '';
+    private ?string $lastError = null;
+
+    public function lastError(): ?string
+    {
+        return $this->lastError;
+    }
 
     /**
      * @param array<string, mixed> $cfg
      */
     public function send(array $cfg, string $to, string $subject, string $body): bool
     {
+        $this->lastError = null;
         $host = trim((string)($cfg['smtp_host'] ?? ''));
         $user = trim((string)($cfg['smtp_user'] ?? ''));
         $pass = (string)($cfg['smtp_pass'] ?? '');
@@ -24,30 +31,39 @@ final class SmtpClient
         }
 
         if ($host === '' || $user === '' || $pass === '') {
+            $this->lastError = 'SMTP is not configured (host, user, or password is empty)';
             return false;
         }
 
         $fromEmail = trim((string)($cfg['from_email'] ?? $user));
+        if (strcasecmp($fromEmail, $user) !== 0) {
+            $fromEmail = $user;
+        }
         $fromName = trim((string)($cfg['from_name'] ?? ''));
         $encryption = strtolower(trim((string)($cfg['smtp_encryption'] ?? '')));
         if ($encryption === '') {
             $encryption = $port === 465 ? 'ssl' : 'tls';
         }
+        $verifySsl = array_key_exists('smtp_verify_ssl', $cfg)
+            ? !empty($cfg['smtp_verify_ssl'])
+            : false;
 
         try {
-            $this->connect($host, $port, $encryption);
+            $this->connect($host, $port, $encryption, $verifySsl);
             $this->expect([220]);
             $this->command('EHLO ' . $this->clientHost(), [250]);
             if ($encryption === 'tls') {
                 $this->command('STARTTLS', [220]);
-                if (!stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                if (!stream_socket_enable_crypto(
+                    $this->socket,
+                    true,
+                    STREAM_CRYPTO_METHOD_TLS_CLIENT
+                )) {
                     throw new \RuntimeException('STARTTLS failed');
                 }
                 $this->command('EHLO ' . $this->clientHost(), [250]);
             }
-            $this->command('AUTH LOGIN', [334]);
-            $this->command(base64_encode($user), [334]);
-            $this->command(base64_encode($pass), [235]);
+            $this->authenticate($user, $pass);
             $this->command('MAIL FROM:<' . $fromEmail . '>', [250]);
             $this->command('RCPT TO:<' . $to . '>', [250, 251]);
             $this->command('DATA', [354]);
@@ -75,14 +91,15 @@ final class SmtpClient
             return true;
         } catch (\Throwable $e) {
             $detail = trim($this->lastResponse);
-            wwm_log('smtp failed: ' . $e->getMessage() . ($detail !== '' ? ' | ' . $detail : ''));
+            $this->lastError = $e->getMessage() . ($detail !== '' ? ' | ' . $detail : '');
+            wwm_log('smtp failed: ' . $this->lastError);
             return false;
         } finally {
             $this->disconnect();
         }
     }
 
-    private function connect(string $host, int $port, string $encryption): void
+    private function connect(string $host, int $port, string $encryption, bool $verifySsl): void
     {
         $remote = $encryption === 'ssl'
             ? 'ssl://' . $host . ':' . $port
@@ -98,9 +115,10 @@ final class SmtpClient
             STREAM_CLIENT_CONNECT,
             stream_context_create([
                 'ssl' => [
-                    'verify_peer' => true,
-                    'verify_peer_name' => true,
-                    'allow_self_signed' => false,
+                    'verify_peer' => $verifySsl,
+                    'verify_peer_name' => $verifySsl,
+                    'allow_self_signed' => !$verifySsl,
+                    'peer_name' => $host,
                 ],
             ])
         );
@@ -111,6 +129,21 @@ final class SmtpClient
 
         stream_set_timeout($socket, 15);
         $this->socket = $socket;
+    }
+
+    private function authenticate(string $user, string $pass): void
+    {
+        $plain = base64_encode("\0" . $user . "\0" . $pass);
+        try {
+            $this->command('AUTH PLAIN ' . $plain, [235]);
+            return;
+        } catch (\Throwable) {
+            // Fall back to LOGIN for older SMTP servers.
+        }
+
+        $this->command('AUTH LOGIN', [334]);
+        $this->command(base64_encode($user), [334]);
+        $this->command(base64_encode($pass), [235]);
     }
 
     private function disconnect(): void

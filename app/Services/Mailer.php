@@ -5,8 +5,16 @@ namespace Wwm\Services;
 
 final class Mailer
 {
+    private static ?string $lastError = null;
+
+    public static function lastError(): ?string
+    {
+        return self::$lastError;
+    }
+
     public static function send(string $to, string $subject, string $body): bool
     {
+        self::$lastError = null;
         $cfg = wwm_config()['mail'] ?? [];
         if (empty($cfg['enabled'])) {
             $logLine = sprintf("TO=%s SUBJECT=%s\n%s\n---\n", $to, $subject, $body);
@@ -17,9 +25,11 @@ final class Mailer
 
         $smtpHost = trim((string)($cfg['smtp_host'] ?? ''));
         if ($smtpHost !== '') {
-            $ok = (new SmtpClient())->send($cfg, $to, $subject, $body);
+            $client = new SmtpClient();
+            $ok = $client->send($cfg, $to, $subject, $body);
             if (!$ok) {
-                wwm_log('mail send failed via SMTP to ' . $to . ' — ' . $subject);
+                self::$lastError = $client->lastError() ?? 'SMTP send failed';
+                wwm_log('mail send failed via SMTP to ' . $to . ' — ' . $subject . ' | ' . self::$lastError);
             }
             return $ok;
         }
@@ -32,6 +42,11 @@ final class Mailer
             'From: ' . $fromName . ' <' . $from . '>',
         ];
 
-        return @mail($to, $subject, $body, implode("\r\n", $headers));
+        $ok = @mail($to, $subject, $body, implode("\r\n", $headers));
+        if (!$ok) {
+            self::$lastError = 'PHP mail() failed';
+        }
+
+        return $ok;
     }
 }

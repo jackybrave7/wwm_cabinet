@@ -29,6 +29,7 @@ final class AdminMailController
             'mail_enabled' => !empty($cfg['enabled']),
             'smtp_host' => (string)($cfg['smtp_host'] ?? ''),
             'from_email' => (string)($cfg['from_email'] ?? ''),
+            'error' => Mailer::lastError(),
         ]);
     }
 }
