@@ -13,9 +13,10 @@ final class AvoWebhookPayload
      */
     public static function read(): array
     {
+        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
-        if (str_contains($contentType, 'application/json')) {
-            $raw = file_get_contents('php://input');
+        if ($method === 'POST' && str_contains($contentType, 'application/json')) {
+            $raw = self::readRawBody();
             $decoded = is_string($raw) ? json_decode($raw, true) : null;
             if (is_array($decoded)) {
                 return self::normalize($decoded);
@@ -26,15 +27,23 @@ final class AvoWebhookPayload
             return self::normalize($_POST);
         }
 
-        $raw = file_get_contents('php://input');
-        if (is_string($raw) && $raw !== '') {
-            $decoded = @unserialize($raw, ['allowed_classes' => false]);
-            if (is_array($decoded)) {
-                return self::normalize(self::flattenAvoRow($decoded));
+        if ($method === 'POST') {
+            $raw = self::readRawBody();
+            if (is_string($raw) && $raw !== '') {
+                $decoded = @unserialize($raw, ['allowed_classes' => false]);
+                if (is_array($decoded)) {
+                    return self::normalize(self::flattenAvoRow($decoded));
+                }
             }
         }
 
         return self::normalize($_GET);
+    }
+
+    private static function readRawBody(): string
+    {
+        $raw = file_get_contents('php://input');
+        return is_string($raw) ? $raw : '';
     }
 
     /**

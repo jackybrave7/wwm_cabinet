@@ -19,7 +19,7 @@ final class SmtpClient
     /**
      * @param array<string, mixed> $cfg
      */
-    public function send(array $cfg, string $to, string $subject, string $body): bool
+    public function send(array $cfg, string $to, string $subject, string $body, ?string $htmlBody = null): bool
     {
         $this->lastError = null;
         $host = trim((string)($cfg['smtp_host'] ?? ''));
@@ -73,17 +73,13 @@ final class SmtpClient
                 ? $this->encodeHeader($fromName) . ' <' . $fromEmail . '>'
                 : $fromEmail;
 
-            $message = implode("\r\n", [
-                'Date: ' . gmdate('D, d M Y H:i:s') . ' +0000',
-                'From: ' . $fromHeader,
-                'To: <' . $to . '>',
-                'Subject: ' . $encodedSubject,
-                'MIME-Version: 1.0',
-                'Content-Type: text/plain; charset=UTF-8',
-                'Content-Transfer-Encoding: 8bit',
-                '',
-                $this->normalizeBody($body),
-            ]);
+            $message = implode("\r\n", $this->buildMessageHeaders(
+                $fromHeader,
+                $to,
+                $encodedSubject,
+                $body,
+                $htmlBody
+            ));
 
             $this->sendData($message);
             $this->command('QUIT', [221]);
@@ -247,5 +243,50 @@ final class SmtpClient
         }
 
         return implode("\r\n", $normalized);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildMessageHeaders(
+        string $fromHeader,
+        string $to,
+        string $encodedSubject,
+        string $textBody,
+        ?string $htmlBody
+    ): array {
+        $headers = [
+            'Date: ' . gmdate('D, d M Y H:i:s') . ' +0000',
+            'From: ' . $fromHeader,
+            'To: <' . $to . '>',
+            'Subject: ' . $encodedSubject,
+            'MIME-Version: 1.0',
+        ];
+
+        if ($htmlBody !== null && $htmlBody !== '') {
+            $boundary = 'wwm_' . bin2hex(random_bytes(8));
+            $headers[] = 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
+            $headers[] = '';
+            $headers[] = '--' . $boundary;
+            $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+            $headers[] = 'Content-Transfer-Encoding: 8bit';
+            $headers[] = '';
+            $headers[] = $this->normalizeBody($textBody);
+            $headers[] = '--' . $boundary;
+            $headers[] = 'Content-Type: text/html; charset=UTF-8';
+            $headers[] = 'Content-Transfer-Encoding: 8bit';
+            $headers[] = '';
+            $headers[] = $this->normalizeBody($htmlBody);
+            $headers[] = '--' . $boundary . '--';
+
+            return $headers;
+        }
+
+        $headers[] = 'Content-Type: text/plain; charset=UTF-8';
+        $headers[] = 'Content-Transfer-Encoding: 8bit';
+        $headers[] = '';
+        $headers[] = $this->normalizeBody($textBody);
+
+        return $headers;
     }
 }

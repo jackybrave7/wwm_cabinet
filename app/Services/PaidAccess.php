@@ -45,10 +45,11 @@ final class PaidAccess
         $pdo = wwm_pdo();
         $user = User::findByEmail($pdo, $email);
         $created = false;
+        $plainPassword = null;
 
         if ($user === null) {
-            $password = bin2hex(random_bytes(12));
-            $userId = User::create($pdo, $email, $password, $name);
+            $plainPassword = self::generatePassword();
+            $userId = User::create($pdo, $email, $plainPassword, $name);
             $user = User::findById($pdo, $userId);
             $created = true;
         } elseif ($name !== '' && trim((string)($user['name'] ?? '')) === '') {
@@ -93,7 +94,17 @@ final class PaidAccess
         $shouldSend = $sendEmail ?? self::shouldSendPaidEmail($courseSlug);
         $emailSent = false;
         if ($shouldSend) {
-            $emailSent = $this->sendPaidAccessEmail($user, $course, $loginUrl);
+            if ($plainPassword === null) {
+                $plainPassword = self::generatePassword();
+                User::updatePassword($pdo, $userId, $plainPassword);
+            }
+            $emailSent = $this->sendPaidAccessEmail(
+                $user,
+                $course,
+                $loginUrl,
+                wwm_login_url((string)$user['email'], $plainPassword, $nextPath),
+                $plainPassword
+            );
         }
 
         return [
@@ -126,35 +137,41 @@ final class PaidAccess
      * @param array<string, mixed> $user
      * @param array<string, mixed> $course
      */
-    private function sendPaidAccessEmail(array $user, array $course, string $loginUrl): bool
-    {
+    private function sendPaidAccessEmail(
+        array $user,
+        array $course,
+        string $magicLoginUrl,
+        string $prefilledLoginUrl,
+        string $password
+    ): bool {
         $courseTitle = (string)($course['title'] ?? $course['slug'] ?? 'your course');
-        $name = trim((string)($user['name'] ?? ''));
-        $greeting = $name !== '' ? "Hello {$name}," : 'Hello,';
+        $coverUrl = wwm_course_cover_url(isset($course['cover_image']) ? (string)$course['cover_image'] : null);
+        $coursePageUrl = trim((string)($course['buy_url'] ?? ''));
+        if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
+            $coursePageUrl = '';
+        }
 
-        $body = implode("\n", [
-            $greeting,
-            '',
-            'Thank you for your purchase!',
-            '',
-            "Your full access to \"{$courseTitle}\" is ready.",
-            '',
-            'Open this link to sign in and start watching:',
-            $loginUrl,
-            '',
-            'You can also sign in manually at:',
-            wwm_base_url() . '/login',
-            '',
-            'Questions? support@worldwatercolormasters.art',
-            '',
-            'Happy painting!',
-            'World Watercolor Masters',
-        ]);
+        $message = TransactionalEmail::paidAccess(
+            trim((string)($user['name'] ?? '')),
+            (string)$user['email'],
+            $courseTitle,
+            $coverUrl,
+            $coursePageUrl !== '' ? $coursePageUrl : null,
+            $magicLoginUrl,
+            $prefilledLoginUrl,
+            $password
+        );
 
         return Mailer::send(
             (string)$user['email'],
-            'Your course access — World Watercolor Masters',
-            $body
+            $message['subject'],
+            $message['text'],
+            $message['html']
         );
+    }
+
+    private static function generatePassword(): string
+    {
+        return bin2hex(random_bytes(12));
     }
 }

@@ -180,32 +180,30 @@ final class DemoAccess
      */
     private function sendDemoLoginEmail(array $user, array $course, string $expiresAt, string $loginUrl): void
     {
-        $courseSlug = (string)($course['slug'] ?? '');
-        $courseTitle = (string)($course['title'] ?? $courseSlug);
-        $name = trim((string)($user['name'] ?? ''));
-        $greeting = $name !== '' ? "Hello {$name}," : 'Hello,';
+        $courseTitle = (string)($course['title'] ?? $course['slug'] ?? '');
+        $coverUrl = wwm_course_cover_url(isset($course['cover_image']) ? (string)$course['cover_image'] : null);
+        $coursePageUrl = trim((string)($course['buy_url'] ?? ''));
+        if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
+            $coursePageUrl = '';
+        }
         $expiresLocal = gmdate('Y-m-d H:i', strtotime($expiresAt)) . ' UTC';
 
-        $body = implode("\n", [
-            $greeting,
-            '',
-            "Your demo access to \"{$courseTitle}\" is ready.",
-            '',
-            'Open this link — your email and password will be filled in automatically:',
+        $message = TransactionalEmail::demoAccess(
+            trim((string)($user['name'] ?? '')),
+            (string)$user['email'],
+            $courseTitle,
+            $coverUrl,
+            $coursePageUrl !== '' ? $coursePageUrl : null,
             $loginUrl,
-            '',
-            'You can also sign in manually at:',
-            wwm_base_url() . '/login',
-            '',
-            'Demo access expires: ' . $expiresLocal,
-            '',
-            'World Watercolor Masters',
-        ]);
+            $expiresLocal,
+            $this->demoDefaultPassword()
+        );
 
         Mailer::send(
             (string)$user['email'],
-            'Your demo access — World Watercolor Masters',
-            $body
+            $message['subject'],
+            $message['text'],
+            $message['html']
         );
     }
 
