@@ -96,6 +96,47 @@ a:hover { text-decoration: underline; }
   font-size: 0.9rem;
 }
 
+.header-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.header-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.header-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.header-menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.header-menu-toggle-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 18px;
+}
+
+.header-menu-toggle-box span {
+  display: block;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
 .user-email {
   color: var(--mute);
   display: none;
@@ -103,6 +144,14 @@ a:hover { text-decoration: underline; }
 
 @media (min-width: 720px) {
   .user-email { display: inline; }
+
+  .header-menu > summary {
+    display: none;
+  }
+
+  .header-menu .header-nav {
+    display: flex !important;
+  }
 }
 
 @media (max-width: 719px) {
@@ -111,26 +160,59 @@ a:hover { text-decoration: underline; }
   }
 
   .header-inner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    min-height: auto;
-    padding: 12px 0;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 0;
   }
 
   .wwm-logo {
-    font-size: 1.02rem;
+    flex: 1;
+    min-width: 0;
+    font-size: 1rem;
     line-height: 1.2;
   }
 
-  .header-nav {
-    gap: 8px 12px;
-    font-size: 0.84rem;
+  .header-menu-toggle {
+    display: inline-flex;
+    flex-shrink: 0;
   }
 
-  .header-nav .btn {
-    padding: 8px 14px;
-    font-size: 0.84rem;
+  .header-menu .header-nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: min(260px, calc(100vw - 48px));
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 10px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: calc(var(--radius) + 2px);
+    box-shadow: var(--shadow);
+    z-index: 20;
+  }
+
+  .header-menu[open] .header-nav {
+    display: flex;
+  }
+
+  .header-menu .header-nav a:not(.btn) {
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--ink-soft);
+  }
+
+  .header-menu .header-nav a:not(.btn):hover {
+    background: var(--paper);
+    text-decoration: none;
+  }
+
+  .header-menu .header-nav .btn {
+    width: 100%;
+    margin-top: 6px;
+    justify-content: center;
   }
 
   .site-main {
@@ -232,40 +314,8 @@ a:hover { text-decoration: underline; }
     width: 100%;
   }
 
-  .course-sidebar-panel > summary.course-sidebar-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    cursor: pointer;
-    list-style: none;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--mute);
-    font-weight: 700;
-    padding: 2px 0 10px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 12px;
-  }
-
-  .course-sidebar-panel > summary.course-sidebar-toggle::-webkit-details-marker {
-    display: none;
-  }
-
-  .course-sidebar-panel > summary.course-sidebar-toggle::after {
-    content: '▾';
-    font-size: 0.9rem;
-    color: var(--ink-soft);
-    transition: transform 0.15s ease;
-  }
-
-  .course-sidebar-panel:not([open]) > summary.course-sidebar-toggle::after {
-    transform: rotate(-90deg);
-  }
-
-  .course-sidebar-panel:not([open]) .course-sidebar-body {
-    display: none;
+  .course-sidebar-label {
+    display: block;
   }
 
   .lesson-content {
@@ -292,26 +342,13 @@ a:hover { text-decoration: underline; }
   top: 88px;
 }
 
-.course-sidebar h2 {
+.course-sidebar h2,
+.course-sidebar-label {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--mute);
   margin-bottom: 12px;
-}
-
-.course-sidebar-panel > summary.course-sidebar-toggle {
-  display: none;
-}
-
-.course-sidebar-body {
-  display: block;
-}
-
-@media (min-width: 901px) {
-  .course-sidebar-panel .course-sidebar-body {
-    display: block !important;
-  }
 }
 
 .section-block { margin-bottom: 12px; }

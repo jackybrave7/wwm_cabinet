@@ -17,15 +17,22 @@
     <div class="wrap header-inner">
       <a class="brand wwm-logo" href="/"><span class="wwm-logo-text">World Watercolor</span> <em>Masters</em></a>
       <?php if (!empty($user)): ?>
-        <nav class="header-nav">
-          <a href="/">My courses</a>
-          <a href="/account">Account</a>
-          <?php if (\Wwm\Models\User::isAdmin($user)): ?>
-            <a href="/admin/courses">Admin</a>
-          <?php endif; ?>
-          <span class="user-email"><?= wwm_escape((string)($user['email'] ?? '')) ?></span>
-          <a href="/logout" class="btn btn-ghost">Sign out</a>
-        </nav>
+        <details class="header-menu">
+          <summary class="header-menu-toggle" aria-label="Open menu">
+            <span class="header-menu-toggle-box" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+          </summary>
+          <nav class="header-nav">
+            <a href="/">My courses</a>
+            <a href="/account">Account</a>
+            <?php if (\Wwm\Models\User::isAdmin($user)): ?>
+              <a href="/admin/courses">Admin</a>
+            <?php endif; ?>
+            <span class="user-email"><?= wwm_escape((string)($user['email'] ?? '')) ?></span>
+            <a href="/logout" class="btn btn-ghost">Sign out</a>
+          </nav>
+        </details>
       <?php endif; ?>
     </div>
   </header>
