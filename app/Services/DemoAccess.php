@@ -6,6 +6,7 @@ namespace Wwm\Services;
 use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
+use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
 use Wwm\Services\StudentAttribution;
 
@@ -187,17 +188,18 @@ final class DemoAccess
             $coursePageUrl = '';
         }
         $expiresLocal = gmdate('Y-m-d H:i', strtotime($expiresAt)) . ' UTC';
+        $password = $this->demoDefaultPassword();
 
-        $message = TransactionalEmail::demoAccess(
-            trim((string)($user['name'] ?? '')),
-            (string)$user['email'],
-            $courseTitle,
-            $coverUrl,
-            $coursePageUrl !== '' ? $coursePageUrl : null,
-            $loginUrl,
-            $expiresLocal,
-            $this->demoDefaultPassword()
-        );
+        $message = EmailTemplateRenderer::render('demo', [
+            'name' => trim((string)($user['name'] ?? '')),
+            'email' => (string)$user['email'],
+            'course_title' => $courseTitle,
+            'cover_url' => $coverUrl ?? '',
+            'course_page_url' => $coursePageUrl,
+            'login_url' => $loginUrl,
+            'expires_label' => $expiresLocal,
+            'password' => $password ?? '',
+        ]);
 
         $links = [['url' => $loginUrl, 'label' => 'Watch demo']];
         if ($coursePageUrl !== '') {

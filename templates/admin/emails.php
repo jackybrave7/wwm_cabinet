@@ -1,9 +1,10 @@
 <?php
 /** @var list<array<string, mixed>> $templates */
+/** @var list<string> $customized */
 /** @var bool $mailEnabled */
 /** @var string $fromEmail */
 /** @var bool $webhooksEnabled */
-/** @var string $mailWebhookUrl */
+/** @var array<string, array{url: string, token_label: string, endpoint: string}|null> $templateWebhooks */
 ?>
 <div class="admin-topbar">
   <div>
@@ -31,38 +32,41 @@
       <tr>
         <th>Template</th>
         <th>Category</th>
-        <th>Trigger</th>
-        <th>Format</th>
+        <th>AVO webhook</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($templates as $template): ?>
+        <?php
+          $templateId = (string)$template['id'];
+          $webhook = $templateWebhooks[$templateId] ?? null;
+        ?>
         <tr>
           <td>
             <strong><?= wwm_escape((string)$template['label']) ?></strong>
-            <div class="field-hint"><code><?= wwm_escape((string)$template['id']) ?></code></div>
+            <div class="field-hint"><code><?= wwm_escape($templateId) ?></code></div>
             <div class="field-hint"><?= wwm_escape((string)$template['description']) ?></div>
           </td>
           <td><?= wwm_escape((string)$template['category']) ?></td>
-          <td><?= wwm_escape((string)$template['trigger']) ?></td>
-          <td><?= !empty($template['has_html']) ? 'HTML' : 'Plain text' ?></td>
-          <td><a href="/admin/emails/<?= wwm_escape((string)$template['id']) ?>" class="btn btn-ghost btn-sm">Preview</a></td>
+          <td>
+            <?php if ($webhook !== null): ?>
+              <div class="field-hint"><code><?= wwm_escape($webhook['token_label']) ?></code></div>
+              <pre class="email-webhook-sample email-webhook-sample-compact" id="webhook-<?= wwm_escape($templateId) ?>"><?= wwm_escape($webhook['url']) ?></pre>
+              <button type="button" class="btn btn-ghost btn-sm email-webhook-copy" data-copy-target="webhook-<?= wwm_escape($templateId) ?>">Copy URL</button>
+            <?php else: ?>
+              <span class="field-hint">Cabinet only</span>
+            <?php endif; ?>
+          </td>
+          <td class="admin-table-actions">
+            <a href="/admin/emails/<?= wwm_escape($templateId) ?>/edit" class="btn btn-primary btn-sm">Edit</a>
+            <a href="/admin/emails/<?= wwm_escape($templateId) ?>" class="btn btn-ghost btn-sm">Preview</a>
+            <?php if (in_array($templateId, $customized ?? [], true)): ?>
+              <span class="badge badge-paid">Custom</span>
+            <?php endif; ?>
+          </td>
         </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
 </div>
-
-<?php if ($webhooksEnabled): ?>
-  <div class="admin-card">
-    <h2>AVO webhook for reminders</h2>
-    <p class="field-hint" style="margin-bottom:12px">
-      Replace AVO email blocks with «Отправить вебхук». Same <code>token</code> as <code>/api/demo</code>.
-    </p>
-    <pre class="email-webhook-sample"><?= wwm_escape($mailWebhookUrl) ?>?token=YOUR_TOKEN&amp;template=reminder_demo_no_login&amp;email={email}&amp;name={name}&amp;course=elke-en&amp;id_contact={id_contact}</pre>
-    <p class="field-hint" style="margin-top:12px">
-      Templates: <code>reminder_demo_no_login</code>, <code>reminder_demo_no_lesson</code>, <code>reminder_demo_expiring</code>
-    </p>
-  </div>
-<?php endif; ?>

@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 6;
+    public const SCHEMA_VERSION = 7;
 
     public static function connect(string $path): PDO
     {
@@ -152,6 +152,14 @@ CREATE TABLE IF NOT EXISTS email_links (
 );
 
 CREATE INDEX IF NOT EXISTS idx_email_links_message ON email_links(message_id);
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  template_id TEXT PRIMARY KEY,
+  subject TEXT NOT NULL,
+  body_text TEXT NOT NULL,
+  body_html TEXT,
+  updated_at TEXT NOT NULL
+);
 SQL);
     }
 

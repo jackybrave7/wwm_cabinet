@@ -1,7 +1,8 @@
 <?php
 /** @var array<string, mixed> $template */
 /** @var array{subject: string, text: string, html: ?string} $message */
-/** @var string $mailWebhookUrl */
+/** @var array{url: string, token_label: string, endpoint: string}|null $webhook */
+/** @var bool $webhooksEnabled */
 $templateId = (string)($template['id'] ?? '');
 ?>
 <div class="admin-topbar">
@@ -11,6 +12,7 @@ $templateId = (string)($template['id'] ?? '');
     <p class="field-hint"><code><?= wwm_escape($templateId) ?></code> · <?= wwm_escape((string)($template['trigger'] ?? '')) ?></p>
   </div>
   <a href="/admin/emails" class="btn btn-ghost">← All templates</a>
+  <a href="/admin/emails/<?= wwm_escape($templateId) ?>/edit" class="btn btn-primary">Edit</a>
 </div>
 
 <div class="admin-card">
@@ -18,12 +20,7 @@ $templateId = (string)($template['id'] ?? '');
   <p class="email-preview-subject"><?= wwm_escape((string)$message['subject']) ?></p>
 </div>
 
-<?php if (!empty($template['webhook'])): ?>
-  <div class="admin-card">
-    <h2>AVO webhook</h2>
-    <pre class="email-webhook-sample"><?= wwm_escape($mailWebhookUrl) ?>?token=YOUR_TOKEN&amp;template=<?= wwm_escape($templateId) ?>&amp;email={email}&amp;name={name}&amp;course=elke-en&amp;id_contact={id_contact}</pre>
-  </div>
-<?php endif; ?>
+<?php require __DIR__ . '/partials/email-webhook.php'; ?>
 
 <div class="admin-card">
   <div class="email-preview-tabs">

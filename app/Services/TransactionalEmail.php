@@ -315,8 +315,17 @@ final class TransactionalEmail
      */
     public static function magicLinkPreview(?string $name = null): array
     {
-        $greeting = $name !== null && $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
         $loginUrl = wwm_base_url() . '/auth/magic?token=sample-token-for-preview';
+
+        return self::magicLinkMessage($name ?? '', $loginUrl);
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: null}
+     */
+    public static function magicLinkMessage(string $name, string $loginUrl): array
+    {
+        $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
         $hours = (int)(LoginLink::ttlSeconds() / 3600);
 
         return [
@@ -342,8 +351,14 @@ final class TransactionalEmail
      */
     public static function passwordResetPreview(): array
     {
-        $link = wwm_base_url() . '/reset?token=sample-token-for-preview';
+        return self::passwordResetMessage(wwm_base_url() . '/reset?token=sample-token-for-preview');
+    }
 
+    /**
+     * @return array{subject: string, text: string, html: null}
+     */
+    public static function passwordResetMessage(string $link): array
+    {
         return [
             'subject' => 'Reset your WWM password',
             'text' => "Open this link to set a new password (valid 1 hour):\n\n" . $link . "\n",

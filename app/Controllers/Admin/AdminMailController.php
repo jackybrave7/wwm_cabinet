@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
+use Wwm\Models\EmailTemplate;
 use Wwm\Services\EmailTemplateCatalog;
+use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
+use Wwm\Services\EmailWebhookCatalog;
 use Wwm\Services\Mailer;
 
 final class AdminMailController
@@ -16,16 +19,111 @@ final class AdminMailController
 
         $mail = wwm_config()['mail'] ?? [];
         $webhooks = wwm_config()['webhooks'] ?? [];
+        $customized = EmailTemplate::customizedIds(wwm_pdo());
 
         wwm_render_admin('emails', [
             'title' => 'Email templates — Admin',
             'adminNav' => 'emails',
             'templates' => EmailTemplateCatalog::all(),
+            'customized' => $customized,
             'mailEnabled' => !empty($mail['enabled']),
             'fromEmail' => (string)($mail['from_email'] ?? ''),
             'webhooksEnabled' => !empty($webhooks['enabled']),
-            'mailWebhookUrl' => wwm_base_url() . '/api/mail',
+            'templateWebhooks' => $this->templateWebhooks(),
         ]);
+    }
+
+    public function edit(string $id): void
+    {
+        Session::requireAdmin();
+
+        $meta = EmailTemplateCatalog::find($id);
+        if ($meta === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Email template not found.']);
+            return;
+        }
+
+        $draft = EmailTemplateRenderer::forAdmin($id);
+        $flash = null;
+        if (isset($_GET['saved'])) {
+            $flash = 'Template saved.';
+        } elseif (isset($_GET['reset'])) {
+            $flash = 'Template reset to default.';
+        }
+
+        wwm_render_admin('email-edit', [
+            'title' => $meta['label'] . ' — Edit email',
+            'adminNav' => 'emails',
+            'template' => $meta,
+            'draft' => $draft,
+            'variables' => EmailTemplateCatalog::variables($id),
+            'webhook' => EmailWebhookCatalog::forTemplate($id),
+            'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
+            'message' => $flash,
+            'error' => null,
+        ]);
+    }
+
+    public function update(string $id): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(400);
+            $this->renderEditError($id, 'Invalid request.');
+            return;
+        }
+
+        $meta = EmailTemplateCatalog::find($id);
+        if ($meta === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Email template not found.']);
+            return;
+        }
+
+        $subject = trim((string)($_POST['subject'] ?? ''));
+        $bodyText = (string)($_POST['body_text'] ?? '');
+        $bodyHtml = (string)($_POST['body_html'] ?? '');
+
+        if ($subject === '') {
+            $this->renderEditError($id, 'Subject is required.');
+            return;
+        }
+        if (trim($bodyText) === '' && trim($bodyHtml) === '') {
+            $this->renderEditError($id, 'Add plain text or HTML content.');
+            return;
+        }
+
+        EmailTemplate::save(
+            wwm_pdo(),
+            $id,
+            $subject,
+            $bodyText,
+            trim($bodyHtml) !== '' ? $bodyHtml : null
+        );
+
+        wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?saved=1');
+    }
+
+    public function reset(string $id): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(400);
+            $this->renderEditError($id, 'Invalid request.');
+            return;
+        }
+
+        if (EmailTemplateCatalog::find($id) === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Email template not found.']);
+            return;
+        }
+
+        EmailTemplate::delete(wwm_pdo(), $id);
+        wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?reset=1');
     }
 
     public function preview(string $id): void
@@ -52,7 +150,8 @@ final class AdminMailController
             'adminNav' => 'emails',
             'template' => $meta,
             'message' => $message,
-            'mailWebhookUrl' => wwm_base_url() . '/api/mail',
+            'webhook' => EmailWebhookCatalog::forTemplate($id),
+            'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
         ]);
     }
 
@@ -68,9 +167,9 @@ final class AdminMailController
         $cfg = wwm_config()['mail'] ?? [];
         $smtpUser = trim((string)($cfg['smtp_user'] ?? ''));
         $smtpPass = (string)($cfg['smtp_pass'] ?? '');
-        $body = "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n";
-        $sent = EmailTracker::compose(null, $to, 'test', 'WWM Cabinet test email')
-            ->deliver($body, null, []);
+        $message = EmailTemplateRenderer::render('test', ['base_url' => wwm_base_url()]);
+        $sent = EmailTracker::compose(null, $to, 'test', $message['subject'])
+            ->deliver($message['text'], $message['html'], []);
 
         wwm_json_response(200, [
             'ok' => $sent,
@@ -81,5 +180,46 @@ final class AdminMailController
             'from_email' => (string)($cfg['from_email'] ?? ''),
             'error' => Mailer::lastError(),
         ]);
+    }
+
+    private function renderEditError(string $id, string $error): void
+    {
+        $meta = EmailTemplateCatalog::find($id);
+        if ($meta === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Email template not found.']);
+            return;
+        }
+
+        wwm_render_admin('email-edit', [
+            'title' => $meta['label'] . ' — Edit email',
+            'adminNav' => 'emails',
+            'template' => $meta,
+            'draft' => [
+                'subject' => (string)($_POST['subject'] ?? ''),
+                'text' => (string)($_POST['body_text'] ?? ''),
+                'html' => (string)($_POST['body_html'] ?? ''),
+                'customized' => true,
+            ],
+            'variables' => EmailTemplateCatalog::variables($id),
+            'webhook' => EmailWebhookCatalog::forTemplate($id),
+            'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
+            'message' => null,
+            'error' => $error,
+        ]);
+    }
+
+    /**
+     * @return array<string, array{url: string, token_label: string, endpoint: string}|null>
+     */
+    private function templateWebhooks(): array
+    {
+        $webhooks = [];
+        foreach (EmailTemplateCatalog::all() as $template) {
+            $id = (string)$template['id'];
+            $webhooks[$id] = EmailWebhookCatalog::forTemplate($id);
+        }
+
+        return $webhooks;
     }
 }

@@ -9,6 +9,7 @@ use Wwm\Models\LoginLink;
 use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
 use Wwm\Services\AvoEngagementSync;
+use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
 use Wwm\Services\StudentAttribution;
 
@@ -135,20 +136,13 @@ final class AuthController
 
         if ($user !== null) {
             $loginUrl = LoginLink::issue(wwm_pdo(), (int)$user['id'], $next, LoginLink::ttlSeconds());
-            $textBody = implode("\n", [
-                'Hello,',
-                '',
-                'Open this link to sign in to your account:',
-                $loginUrl,
-                '',
-                'The link is single-use and expires in ' . (int)(LoginLink::ttlSeconds() / 3600) . ' hours.',
-                '',
-                'If you did not request this, you can ignore this email.',
-                '',
-                'World Watercolor Masters',
+            $message = EmailTemplateRenderer::render('magic', [
+                'name' => trim((string)($user['name'] ?? '')),
+                'email' => (string)$user['email'],
+                'magic_link' => $loginUrl,
             ]);
-            EmailTracker::compose((int)$user['id'], (string)$user['email'], 'magic', 'Your sign-in link — World Watercolor Masters')
-                ->deliver($textBody, null, [
+            EmailTracker::compose((int)$user['id'], (string)$user['email'], 'magic', $message['subject'])
+                ->deliver($message['text'], $message['html'], [
                     ['url' => $loginUrl, 'label' => 'Sign in'],
                 ]);
         }
@@ -203,9 +197,12 @@ final class AuthController
             $token = bin2hex(random_bytes(32));
             PasswordReset::create(wwm_pdo(), (int)$user['id'], $token);
             $link = wwm_base_url() . '/reset?token=' . urlencode($token);
-            $textBody = "Open this link to set a new password (valid 1 hour):\n\n" . $link . "\n";
-            $sent = EmailTracker::compose((int)$user['id'], (string)$user['email'], 'reset', 'Reset your WWM password')
-                ->deliver($textBody, null, [
+            $message = EmailTemplateRenderer::render('reset', [
+                'email' => (string)$user['email'],
+                'reset_link' => $link,
+            ]);
+            $sent = EmailTracker::compose((int)$user['id'], (string)$user['email'], 'reset', $message['subject'])
+                ->deliver($message['text'], $message['html'], [
                     ['url' => $link, 'label' => 'Reset password'],
                 ]);
             wwm_log('password reset mail to user_id=' . $user['id'] . ' sent=' . ($sent ? 'yes' : 'no'));

@@ -180,6 +180,18 @@ final class Router
             (new AdminMailController())->preview($m[1]);
             return;
         }
+        if ($method === 'GET' && preg_match('#^/admin/emails/([a-z0-9_]+)/edit$#', $path, $m)) {
+            (new AdminMailController())->edit($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)$#', $path, $m)) {
+            (new AdminMailController())->update($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/reset$#', $path, $m)) {
+            (new AdminMailController())->reset($m[1]);
+            return;
+        }
 
         if ($method === 'GET' && $path === '/') {
             (new DashboardController())->index();

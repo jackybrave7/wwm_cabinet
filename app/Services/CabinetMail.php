@@ -5,6 +5,7 @@ namespace Wwm\Services;
 
 use Wwm\Models\Access;
 use Wwm\Models\User;
+use Wwm\Services\EmailTemplateRenderer;
 
 final class CabinetMail
 {
@@ -117,37 +118,18 @@ final class CabinetMail
 
         $expiresLabel = $this->demoExpiresLabel(wwm_pdo(), (int)$user['id'], $courseSlug);
 
-        $message = match ($template) {
-            'reminder_demo_no_login' => TransactionalEmail::reminderDemoNoLogin(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl,
-                $coursePageUrl !== '' ? $coursePageUrl : null,
-                $loginUrl,
-                $password !== '' ? $password : null
-            ),
-            'reminder_demo_no_lesson' => TransactionalEmail::reminderDemoNoLesson(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl,
-                $coursePageUrl !== '' ? $coursePageUrl : null,
-                $loginUrl,
-                $password !== '' ? $password : null
-            ),
-            'reminder_demo_expiring' => TransactionalEmail::reminderDemoExpiring(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl,
-                $coursePageUrl !== '' ? $coursePageUrl : null,
-                $loginUrl,
-                $expiresLabel,
-                $password !== '' ? $password : null
-            ),
-            default => throw new \InvalidArgumentException('Unsupported template'),
-        };
+        $context = [
+            'name' => $name,
+            'email' => $email,
+            'course_title' => $courseTitle,
+            'cover_url' => $coverUrl ?? '',
+            'course_page_url' => $coursePageUrl,
+            'login_url' => $loginUrl,
+            'password' => $password,
+            'expires_label' => $expiresLabel,
+        ];
+
+        $message = EmailTemplateRenderer::render($template, $context);
 
         return $message + ['login_url' => $loginUrl];
     }

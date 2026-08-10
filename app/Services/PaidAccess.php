@@ -6,6 +6,7 @@ namespace Wwm\Services;
 use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
+use Wwm\Services\EmailTemplateRenderer;
 
 final class PaidAccess
 {
@@ -148,15 +149,15 @@ final class PaidAccess
             $coursePageUrl = '';
         }
 
-        $message = TransactionalEmail::paidAccess(
-            trim((string)($user['name'] ?? '')),
-            (string)$user['email'],
-            $courseTitle,
-            $coverUrl,
-            $coursePageUrl !== '' ? $coursePageUrl : null,
-            $prefilledLoginUrl,
-            $password
-        );
+        $message = EmailTemplateRenderer::render('paid', [
+            'name' => trim((string)($user['name'] ?? '')),
+            'email' => (string)$user['email'],
+            'course_title' => $courseTitle,
+            'cover_url' => $coverUrl ?? '',
+            'course_page_url' => $coursePageUrl,
+            'login_url' => $prefilledLoginUrl,
+            'password' => $password,
+        ]);
 
         $links = [
             ['url' => $prefilledLoginUrl, 'label' => 'Sign in'],

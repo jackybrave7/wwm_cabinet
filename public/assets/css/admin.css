@@ -693,6 +693,12 @@ body.admin-body {
   word-break: break-word;
 }
 
+.email-webhook-sample-compact {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  max-width: 420px;
+}
+
 .email-preview-subject {
   margin: 0;
   font-size: 1.05rem;
@@ -734,4 +740,117 @@ body.admin-body {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #faf6f0;
+}
+
+.email-editor-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.email-editor-toolbar-row h2 {
+  margin-bottom: 0;
+}
+
+.email-editor-tabs,
+.email-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.email-editor-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.email-editor-tab.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.email-editor-panel {
+  display: none;
+}
+
+.email-editor-panel.is-active {
+  display: block;
+}
+
+.email-visual-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.email-visual-toolbar button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.email-visual-frame,
+.email-html-input,
+.email-text-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.email-visual-frame {
+  min-height: 640px;
+  background: #faf6f0;
+}
+
+.email-html-input,
+.email-text-input {
+  padding: 16px 18px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.email-variable-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.email-variable-chip {
+  border: 1px solid var(--line);
+  background: #f8f6f2;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.email-editor-actions {
+  margin-top: 16px;
+}
+
+.email-reset-form {
+  margin-top: 12px;
+}
+
+.admin-table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }

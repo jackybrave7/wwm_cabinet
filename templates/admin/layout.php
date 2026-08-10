@@ -22,5 +22,11 @@
   <script src="/assets/js/admin-tabs.js" defer></script>
   <script src="/assets/js/admin-lesson-sort.js" defer></script>
   <script src="/assets/js/admin-lesson-editor.js" defer></script>
+  <?php if (($adminNav ?? '') === 'emails'): ?>
+  <script src="/assets/js/admin-email-webhook.js" defer></script>
+  <?php endif; ?>
+  <?php if (($adminNav ?? '') === 'emails' && str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/edit')): ?>
+  <script src="/assets/js/admin-email-editor.js" defer></script>
+  <?php endif; ?>
 </body>
 </html>

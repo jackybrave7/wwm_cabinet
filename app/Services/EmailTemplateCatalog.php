@@ -26,7 +26,7 @@ final class EmailTemplateCatalog
                 'description' => 'Sent when demo access is granted via /api/demo.',
                 'trigger' => 'AVO webhook → /api/demo',
                 'has_html' => true,
-                'webhook' => false,
+                'webhook' => true,
             ],
             [
                 'id' => 'paid',
@@ -35,7 +35,7 @@ final class EmailTemplateCatalog
                 'description' => 'Sent after payment when cabinet grants full course access.',
                 'trigger' => 'AVO webhook → /api/payment',
                 'has_html' => true,
-                'webhook' => false,
+                'webhook' => true,
             ],
             [
                 'id' => 'reminder_demo_no_login',
@@ -124,62 +124,93 @@ final class EmailTemplateCatalog
     }
 
     /**
+     * @return list<string>
+     */
+    public static function variables(string $id): array
+    {
+        $common = ['{{name}}', '{{email}}', '{{base_url}}', '{{login_url}}', '{{password}}'];
+        $course = ['{{course_title}}', '{{cover_url}}', '{{course_page_url}}', '{{expires_label}}'];
+
+        return match ($id) {
+            'demo', 'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'
+                => array_merge($common, $course),
+            'magic' => ['{{name}}', '{{email}}', '{{base_url}}', '{{magic_link}}'],
+            'reset' => ['{{email}}', '{{base_url}}', '{{reset_link}}'],
+            'test' => ['{{base_url}}'],
+            default => $common,
+        };
+    }
+
+    /**
+     * @param array<string, scalar|null> $context
      * @return array{subject: string, text: string, html: ?string}
      */
-    public static function preview(string $id): array
+    public static function builtInMessage(string $id, array $context): array
     {
-        $context = self::sampleContext();
+        $name = trim((string)($context['name'] ?? ''));
+        $email = (string)($context['email'] ?? '');
+        $courseTitle = (string)($context['course_title'] ?? '');
+        $coverUrl = isset($context['cover_url']) ? (string)$context['cover_url'] : null;
+        $coursePageUrl = isset($context['course_page_url']) ? (string)$context['course_page_url'] : null;
+        if ($coursePageUrl === '') {
+            $coursePageUrl = null;
+        }
+        $loginUrl = (string)($context['login_url'] ?? wwm_base_url() . '/login');
+        $password = trim((string)($context['password'] ?? ''));
+        $expiresLabel = (string)($context['expires_label'] ?? '');
+        $magicLink = (string)($context['magic_link'] ?? wwm_base_url() . '/auth/magic?token=sample');
+        $resetLink = (string)($context['reset_link'] ?? wwm_base_url() . '/reset?token=sample');
 
         return match ($id) {
             'demo' => TransactionalEmail::demoAccess(
-                $context['name'],
-                $context['email'],
-                $context['course_title'],
-                $context['cover_url'],
-                $context['course_page_url'],
-                $context['login_url'],
-                $context['expires_label'],
-                $context['demo_password']
+                $name,
+                $email,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $coursePageUrl,
+                $loginUrl,
+                $expiresLabel !== '' ? $expiresLabel : gmdate('M j, Y H:i', time() + 48 * 3600) . ' UTC',
+                $password !== '' ? $password : null
             ),
             'paid' => TransactionalEmail::paidAccess(
-                $context['name'],
-                $context['email'],
-                $context['course_title'],
-                $context['cover_url'],
-                $context['course_page_url'],
-                $context['login_url'],
-                $context['demo_password']
+                $name,
+                $email,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $coursePageUrl,
+                $loginUrl,
+                $password !== '' ? $password : 'your-password'
             ),
             'reminder_demo_no_login' => TransactionalEmail::reminderDemoNoLogin(
-                $context['name'],
-                $context['email'],
-                $context['course_title'],
-                $context['cover_url'],
-                $context['course_page_url'],
-                $context['login_url'],
-                $context['demo_password']
+                $name,
+                $email,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $coursePageUrl,
+                $loginUrl,
+                $password !== '' ? $password : null
             ),
             'reminder_demo_no_lesson' => TransactionalEmail::reminderDemoNoLesson(
-                $context['name'],
-                $context['email'],
-                $context['course_title'],
-                $context['cover_url'],
-                $context['course_page_url'],
-                $context['login_url'],
-                $context['demo_password']
+                $name,
+                $email,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $coursePageUrl,
+                $loginUrl,
+                $password !== '' ? $password : null
             ),
             'reminder_demo_expiring' => TransactionalEmail::reminderDemoExpiring(
-                $context['name'],
-                $context['email'],
-                $context['course_title'],
-                $context['cover_url'],
-                $context['course_page_url'],
-                $context['login_url'],
-                $context['expires_label'],
-                $context['demo_password']
+                $name,
+                $email,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $coursePageUrl,
+                $loginUrl,
+                $expiresLabel !== '' ? $expiresLabel : gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',
+                $password !== '' ? $password : null
             ),
-            'magic' => TransactionalEmail::magicLinkPreview($context['name']),
-            'reset' => TransactionalEmail::passwordResetPreview(),
+            'magic' => TransactionalEmail::magicLinkMessage($name, $magicLink),
+            'reset' => TransactionalEmail::passwordResetMessage($resetLink),
             'test' => [
                 'subject' => 'WWM Cabinet test email',
                 'text' => "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n",
@@ -190,15 +221,59 @@ final class EmailTemplateCatalog
     }
 
     /**
+     * @return array{subject: string, text: string, html: ?string}
+     */
+    public static function preview(string $id): array
+    {
+        return EmailTemplateRenderer::render($id, self::sampleContext());
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: ?string}
+     */
+    public static function placeholderDraft(string $id): array
+    {
+        $context = self::sampleContext();
+        $rendered = self::builtInMessage($id, $context);
+        $pairs = [];
+        foreach ($context as $key => $value) {
+            $value = trim((string)$value);
+            if ($value === '') {
+                continue;
+            }
+            $pairs[] = [$value, '{{' . $key . '}}'];
+        }
+        usort($pairs, static fn(array $a, array $b): int => strlen($b[0]) <=> strlen($a[0]));
+
+        $replace = static function (?string $text) use ($pairs): ?string {
+            if ($text === null || $text === '') {
+                return $text;
+            }
+            $search = array_column($pairs, 0);
+            $values = array_column($pairs, 1);
+
+            return str_replace($search, $values, $text);
+        };
+
+        return [
+            'subject' => (string)$replace($rendered['subject']),
+            'text' => (string)$replace($rendered['text']),
+            'html' => $replace($rendered['html']),
+        ];
+    }
+
+    /**
      * @return array{
      *   name: string,
      *   email: string,
      *   course_title: string,
-     *   cover_url: ?string,
-     *   course_page_url: ?string,
+     *   cover_url: string,
+     *   course_page_url: string,
      *   login_url: string,
      *   expires_label: string,
-     *   demo_password: string
+     *   password: string,
+     *   magic_link: string,
+     *   reset_link: string
      * }
      */
     public static function sampleContext(): array
@@ -220,11 +295,13 @@ final class EmailTemplateCatalog
             'name' => 'Alexandra',
             'email' => 'student@example.com',
             'course_title' => $courseTitle,
-            'cover_url' => $coverUrl,
-            'course_page_url' => $coursePageUrl !== '' ? $coursePageUrl : null,
+            'cover_url' => $coverUrl ?? '',
+            'course_page_url' => $coursePageUrl ?? '',
             'login_url' => wwm_login_url('student@example.com', $password, '/c/elke-en/1'),
             'expires_label' => gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',
-            'demo_password' => $password,
+            'password' => $password,
+            'magic_link' => wwm_base_url() . '/auth/magic?token=sample-token-for-preview',
+            'reset_link' => wwm_base_url() . '/reset?token=sample-token-for-preview',
         ];
     }
 }
