@@ -132,7 +132,10 @@ final class EmailMessage
             'magic' => 'Sign-in link',
             'reset' => 'Password reset',
             'test' => 'Test email',
-            default => ucfirst($type),
+            'reminder_demo_no_login' => 'Reminder — no login',
+            'reminder_demo_no_lesson' => 'Reminder — no lesson',
+            'reminder_demo_expiring' => 'Reminder — expiring',
+            default => ucfirst(str_replace('_', ' ', $type)),
         };
     }
 }

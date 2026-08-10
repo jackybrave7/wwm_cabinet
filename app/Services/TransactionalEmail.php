@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Wwm\Services;
 
+use Wwm\Models\LoginLink;
+
 final class TransactionalEmail
 {
     /**
@@ -119,6 +121,251 @@ final class TransactionalEmail
         return compact('subject', 'text', 'html');
     }
 
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    public static function reminderDemoNoLogin(
+        string $name,
+        string $email,
+        string $courseTitle,
+        ?string $courseCoverUrl,
+        ?string $coursePageUrl,
+        string $loginUrl,
+        ?string $password = null
+    ): array {
+        $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
+        $subject = 'Your demo is waiting — World Watercolor Masters';
+
+        $text = implode("\n", [
+            $greeting,
+            '',
+            'You requested demo access to "' . $courseTitle . '", but we have not seen you in the cabinet yet.',
+            '',
+            'Sign in to watch your free demo lesson while access is still active:',
+            $loginUrl,
+            '',
+            'Manual sign-in:',
+            wwm_base_url() . '/login',
+            'Login: ' . $email,
+            $password !== null && $password !== '' ? 'Password: ' . $password : '',
+            '',
+            'Questions? support@worldwatercolormasters.art',
+            '',
+            'World Watercolor Masters',
+        ]);
+
+        $html = self::demoReminderLayout(
+            'Your demo is waiting',
+            $courseTitle,
+            $courseCoverUrl,
+            implode('', [
+                self::paragraph($greeting),
+                self::paragraph(
+                    'You requested demo access to <strong>' . self::e($courseTitle) . '</strong>, '
+                    . 'but we have not seen you in the cabinet yet.'
+                ),
+                self::paragraph(
+                    'Your demo is still active — sign in and watch the first lesson while it is available.'
+                ),
+                self::button($loginUrl, 'Open my demo lesson'),
+                self::credentialsBox(
+                    $email,
+                    $password ?? self::demoPasswordLabel(),
+                    wwm_base_url() . '/login',
+                    false
+                ),
+                self::courseLink($coursePageUrl),
+                self::supportBlock(),
+            ])
+        );
+
+        return compact('subject', 'text', 'html');
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    public static function reminderDemoNoLesson(
+        string $name,
+        string $email,
+        string $courseTitle,
+        ?string $courseCoverUrl,
+        ?string $coursePageUrl,
+        string $loginUrl,
+        ?string $password = null
+    ): array {
+        $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
+        $subject = 'Your demo is waiting — ' . $courseTitle;
+
+        $text = implode("\n", [
+            $greeting,
+            '',
+            'You requested demo access to "' . $courseTitle . '", but it looks like you have not opened the lesson yet.',
+            '',
+            'Your demo is still active — take a few minutes to watch the first lesson:',
+            $loginUrl,
+            '',
+            'Manual sign-in:',
+            wwm_base_url() . '/login',
+            'Login: ' . $email,
+            $password !== null && $password !== '' ? 'Password: ' . $password : '',
+            '',
+            'Questions? support@worldwatercolormasters.art',
+            '',
+            'World Watercolor Masters',
+        ]);
+
+        $html = self::demoReminderLayout(
+            "Your demo lesson\nis still waiting",
+            $courseTitle,
+            $courseCoverUrl,
+            implode('', [
+                self::paragraph($greeting),
+                self::paragraph(
+                    'You requested demo access to <strong>' . self::e($courseTitle) . '</strong>, '
+                    . 'but it looks like you have not opened the lesson yet.'
+                ),
+                self::paragraph(
+                    'Your demo is still active — take a few minutes to watch the first lesson while it is available.'
+                ),
+                self::button($loginUrl, 'Open my demo lesson'),
+                self::credentialsBox(
+                    $email,
+                    $password ?? self::demoPasswordLabel(),
+                    wwm_base_url() . '/login',
+                    false
+                ),
+                self::courseLink($coursePageUrl),
+                self::supportBlock(),
+            ])
+        );
+
+        return compact('subject', 'text', 'html');
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    public static function reminderDemoExpiring(
+        string $name,
+        string $email,
+        string $courseTitle,
+        ?string $courseCoverUrl,
+        ?string $coursePageUrl,
+        string $loginUrl,
+        string $expiresLabel,
+        ?string $password = null
+    ): array {
+        $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
+        $subject = 'Still have not watched? Your demo expires soon';
+
+        $text = implode("\n", [
+            $greeting,
+            '',
+            'This is a friendly reminder: your demo access to "' . $courseTitle . '" will not last much longer.',
+            '',
+            'Demo access expires: ' . $expiresLabel,
+            '',
+            'Watch now before your access runs out:',
+            $loginUrl,
+            '',
+            'Manual sign-in:',
+            wwm_base_url() . '/login',
+            'Login: ' . $email,
+            $password !== null && $password !== '' ? 'Password: ' . $password : '',
+            '',
+            'Questions? support@worldwatercolormasters.art',
+            '',
+            'World Watercolor Masters',
+        ]);
+
+        $html = self::demoReminderLayout(
+            "Don't miss your\nfree demo lesson",
+            $courseTitle,
+            $courseCoverUrl,
+            implode('', [
+                self::paragraph($greeting),
+                self::paragraph(
+                    'This is a friendly reminder: your demo access to <strong>'
+                    . self::e($courseTitle)
+                    . '</strong> will not last much longer.'
+                ),
+                self::paragraph(
+                    'Watch the full demo lesson before your access expires on <strong>'
+                    . self::e($expiresLabel)
+                    . '</strong>.'
+                ),
+                self::button($loginUrl, 'Watch before it expires'),
+                self::credentialsBox(
+                    $email,
+                    $password ?? self::demoPasswordLabel(),
+                    wwm_base_url() . '/login',
+                    false
+                ),
+                self::courseLink($coursePageUrl),
+                self::supportBlock(),
+            ])
+        );
+
+        return compact('subject', 'text', 'html');
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: null}
+     */
+    public static function magicLinkPreview(?string $name = null): array
+    {
+        $greeting = $name !== null && $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
+        $loginUrl = wwm_base_url() . '/auth/magic?token=sample-token-for-preview';
+        $hours = (int)(LoginLink::ttlSeconds() / 3600);
+
+        return [
+            'subject' => 'Your sign-in link — World Watercolor Masters',
+            'text' => implode("\n", [
+                $greeting,
+                '',
+                'Open this link to sign in to your account:',
+                $loginUrl,
+                '',
+                'The link is single-use and expires in ' . $hours . ' hours.',
+                '',
+                'If you did not request this, you can ignore this email.',
+                '',
+                'World Watercolor Masters',
+            ]),
+            'html' => null,
+        ];
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: null}
+     */
+    public static function passwordResetPreview(): array
+    {
+        $link = wwm_base_url() . '/reset?token=sample-token-for-preview';
+
+        return [
+            'subject' => 'Reset your WWM password',
+            'text' => "Open this link to set a new password (valid 1 hour):\n\n" . $link . "\n",
+            'html' => null,
+        ];
+    }
+
+    private static function demoReminderLayout(
+        string $title,
+        string $courseTitle,
+        ?string $coverUrl,
+        string $bodyHtml
+    ): string {
+        return self::layout(
+            str_replace("\n", ' ', $title),
+            self::subtitle($courseTitle),
+            $coverUrl,
+            $bodyHtml,
+            str_replace("\n", '<br>', self::e($title))
+        );
+    }
+
     private static function demoPasswordLabel(): string
     {
         $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
@@ -129,9 +376,13 @@ final class TransactionalEmail
         string $title,
         string $subtitleHtml,
         ?string $coverUrl,
-        string $bodyHtml
+        string $bodyHtml,
+        ?string $titleHtml = null
     ): string {
         $coverBlock = self::coverImage($coverUrl);
+        $titleBlock = '<h1 class="email-title" style="margin:0;font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;'
+            . 'font-size:36px;line-height:1.2;font-weight:700;color:#1a110a;text-align:center;">'
+            . ($titleHtml ?? self::e($title)) . '</h1>';
 
         return '<!DOCTYPE html>'
             . '<html lang="en"><head><meta charset="UTF-8">'
@@ -156,9 +407,7 @@ final class TransactionalEmail
             . 'style="width:600px;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(10,10,10,0.08);">'
             . self::logoRow()
             . '<tr><td class="pad" style="padding:8px 40px 20px;background:#ffffff;">'
-            . '<h1 class="email-title" style="margin:0;font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;'
-            . 'font-size:36px;line-height:1.2;font-weight:700;color:#1a110a;text-align:center;">'
-            . self::e($title) . '</h1>'
+            . $titleBlock
             . $subtitleHtml
             . '</td></tr>'
             . $coverBlock

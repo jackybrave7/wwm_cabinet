@@ -678,3 +678,60 @@ body.admin-body {
   color: var(--accent-dark);
   font-weight: 600;
 }
+
+.email-webhook-sample,
+.email-preview-text {
+  margin: 0;
+  padding: 16px 18px;
+  background: #f8f6f2;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.email-preview-subject {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.email-preview-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.email-preview-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.email-preview-tab.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.email-preview-panel {
+  display: none;
+}
+
+.email-preview-panel.is-active {
+  display: block;
+}
+
+.email-preview-frame {
+  width: 100%;
+  min-height: 720px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #faf6f0;
+}
