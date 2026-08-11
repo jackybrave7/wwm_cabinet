@@ -71,7 +71,13 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
       </div>
 
       <div class="email-editor-panel" data-panel="html">
-        <textarea name="body_html" id="email-html-input" class="email-html-input" rows="24" spellcheck="false"><?= wwm_escape((string)($draft['html'] ?? '')) ?></textarea>
+        <div class="email-html-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" id="email-html-format">Format HTML</button>
+        </div>
+        <div class="email-html-shell" id="email-html-shell">
+          <pre class="email-html-highlight" id="email-html-highlight" aria-hidden="true"><code></code></pre>
+          <textarea name="body_html" id="email-html-input" class="email-html-input" rows="24" spellcheck="false"><?= wwm_escape((string)($draft['html'] ?? '')) ?></textarea>
+        </div>
       </div>
     <?php else: ?>
       <input type="hidden" name="body_html" id="email-html-input" value="">

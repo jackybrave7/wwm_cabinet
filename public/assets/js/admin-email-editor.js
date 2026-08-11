@@ -9,7 +9,108 @@
   const previewFrame = document.getElementById('email-preview-frame');
   const previewText = document.getElementById('email-preview-text');
   const previewRefresh = document.getElementById('email-preview-refresh');
+  const htmlHighlight = document.getElementById('email-html-highlight');
+  const htmlHighlightCode = htmlHighlight ? htmlHighlight.querySelector('code') : null;
+  const htmlFormatButton = document.getElementById('email-html-format');
   let activeTab = hasHtml ? 'visual' : 'text';
+  let htmlFormattedOnce = false;
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function highlightHtml(code) {
+    let out = escapeHtml(code);
+    out = out.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="tok-comment">$1</span>');
+    out = out.replace(/(\{\{[^}]+\}\})/g, '<span class="tok-placeholder">$1</span>');
+    out = out.replace(/(&lt;!DOCTYPE[^&]*&gt;)/gi, '<span class="tok-doctype">$1</span>');
+    out = out.replace(/(&lt;\/?)([a-zA-Z][\w:-]*)/g, '$1<span class="tok-tag">$2</span>');
+    out = out.replace(/(\s)([a-zA-Z_:][\w:.-]*)(=)/g, '$1<span class="tok-attr">$2</span>=');
+    out = out.replace(/(=)(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)/g, '$1<span class="tok-value">$2</span>');
+    return out;
+  }
+
+  function formatHtml(source) {
+    const html = String(source || '').replace(/\r\n/g, '\n').trim();
+    if (!html) {
+      return '';
+    }
+
+    const voidTags = new Set([
+      'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr',
+    ]);
+    const lines = html.replace(/>\s*</g, '>\n<').split('\n');
+    let depth = 0;
+    const out = [];
+
+    lines.forEach((rawLine) => {
+      const line = rawLine.trim();
+      if (!line) {
+        return;
+      }
+
+      const isClosing = /^<\//.test(line);
+      const isSelfClosing = /\/>$/.test(line);
+      const tagMatch = line.match(/^<\/?([a-zA-Z][\w:-]*)/);
+      const tagName = tagMatch ? tagMatch[1].toLowerCase() : '';
+      const isOpening = tagMatch && !isClosing && !isSelfClosing && !voidTags.has(tagName);
+      const hasInlineClose = isOpening && line.includes('</' + tagName + '>');
+
+      if (isClosing) {
+        depth = Math.max(0, depth - 1);
+      }
+
+      out.push('  '.repeat(depth) + line);
+
+      if (isOpening && !hasInlineClose) {
+        depth += 1;
+      }
+    });
+
+    return out.join('\n');
+  }
+
+  function syncHtmlHighlight() {
+    if (!htmlInput || !htmlHighlightCode) {
+      return;
+    }
+    htmlHighlightCode.innerHTML = highlightHtml(htmlInput.value) + '\n';
+    syncHtmlScroll();
+  }
+
+  function syncHtmlScroll() {
+    if (!htmlInput || !htmlHighlight) {
+      return;
+    }
+    htmlHighlight.scrollTop = htmlInput.scrollTop;
+    htmlHighlight.scrollLeft = htmlInput.scrollLeft;
+  }
+
+  function formatHtmlInput() {
+    if (!htmlInput) {
+      return;
+    }
+    htmlInput.value = formatHtml(htmlInput.value);
+    syncHtmlHighlight();
+  }
+
+  function prepareHtmlTab() {
+    if (!htmlInput) {
+      return;
+    }
+    if (activeTab === 'visual') {
+      syncVisualToHtml();
+    }
+    if (!htmlFormattedOnce) {
+      formatHtmlInput();
+      htmlFormattedOnce = true;
+    } else {
+      syncHtmlHighlight();
+    }
+  }
 
   function previewVarPairs() {
     return Object.entries(previewVars)
@@ -75,6 +176,7 @@
   function syncVisualToHtml() {
     if (!hasHtml || !htmlInput) return;
     htmlInput.value = revertPreviewVars(htmlFromVisual());
+    syncHtmlHighlight();
   }
 
   function syncHtmlToVisual() {
@@ -115,6 +217,9 @@
       }
       if (next === 'visual') {
         syncHtmlToVisual();
+      }
+      if (next === 'html') {
+        prepareHtmlTab();
       }
       setActiveTab(next);
     });
@@ -201,6 +306,15 @@
     textarea.focus();
   }
 
+  if (htmlInput) {
+    htmlInput.addEventListener('input', syncHtmlHighlight);
+    htmlInput.addEventListener('scroll', syncHtmlScroll);
+  }
+
+  if (htmlFormatButton) {
+    htmlFormatButton.addEventListener('click', formatHtmlInput);
+  }
+
   if (previewRefresh) {
     previewRefresh.addEventListener('click', () => {
       syncBeforePreview();
@@ -218,5 +332,6 @@
 
   if (hasHtml) {
     loadVisualFromHtml(config.initialHtml || '');
+    syncHtmlHighlight();
   }
 })();

@@ -12,7 +12,7 @@ final class EmailTemplateDrafts
     {
         return match ($id) {
             'demo' => [
-                'subject' => 'Your demo access — World Watercolor Masters',
+                'subject' => '{{name}}, your free demo is ready — start {{course_title}} now',
                 'text' => implode("\n", [
                     'Hello {{name}},',
                     '',

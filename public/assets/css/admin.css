@@ -801,8 +801,102 @@ body.admin-body {
   cursor: pointer;
 }
 
+.email-html-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.email-html-shell {
+  position: relative;
+  min-height: 640px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+.email-html-highlight,
+.email-html-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 640px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: 0;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.email-html-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: auto;
+  color: #d4d4d4;
+  background: #1e1e1e;
+}
+
+.email-html-highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.email-html-input {
+  position: relative;
+  z-index: 1;
+  resize: vertical;
+  color: transparent;
+  caret-color: #f3f3f3;
+  background: transparent;
+}
+
+.email-html-input::selection {
+  color: transparent;
+  background: rgba(56, 139, 253, 0.35);
+}
+
+.email-html-highlight .tok-tag {
+  color: #7ee787;
+}
+
+.email-html-highlight .tok-bracket {
+  color: #8b949e;
+}
+
+.email-html-highlight .tok-attr {
+  color: #79c0ff;
+}
+
+.email-html-highlight .tok-value {
+  color: #ffa657;
+}
+
+.email-html-highlight .tok-comment {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.email-html-highlight .tok-placeholder {
+  color: #d2a8ff;
+  font-weight: 600;
+}
+
+.email-html-highlight .tok-doctype {
+  color: #ff7b72;
+}
+
 .email-visual-frame,
-.email-html-input,
 .email-text-input {
   width: 100%;
   border: 1px solid var(--line);
@@ -815,7 +909,6 @@ body.admin-body {
   background: #faf6f0;
 }
 
-.email-html-input,
 .email-text-input {
   padding: 16px 18px;
   font-family: Consolas, 'Courier New', monospace;
