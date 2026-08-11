@@ -21,7 +21,7 @@ final class AuthController
             wwm_redirect('/');
         }
 
-        $email = trim((string)($_GET['email'] ?? ''));
+        $email = strtolower(trim((string)($_GET['email'] ?? '')));
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $email = '';
         }
@@ -66,7 +66,7 @@ final class AuthController
             return;
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
         $password = (string)($_POST['password'] ?? '');
         $next = (string)($_POST['next'] ?? '/');
         if ($next === '' || !str_starts_with($next, '/')) {
@@ -130,7 +130,7 @@ final class AuthController
             return;
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
         $next = LoginLink::sanitizeNextPath((string)($_POST['next'] ?? '/'));
         $user = User::findByEmail(wwm_pdo(), $email);
 
@@ -189,7 +189,7 @@ final class AuthController
             return;
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
         $user = User::findByEmail(wwm_pdo(), $email);
 
         // Не раскрываем, есть ли email в базе

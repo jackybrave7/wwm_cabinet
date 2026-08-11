@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Wwm\Services;
 
+use Wwm\Auth\Password;
 use Wwm\Models\Access;
 use Wwm\Models\LoginLink;
 use Wwm\Models\User;
@@ -48,7 +49,7 @@ final class PaidAccess
         $plainPassword = null;
 
         if ($user === null) {
-            $plainPassword = self::generatePassword();
+            $plainPassword = Password::generateReadable(8);
             $userId = User::create($pdo, $email, $plainPassword, $name);
             $user = User::findById($pdo, $userId);
             $created = true;
@@ -95,9 +96,9 @@ final class PaidAccess
         $emailSent = false;
         if ($shouldSend) {
             if ($plainPassword === null) {
-                $plainPassword = self::generatePassword();
-                User::updatePassword($pdo, $userId, $plainPassword);
+                $plainPassword = Password::generateReadable(8);
             }
+            User::updatePassword($pdo, $userId, $plainPassword);
             $emailSent = $this->sendPaidAccessEmail(
                 $user,
                 $course,
@@ -168,10 +169,5 @@ final class PaidAccess
 
         return EmailTracker::compose((int)$user['id'], (string)$user['email'], 'paid', $message['subject'])
             ->deliver($message['text'], $message['html'], $links);
-    }
-
-    private static function generatePassword(): string
-    {
-        return bin2hex(random_bytes(12));
     }
 }
