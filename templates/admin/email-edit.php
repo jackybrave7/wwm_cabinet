@@ -68,6 +68,7 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
           <button type="button" data-cmd="formatBlock" data-value="p">P</button>
         </div>
         <iframe class="email-visual-frame" id="email-visual-frame" title="Visual email editor"></iframe>
+        <p class="field-hint" style="margin-top:10px">Visual and HTML tabs show <code>{{placeholders}}</code>. Open <strong>Preview</strong> to see sample data.</p>
       </div>
 
       <div class="email-editor-panel" data-panel="html">

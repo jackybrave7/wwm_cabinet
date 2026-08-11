@@ -126,14 +126,6 @@
     return out;
   }
 
-  function revertPreviewVars(html) {
-    let out = html;
-    previewVarPairs().forEach(([key, value]) => {
-      out = out.split(String(value)).join('{{' + key + '}}');
-    });
-    return out;
-  }
-
   function setActiveTab(name) {
     activeTab = name;
     document.querySelectorAll('.email-editor-tab').forEach((tab) => {
@@ -163,8 +155,48 @@
 
   function loadVisualFromHtml(html) {
     if (!visualFrame) return;
-    visualFrame.onload = () => enableVisualEditing();
-    visualFrame.srcdoc = applyPreviewVars(html || '<!DOCTYPE html><html><body><p></p></body></html>');
+    visualFrame.onload = () => {
+      enableVisualEditing();
+      prepareVisualDocument(visualDocument());
+    };
+    visualFrame.srcdoc = html || '<!DOCTYPE html><html><body><p></p></body></html>';
+  }
+
+  function prepareVisualDocument(doc) {
+    if (!doc || !doc.head) {
+      return;
+    }
+    if (doc.getElementById('wwm-visual-editor-style')) {
+      return;
+    }
+    const style = doc.createElement('style');
+    style.id = 'wwm-visual-editor-style';
+    style.textContent = [
+      'a[href*="{{"], img[src*="{{"] {',
+      '  outline: 1px dashed #c8bdb3;',
+      '  outline-offset: 2px;',
+      '}',
+      'img[src*="{{"] {',
+      '  display: block;',
+      '  box-sizing: border-box;',
+      '  width: 100%;',
+      '  max-width: 520px;',
+      '  margin: 16px auto;',
+      '  padding: 18px 16px;',
+      '  background: #f3f0ea;',
+      '  border: 2px dashed #c8bdb3;',
+      '  border-radius: 8px;',
+      '  object-fit: none;',
+      '  min-height: 72px;',
+      '}',
+    ].join('\n');
+    doc.head.appendChild(style);
+
+    doc.querySelectorAll('img[src*="{{"]').forEach((img) => {
+      const src = img.getAttribute('src') || '';
+      img.setAttribute('alt', src);
+      img.setAttribute('title', src);
+    });
   }
 
   function htmlFromVisual() {
@@ -175,7 +207,7 @@
 
   function syncVisualToHtml() {
     if (!hasHtml || !htmlInput) return;
-    htmlInput.value = revertPreviewVars(htmlFromVisual());
+    htmlInput.value = htmlFromVisual();
     syncHtmlHighlight();
   }
 
@@ -195,7 +227,7 @@
   function renderPreview() {
     const rawHtml = htmlInput ? htmlInput.value.trim() : '';
     const html = rawHtml ? applyPreviewVars(rawHtml) : '';
-    const text = textInput ? textInput.value : '';
+    const text = textInput ? applyPreviewVars(textInput.value) : '';
     if (previewFrame) {
       previewFrame.style.display = html ? 'block' : 'none';
       if (html) {
@@ -248,8 +280,7 @@
           return;
         }
         const alt = window.prompt('Alt text (optional)', 'Course cover') || '';
-        const src = applyPreviewVars(url.trim());
-        doc.execCommand('insertImage', false, src);
+        doc.execCommand('insertImage', false, url.trim());
         const images = doc.getElementsByTagName('img');
         const image = images.length ? images[images.length - 1] : null;
         if (image) {
