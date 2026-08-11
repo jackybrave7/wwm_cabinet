@@ -52,7 +52,7 @@ final class EmailTemplateRenderer
             ];
         }
 
-        $preview = self::placeholderDraft($templateId);
+        $preview = EmailTemplateCatalog::placeholderDraft($templateId);
 
         return [
             'subject' => $preview['subject'],

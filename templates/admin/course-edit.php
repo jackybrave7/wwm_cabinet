@@ -163,6 +163,8 @@ $status = strtolower((string)($course['status'] ?? 'published'));
         <?php endif; ?>
       </div>
 
+</form>
+
       <div class="admin-card section-add-card">
         <h2>Add section</h2>
         <form method="post" action="/admin/courses/<?= wwm_escape($slug) ?>/sections" class="section-add-form">
@@ -178,7 +180,6 @@ $status = strtolower((string)($course['status'] ?? 'published'));
       </div>
     </div>
   </div>
-</form>
 
 <?php if ($sections !== []): ?>
   <?php foreach ($sections as $sectionIndex => $section): ?>
