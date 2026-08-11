@@ -96,7 +96,7 @@ return [
 
     'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '2'))},
 
-    'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', ''))},
+    'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},
 
     'magic_link_login' => ${envBool('WWM_MAGIC_LINK_LOGIN', false) ? 'true' : 'false'},
 
