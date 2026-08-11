@@ -134,6 +134,26 @@
         }
         return;
       }
+      if (cmd === 'insertImage') {
+        const url = window.prompt(
+          'Image URL (you can use {{cover_url}} or {{logo_url}})',
+          '{{cover_url}}'
+        );
+        if (!url) {
+          return;
+        }
+        const alt = window.prompt('Alt text (optional)', 'Course cover') || '';
+        const src = applyPreviewVars(url.trim());
+        doc.execCommand('insertImage', false, src);
+        const images = doc.getElementsByTagName('img');
+        const image = images.length ? images[images.length - 1] : null;
+        if (image) {
+          image.setAttribute('alt', alt);
+          image.setAttribute('style', 'display:block;max-width:100%;height:auto;margin:16px auto;border:0;');
+        }
+        syncVisualToHtml();
+        return;
+      }
       if (cmd === 'formatBlock' && value) {
         doc.execCommand(cmd, false, '<' + value + '>');
         return;
@@ -148,6 +168,11 @@
     chip.addEventListener('click', () => {
       const variable = chip.getAttribute('data-variable') || '';
       if (!variable) return;
+      const subjectInput = form ? form.querySelector('input[name="subject"]') : null;
+      if (document.activeElement === subjectInput && subjectInput) {
+        insertAtCursor(subjectInput, variable);
+        return;
+      }
       if (activeTab === 'text' && textInput) {
         insertAtCursor(textInput, variable);
         return;

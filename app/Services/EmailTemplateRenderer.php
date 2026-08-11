@@ -83,6 +83,7 @@ final class EmailTemplateRenderer
             'expires_label' => '',
             'buy_url' => '',
             'coupon_code' => '',
+            'magic_link_hours' => '',
         ];
 
         foreach ($context as $key => $value) {

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace Wwm\Services;
@@ -20,7 +20,7 @@ final class TransactionalEmail
         string $password
     ): array {
         $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
-        $subject = 'Your course access — World Watercolor Masters';
+        $subject = 'Your course access тАФ World Watercolor Masters';
 
         $text = implode("\n", [
             $greeting,
@@ -78,14 +78,14 @@ final class TransactionalEmail
         ?string $password = null
     ): array {
         $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
-        $subject = 'Your demo access — World Watercolor Masters';
+        $subject = 'Your demo access тАФ World Watercolor Masters';
 
         $text = implode("\n", [
             $greeting,
             '',
             'Your demo access to "' . $courseTitle . '" is ready.',
             '',
-            'Open this link — your email and password will be filled in automatically:',
+            'Open this link тАФ your email and password will be filled in automatically:',
             $loginUrl,
             '',
             'You can also sign in manually at:',
@@ -134,7 +134,7 @@ final class TransactionalEmail
         ?string $password = null
     ): array {
         $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
-        $subject = 'Your demo is waiting — World Watercolor Masters';
+        $subject = 'Your demo is waiting тАФ World Watercolor Masters';
 
         $text = implode("\n", [
             $greeting,
@@ -165,7 +165,7 @@ final class TransactionalEmail
                     . 'but we have not seen you in the cabinet yet.'
                 ),
                 self::paragraph(
-                    'Your demo is still active — sign in and watch the first lesson while it is available.'
+                    'Your demo is still active тАФ sign in and watch the first lesson while it is available.'
                 ),
                 self::button($loginUrl, 'Open my demo lesson'),
                 self::credentialsBox(
@@ -195,14 +195,14 @@ final class TransactionalEmail
         ?string $password = null
     ): array {
         $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
-        $subject = 'Your demo is waiting — ' . $courseTitle;
+        $subject = 'Your demo is waiting тАФ ' . $courseTitle;
 
         $text = implode("\n", [
             $greeting,
             '',
             'You requested demo access to "' . $courseTitle . '", but it looks like you have not opened the lesson yet.',
             '',
-            'Your demo is still active — take a few minutes to watch the first lesson:',
+            'Your demo is still active тАФ take a few minutes to watch the first lesson:',
             $loginUrl,
             '',
             'Manual sign-in:',
@@ -226,7 +226,7 @@ final class TransactionalEmail
                     . 'but it looks like you have not opened the lesson yet.'
                 ),
                 self::paragraph(
-                    'Your demo is still active — take a few minutes to watch the first lesson while it is available.'
+                    'Your demo is still active тАФ take a few minutes to watch the first lesson while it is available.'
                 ),
                 self::button($loginUrl, 'Open my demo lesson'),
                 self::credentialsBox(
@@ -328,7 +328,7 @@ final class TransactionalEmail
             '',
             'We hope you enjoyed the demo lesson from "' . $courseTitle . '".',
             '',
-            'We have reserved a 40% discount on full course access — just for you.',
+            'We have reserved a 40% discount on full course access тАФ just for you.',
             '',
             'Your coupon code: ' . $couponCode,
             'This offer expires in 24 hours.',
@@ -352,7 +352,7 @@ final class TransactionalEmail
                     'We hope you enjoyed the demo lesson from <strong>' . self::e($courseTitle) . '</strong>.'
                 ),
                 self::paragraph(
-                    'We have reserved an exclusive <strong>40% discount</strong> on full course access — just for you.'
+                    'We have reserved an exclusive <strong>40% discount</strong> on full course access тАФ just for you.'
                 ),
                 self::couponBox($couponCode, 'Expires in 24 hours'),
                 self::button($buyUrl, 'Get Full Access Now & Save 40%'),
@@ -374,7 +374,7 @@ final class TransactionalEmail
         string $couponCode
     ): array {
         $greeting = $name !== '' ? 'Hi ' . $name . ',' : 'Hi there,';
-        $subject = '3 hours left — 40% off ' . self::shortCourseTitle($courseTitle);
+        $subject = '3 hours left тАФ 40% off ' . self::shortCourseTitle($courseTitle);
 
         $text = implode("\n", [
             $greeting,
@@ -441,7 +441,7 @@ final class TransactionalEmail
         $hours = (int)(LoginLink::ttlSeconds() / 3600);
 
         return [
-            'subject' => 'Your sign-in link — World Watercolor Masters',
+            'subject' => 'Your sign-in link тАФ World Watercolor Masters',
             'text' => implode("\n", [
                 $greeting,
                 '',
@@ -624,7 +624,7 @@ final class TransactionalEmail
             . '<p style="margin:0;font-size:14px;line-height:1.5;color:#c8bdb3;">'
             . '<a href="https://worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
             . 'worldwatercolormasters.art</a>'
-            . ' · <a href="mailto:support@worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
+            . ' ┬╖ <a href="mailto:support@worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
             . 'support@worldwatercolormasters.art</a></p>'
             . '</td></tr>';
     }
@@ -714,7 +714,7 @@ final class TransactionalEmail
         return self::spacer(8)
             . '<p style="margin:0 0 12px;font-size:16px;line-height:1.5;">'
             . '<a href="' . self::e($url) . '" style="color:#b81e16;text-decoration:none;">'
-            . 'Course description on the website →</a></p>';
+            . 'Course description on the website тЖТ</a></p>';
     }
 
     private static function supportBlock(): string

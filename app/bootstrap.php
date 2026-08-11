@@ -261,6 +261,25 @@ function wwm_email_logo_url(): string
     return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/World%20Watercolor%20Masters.jpg';
 }
 
+function wwm_email_sale_logo_url(): string
+{
+    $configured = trim((string)(wwm_config()['email_sale_logo_url'] ?? ''));
+    if ($configured !== '' && str_starts_with($configured, 'https://')) {
+        return $configured;
+    }
+
+    return 'https://static.tildacdn.com/tild3666-3831-4932-b039-356262326639/World_Watercolor_Mas.jpg';
+}
+
+function wwm_email_logo_url_for_template(string $templateId): string
+{
+    if (in_array($templateId, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
+        return wwm_email_sale_logo_url();
+    }
+
+    return wwm_email_logo_url();
+}
+
 function wwm_email_sample_cover_url(): string
 {
     return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/Elke_Memmler/elkeflowers.jpg';

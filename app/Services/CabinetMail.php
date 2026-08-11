@@ -127,7 +127,7 @@ final class CabinetMail
             'email' => $email,
             'course_title' => $courseTitle,
             'cover_url' => $coverUrl ?? '',
-            'logo_url' => wwm_email_logo_url(),
+            'logo_url' => wwm_email_logo_url_for_template($template),
             'course_page_url' => $coursePageUrl,
             'buy_url' => $coursePageUrl,
             'login_url' => $loginUrl,

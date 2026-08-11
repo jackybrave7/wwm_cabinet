@@ -148,15 +148,16 @@ final class EmailTemplateCatalog
     {
         $common = ['{{name}}', '{{email}}', '{{base_url}}', '{{login_url}}', '{{password}}'];
         $course = ['{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{course_page_url}}', '{{expires_label}}'];
-        $sales = ['{{buy_url}}', '{{coupon_code}}'];
 
         return match ($id) {
-            'demo', 'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'
+            'demo', 'reminder_demo_expiring'
                 => array_merge($common, $course),
+            'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson'
+                => array_merge($common, array_diff($course, ['{{expires_label}}'])),
             'sale_demo_discount_24h', 'sale_demo_discount_3h'
-                => array_merge($common, $course, $sales),
-            'magic' => ['{{name}}', '{{email}}', '{{base_url}}', '{{magic_link}}'],
-            'reset' => ['{{email}}', '{{base_url}}', '{{reset_link}}'],
+                => ['{{name}}', '{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{buy_url}}', '{{coupon_code}}'],
+            'magic' => ['{{name}}', '{{magic_link}}', '{{magic_link_hours}}'],
+            'reset' => ['{{reset_link}}'],
             'test' => ['{{base_url}}'],
             default => $common,
         };
@@ -168,18 +169,45 @@ final class EmailTemplateCatalog
      */
     public static function builtInMessage(string $id, array $context): array
     {
+        if ($id === 'test') {
+            return [
+                'subject' => 'WWM Cabinet test email',
+                'text' => "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n",
+                'html' => null,
+            ];
+        }
+
+        $vars = self::contextToVars($id, $context);
+        $draft = EmailTemplateDrafts::draft($id);
+
+        $message = [
+            'subject' => EmailTemplateRenderer::applyVars($draft['subject'], $vars),
+            'text' => EmailTemplateRenderer::applyVars($draft['text'], $vars),
+            'html' => $draft['html'] !== null
+                ? EmailTemplateRenderer::applyVars($draft['html'], $vars)
+                : null,
+        ];
+
+        $message['html'] = EmailTemplateDrafts::finalizeHtml($message['html'], $vars);
+
+        return $message;
+    }
+
+    /**
+     * @param array<string, scalar|null> $context
+     * @return array<string, string>
+     */
+    private static function contextToVars(string $id, array $context): array
+    {
         $name = trim((string)($context['name'] ?? ''));
         $email = (string)($context['email'] ?? '');
         $courseTitle = (string)($context['course_title'] ?? '');
-        $coverUrl = isset($context['cover_url']) ? (string)$context['cover_url'] : null;
-        $coursePageUrl = isset($context['course_page_url']) ? (string)$context['course_page_url'] : null;
-        if ($coursePageUrl === '') {
-            $coursePageUrl = null;
-        }
+        $coverUrl = isset($context['cover_url']) ? trim((string)$context['cover_url']) : '';
+        $coursePageUrl = isset($context['course_page_url']) ? trim((string)$context['course_page_url']) : '';
         $loginUrl = (string)($context['login_url'] ?? wwm_base_url() . '/login');
         $password = trim((string)($context['password'] ?? ''));
         $expiresLabel = (string)($context['expires_label'] ?? '');
-        $buyUrl = (string)($context['buy_url'] ?? $context['course_page_url'] ?? '');
+        $buyUrl = trim((string)($context['buy_url'] ?? $context['course_page_url'] ?? ''));
         $couponCode = trim((string)($context['coupon_code'] ?? 'SPECWWM4'));
         if ($couponCode === '') {
             $couponCode = 'SPECWWM4';
@@ -187,77 +215,36 @@ final class EmailTemplateCatalog
         $magicLink = (string)($context['magic_link'] ?? wwm_base_url() . '/auth/magic?token=sample');
         $resetLink = (string)($context['reset_link'] ?? wwm_base_url() . '/reset?token=sample');
 
-        return match ($id) {
-            'demo' => TransactionalEmail::demoAccess(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $coursePageUrl,
-                $loginUrl,
-                $expiresLabel !== '' ? $expiresLabel : gmdate('M j, Y H:i', time() + 48 * 3600) . ' UTC',
-                $password !== '' ? $password : null
-            ),
-            'paid' => TransactionalEmail::paidAccess(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $coursePageUrl,
-                $loginUrl,
-                $password !== '' ? $password : 'your-password'
-            ),
-            'reminder_demo_no_login' => TransactionalEmail::reminderDemoNoLogin(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $coursePageUrl,
-                $loginUrl,
-                $password !== '' ? $password : null
-            ),
-            'reminder_demo_no_lesson' => TransactionalEmail::reminderDemoNoLesson(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $coursePageUrl,
-                $loginUrl,
-                $password !== '' ? $password : null
-            ),
-            'reminder_demo_expiring' => TransactionalEmail::reminderDemoExpiring(
-                $name,
-                $email,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $coursePageUrl,
-                $loginUrl,
-                $expiresLabel !== '' ? $expiresLabel : gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',
-                $password !== '' ? $password : null
-            ),
-            'sale_demo_discount_24h' => TransactionalEmail::saleDemoDiscount24h(
-                $name,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $buyUrl,
-                $couponCode
-            ),
-            'sale_demo_discount_3h' => TransactionalEmail::saleDemoDiscount3h(
-                $name,
-                $courseTitle,
-                $coverUrl !== '' ? $coverUrl : null,
-                $buyUrl,
-                $couponCode
-            ),
-            'magic' => TransactionalEmail::magicLinkMessage($name, $magicLink),
-            'reset' => TransactionalEmail::passwordResetMessage($resetLink),
-            'test' => [
-                'subject' => 'WWM Cabinet test email',
-                'text' => "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n",
-                'html' => null,
-            ],
-            default => throw new \InvalidArgumentException('Unknown email template: ' . $id),
-        };
+        if ($password === '' && in_array($id, ['demo', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'], true)) {
+            $configured = trim((string)(wwm_config()['demo_default_password'] ?? ''));
+            $password = $configured !== '' ? $configured : '(use the sign-in link above)';
+        }
+        if ($password === '' && $id === 'paid') {
+            $password = 'your-password';
+        }
+        if ($expiresLabel === '' && in_array($id, ['demo'], true)) {
+            $expiresLabel = gmdate('M j, Y H:i', time() + 48 * 3600) . ' UTC';
+        }
+        if ($expiresLabel === '' && $id === 'reminder_demo_expiring') {
+            $expiresLabel = gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC';
+        }
+
+        return EmailTemplateRenderer::normalizeVars([
+            'name' => $name,
+            'email' => $email,
+            'course_title' => $courseTitle,
+            'cover_url' => $coverUrl,
+            'logo_url' => wwm_email_logo_url_for_template($id),
+            'course_page_url' => $coursePageUrl,
+            'login_url' => $loginUrl,
+            'password' => $password,
+            'expires_label' => $expiresLabel,
+            'buy_url' => $buyUrl,
+            'coupon_code' => $couponCode,
+            'magic_link' => $magicLink,
+            'reset_link' => $resetLink,
+            'magic_link_hours' => (string)max(1, (int)(\Wwm\Models\LoginLink::ttlSeconds() / 3600)),
+        ]);
     }
 
     /**
@@ -265,7 +252,7 @@ final class EmailTemplateCatalog
      */
     public static function preview(string $id): array
     {
-        return EmailTemplateRenderer::render($id, self::sampleContext());
+        return EmailTemplateRenderer::render($id, self::sampleContext($id));
     }
 
     /**
@@ -273,33 +260,15 @@ final class EmailTemplateCatalog
      */
     public static function placeholderDraft(string $id): array
     {
-        $context = self::sampleContext();
-        $rendered = self::builtInMessage($id, $context);
-        $pairs = [];
-        foreach ($context as $key => $value) {
-            $value = trim((string)$value);
-            if ($value === '') {
-                continue;
-            }
-            $pairs[] = [$value, '{{' . $key . '}}'];
+        if ($id === 'test') {
+            return [
+                'subject' => 'WWM Cabinet test email',
+                'text' => "This is a test message from WWM Cabinet.\n\nIf you received it, SMTP is working.\n",
+                'html' => null,
+            ];
         }
-        usort($pairs, static fn(array $a, array $b): int => strlen($b[0]) <=> strlen($a[0]));
 
-        $replace = static function (?string $text) use ($pairs): ?string {
-            if ($text === null || $text === '') {
-                return $text;
-            }
-            $search = array_column($pairs, 0);
-            $values = array_column($pairs, 1);
-
-            return str_replace($search, $values, $text);
-        };
-
-        return [
-            'subject' => (string)$replace($rendered['subject']),
-            'text' => (string)$replace($rendered['text']),
-            'html' => $replace($rendered['html']),
-        ];
+        return EmailTemplateDrafts::draft($id);
     }
 
     /**
@@ -319,7 +288,7 @@ final class EmailTemplateCatalog
      *   coupon_code: string
      * }
      */
-    public static function sampleContext(): array
+    public static function sampleContext(?string $templateId = null): array
     {
         $catalog = new CourseCatalog();
         $course = $catalog->getAdmin('elke-en') ?? $catalog->getAdmin('alvaro') ?? [];
@@ -339,7 +308,7 @@ final class EmailTemplateCatalog
             'email' => 'student@example.com',
             'course_title' => $courseTitle,
             'cover_url' => $coverUrl,
-            'logo_url' => wwm_email_logo_url(),
+            'logo_url' => wwm_email_logo_url_for_template($templateId ?? ''),
             'course_page_url' => $coursePageUrl ?? '',
             'login_url' => wwm_login_url('student@example.com', $password, '/c/elke-en/1'),
             'expires_label' => gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',

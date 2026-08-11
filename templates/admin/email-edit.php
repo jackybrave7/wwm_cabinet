@@ -62,6 +62,7 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
           <button type="button" data-cmd="underline"><u>U</u></button>
           <button type="button" data-cmd="insertUnorderedList">• List</button>
           <button type="button" data-cmd="createLink">Link</button>
+          <button type="button" data-cmd="insertImage">Image</button>
           <button type="button" data-cmd="formatBlock" data-value="h1">H1</button>
           <button type="button" data-cmd="formatBlock" data-value="h2">H2</button>
           <button type="button" data-cmd="formatBlock" data-value="p">P</button>
@@ -116,6 +117,6 @@ window.__emailEditor = {
   hasHtml: <?= $hasHtml ? 'true' : 'false' ?>,
   initialHtml: <?= json_encode((string)($draft['html'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
   initialText: <?= json_encode((string)$draft['text'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-  previewVars: <?= json_encode(\Wwm\Services\EmailTemplateCatalog::sampleContext(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+  previewVars: <?= json_encode(\Wwm\Services\EmailTemplateCatalog::sampleContext($templateId), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
 };
 </script>
