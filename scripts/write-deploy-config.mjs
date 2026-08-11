@@ -10,7 +10,7 @@
  *   WWM_MAIL_ENABLED            (true/false)
  *   WWM_WEBHOOKS_ENABLED        (true/false)
  *   WWM_AVO_ENABLED, WWM_AVO_SHOP_ID, WWM_AVO_API_KEY_GET, WWM_AVO_API_KEY_SET
- *   WWM_AVO_TAG_LOGGED_IN, WWM_AVO_TAG_DEMO_OPENED
+ *   WWM_DEMO_DEFAULT_PASSWORD     (shared demo login password; required on prod if using prefilled login links)
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -96,7 +96,7 @@ return [
 
     'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '2'))},
 
-    'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},
+    'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', ''))},
 
     'magic_link_login' => ${envBool('WWM_MAGIC_LINK_LOGIN', false) ? 'true' : 'false'},
 

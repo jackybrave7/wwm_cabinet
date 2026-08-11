@@ -6,7 +6,8 @@
   <div class="admin-card">
     <h2>AVO webhook</h2>
     <p class="field-hint" style="margin-bottom:12px">
-      Paste this URL into the AVO block «Отправить вебхук».
+      Copy this URL and paste it into the AVO block «Отправить вебхук» as-is.
+      Keep AVO macros like <code>{email}</code> unencoded — do not use <code>%7Bemail%7D</code>.
       Token from config: <code><?= wwm_escape($webhook['token_label']) ?></code>
       · endpoint <code><?= wwm_escape($webhook['endpoint']) ?></code>
     </p>

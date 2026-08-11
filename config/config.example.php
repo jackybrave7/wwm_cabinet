@@ -47,8 +47,8 @@ return [
     // Bump on deploy when static assets change (cache bust for cabinet.css).
     'asset_version' => '1',
 
-    // Shared password for new demo users (Account → change after login). Empty = random + reset email.
-    'demo_default_password' => 'Gh45tyhf',
+    // Shared password for new demo users (Account → change after login). Set via WWM_DEMO_DEFAULT_PASSWORD secret on prod.
+    'demo_default_password' => 'CHANGE_ME_DEMO_PASSWORD',
 
     // Show “Email me a sign-in link” on /login (requires working SMTP).
     'magic_link_login' => false,

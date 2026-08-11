@@ -286,7 +286,7 @@ final class EmailTemplateCatalog
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = 'https://worldwatercolormasters.art/elke-memmler';
         }
-        $password = trim((string)(wwm_config()['demo_default_password'] ?? 'Gh45tyhf'));
+        $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
         if ($password === '') {
             $password = 'sample-password';
         }

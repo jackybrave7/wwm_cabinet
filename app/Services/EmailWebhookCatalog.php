@@ -27,10 +27,33 @@ final class EmailWebhookCatalog
         );
 
         return [
-            'url' => rtrim(wwm_base_url(), '/') . $spec['path'] . '?' . http_build_query($query),
+            'url' => rtrim(wwm_base_url(), '/') . $spec['path'] . '?' . self::buildAvoQuery($query),
             'token_label' => $spec['token_label'],
             'endpoint' => $spec['path'],
         ];
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    private static function buildAvoQuery(array $params): string
+    {
+        $parts = [];
+        foreach ($params as $key => $value) {
+            $encodedKey = rawurlencode((string)$key);
+            if (self::isAvoMacro($value)) {
+                $parts[] = $encodedKey . '=' . $value;
+                continue;
+            }
+            $parts[] = $encodedKey . '=' . rawurlencode((string)$value);
+        }
+
+        return implode('&', $parts);
+    }
+
+    private static function isAvoMacro(string $value): bool
+    {
+        return preg_match('/^\{[a-z0-9_]+\}$/i', $value) === 1;
     }
 
     /**
