@@ -85,7 +85,8 @@ final class EmailWebhookCatalog
                     'id_account' => '{id_account}',
                 ],
             ],
-            'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring' => [
+            'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring',
+            'sale_demo_discount_24h', 'sale_demo_discount_3h' => [
                 'path' => '/api/mail',
                 'token_key' => 'demo_token',
                 'token_label' => 'WWM_WEBHOOK_DEMO_TOKEN',

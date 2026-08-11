@@ -60,7 +60,7 @@ final class CabinetMail
         }
 
         $message = $this->buildMessage($template, $user, $course, $courseSlug);
-        $links = $this->trackedLinks($message, $course);
+        $links = $this->trackedLinks($template, $message, $course);
 
         $emailSent = EmailTracker::compose($userId, $email, $template, $message['subject'])
             ->deliver($message['text'], $message['html'], $links);
@@ -97,7 +97,7 @@ final class CabinetMail
     /**
      * @param array<string, mixed> $user
      * @param array<string, mixed> $course
-     * @return array{subject: string, text: string, html: ?string, login_url: string}
+     * @return array{subject: string, text: string, html: ?string, login_url: string, buy_url: string}
      */
     private function buildMessage(string $template, array $user, array $course, string $courseSlug): array
     {
@@ -117,6 +117,10 @@ final class CabinetMail
             : wwm_base_url() . '/login?email=' . rawurlencode($email) . '&next=' . rawurlencode($nextPath);
 
         $expiresLabel = $this->demoExpiresLabel(wwm_pdo(), (int)$user['id'], $courseSlug);
+        $couponCode = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4'));
+        if ($couponCode === '') {
+            $couponCode = 'SPECWWM4';
+        }
 
         $context = [
             'name' => $name,
@@ -124,14 +128,16 @@ final class CabinetMail
             'course_title' => $courseTitle,
             'cover_url' => $coverUrl ?? '',
             'course_page_url' => $coursePageUrl,
+            'buy_url' => $coursePageUrl,
             'login_url' => $loginUrl,
             'password' => $password,
             'expires_label' => $expiresLabel,
+            'coupon_code' => $couponCode,
         ];
 
         $message = EmailTemplateRenderer::render($template, $context);
 
-        return $message + ['login_url' => $loginUrl];
+        return $message + ['login_url' => $loginUrl, 'buy_url' => $coursePageUrl];
     }
 
     private function demoExpiresLabel(\PDO $pdo, int $userId, string $courseSlug): string
@@ -148,12 +154,20 @@ final class CabinetMail
     }
 
     /**
-     * @param array{subject: string, text: string, html: ?string, login_url: string} $message
+     * @param array{subject: string, text: string, html: ?string, login_url: string, buy_url: string} $message
      * @param array<string, mixed> $course
      * @return list<array{url: string, label: string}>
      */
-    private function trackedLinks(array $message, array $course): array
+    private function trackedLinks(string $template, array $message, array $course): array
     {
+        $saleTemplates = ['sale_demo_discount_24h', 'sale_demo_discount_3h'];
+        if (in_array($template, $saleTemplates, true)) {
+            $buyUrl = trim((string)($message['buy_url'] ?? ''));
+            if ($buyUrl !== '' && str_starts_with($buyUrl, 'https://')) {
+                return [['url' => $buyUrl, 'label' => 'Purchase course']];
+            }
+        }
+
         $links = [
             ['url' => $message['login_url'], 'label' => 'Sign in'],
         ];

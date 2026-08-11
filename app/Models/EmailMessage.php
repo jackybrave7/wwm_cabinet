@@ -135,6 +135,8 @@ final class EmailMessage
             'reminder_demo_no_login' => 'Reminder — no login',
             'reminder_demo_no_lesson' => 'Reminder — no lesson',
             'reminder_demo_expiring' => 'Reminder — expiring',
+            'sale_demo_discount_24h' => 'Sale — 40% off (24h)',
+            'sale_demo_discount_3h' => 'Sale — final reminder (3h)',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }

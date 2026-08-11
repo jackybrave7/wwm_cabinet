@@ -65,6 +65,24 @@ final class EmailTemplateCatalog
                 'webhook' => true,
             ],
             [
+                'id' => 'sale_demo_discount_24h',
+                'label' => 'Sale — 40% off (24h)',
+                'category' => 'Sales',
+                'description' => 'Special 40% discount offer after demo — expires in 24 hours.',
+                'trigger' => 'AVO BP → /api/mail?template=sale_demo_discount_24h',
+                'has_html' => true,
+                'webhook' => true,
+            ],
+            [
+                'id' => 'sale_demo_discount_3h',
+                'label' => 'Sale — final reminder (3h)',
+                'category' => 'Sales',
+                'description' => 'Final reminder that the 40% discount expires in 3 hours.',
+                'trigger' => 'AVO BP → /api/mail?template=sale_demo_discount_3h',
+                'has_html' => true,
+                'webhook' => true,
+            ],
+            [
                 'id' => 'magic',
                 'label' => 'Sign-in link',
                 'category' => 'Account',
@@ -130,10 +148,13 @@ final class EmailTemplateCatalog
     {
         $common = ['{{name}}', '{{email}}', '{{base_url}}', '{{login_url}}', '{{password}}'];
         $course = ['{{course_title}}', '{{cover_url}}', '{{course_page_url}}', '{{expires_label}}'];
+        $sales = ['{{buy_url}}', '{{coupon_code}}'];
 
         return match ($id) {
             'demo', 'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'
                 => array_merge($common, $course),
+            'sale_demo_discount_24h', 'sale_demo_discount_3h'
+                => array_merge($common, $course, $sales),
             'magic' => ['{{name}}', '{{email}}', '{{base_url}}', '{{magic_link}}'],
             'reset' => ['{{email}}', '{{base_url}}', '{{reset_link}}'],
             'test' => ['{{base_url}}'],
@@ -158,6 +179,11 @@ final class EmailTemplateCatalog
         $loginUrl = (string)($context['login_url'] ?? wwm_base_url() . '/login');
         $password = trim((string)($context['password'] ?? ''));
         $expiresLabel = (string)($context['expires_label'] ?? '');
+        $buyUrl = (string)($context['buy_url'] ?? $context['course_page_url'] ?? '');
+        $couponCode = trim((string)($context['coupon_code'] ?? 'SPECWWM4'));
+        if ($couponCode === '') {
+            $couponCode = 'SPECWWM4';
+        }
         $magicLink = (string)($context['magic_link'] ?? wwm_base_url() . '/auth/magic?token=sample');
         $resetLink = (string)($context['reset_link'] ?? wwm_base_url() . '/reset?token=sample');
 
@@ -208,6 +234,20 @@ final class EmailTemplateCatalog
                 $loginUrl,
                 $expiresLabel !== '' ? $expiresLabel : gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',
                 $password !== '' ? $password : null
+            ),
+            'sale_demo_discount_24h' => TransactionalEmail::saleDemoDiscount24h(
+                $name,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $buyUrl,
+                $couponCode
+            ),
+            'sale_demo_discount_3h' => TransactionalEmail::saleDemoDiscount3h(
+                $name,
+                $courseTitle,
+                $coverUrl !== '' ? $coverUrl : null,
+                $buyUrl,
+                $couponCode
             ),
             'magic' => TransactionalEmail::magicLinkMessage($name, $magicLink),
             'reset' => TransactionalEmail::passwordResetMessage($resetLink),
@@ -273,7 +313,9 @@ final class EmailTemplateCatalog
      *   expires_label: string,
      *   password: string,
      *   magic_link: string,
-     *   reset_link: string
+     *   reset_link: string,
+     *   buy_url: string,
+     *   coupon_code: string
      * }
      */
     public static function sampleContext(): array
@@ -302,6 +344,8 @@ final class EmailTemplateCatalog
             'password' => $password,
             'magic_link' => wwm_base_url() . '/auth/magic?token=sample-token-for-preview',
             'reset_link' => wwm_base_url() . '/reset?token=sample-token-for-preview',
+            'buy_url' => $coursePageUrl ?? '',
+            'coupon_code' => 'SPECWWM4',
         ];
     }
 }

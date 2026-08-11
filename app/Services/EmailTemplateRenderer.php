@@ -80,6 +80,8 @@ final class EmailTemplateRenderer
             'course_page_url' => '',
             'password' => '',
             'expires_label' => '',
+            'buy_url' => '',
+            'coupon_code' => '',
         ];
 
         foreach ($context as $key => $value) {

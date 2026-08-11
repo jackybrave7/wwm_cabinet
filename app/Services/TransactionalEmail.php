@@ -311,6 +311,118 @@ final class TransactionalEmail
     }
 
     /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    public static function saleDemoDiscount24h(
+        string $name,
+        string $courseTitle,
+        ?string $courseCoverUrl,
+        string $buyUrl,
+        string $couponCode
+    ): array {
+        $greeting = $name !== '' ? 'Hi ' . $name . ',' : 'Hi there,';
+        $subject = 'Special offer: 40% off ' . self::shortCourseTitle($courseTitle);
+
+        $text = implode("\n", [
+            $greeting,
+            '',
+            'We hope you enjoyed the demo lesson from "' . $courseTitle . '".',
+            '',
+            'We have reserved a 40% discount on full course access — just for you.',
+            '',
+            'Your coupon code: ' . $couponCode,
+            'This offer expires in 24 hours.',
+            '',
+            'Get full access now:',
+            $buyUrl,
+            '',
+            'Questions? support@worldwatercolormasters.art',
+            '',
+            'Happy painting!',
+            'World Watercolor Masters',
+        ]);
+
+        $html = self::saleLayout(
+            'Save 40% on<br>full course access',
+            $courseTitle,
+            $courseCoverUrl,
+            implode('', [
+                self::paragraph($greeting),
+                self::paragraph(
+                    'We hope you enjoyed the demo lesson from <strong>' . self::e($courseTitle) . '</strong>.'
+                ),
+                self::paragraph(
+                    'We have reserved an exclusive <strong>40% discount</strong> on full course access — just for you.'
+                ),
+                self::couponBox($couponCode, 'Expires in 24 hours'),
+                self::button($buyUrl, 'Get Full Access Now & Save 40%'),
+                self::supportBlock(),
+            ])
+        );
+
+        return compact('subject', 'text', 'html');
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    public static function saleDemoDiscount3h(
+        string $name,
+        string $courseTitle,
+        ?string $courseCoverUrl,
+        string $buyUrl,
+        string $couponCode
+    ): array {
+        $greeting = $name !== '' ? 'Hi ' . $name . ',' : 'Hi there,';
+        $subject = '3 hours left — 40% off ' . self::shortCourseTitle($courseTitle);
+
+        $text = implode("\n", [
+            $greeting,
+            '',
+            'This is your final reminder: your 40% discount on "' . $courseTitle . '" expires in 3 hours.',
+            '',
+            'Your coupon code: ' . $couponCode,
+            '',
+            'If you do not act now, you will miss:',
+            '- Full video course access with all lessons',
+            '- Step-by-step guidance from Elke Memmler',
+            '- Your reserved 40% discount',
+            '- Lifetime access to course materials',
+            '',
+            'Get instant access now:',
+            $buyUrl,
+            '',
+            'Questions? support@worldwatercolormasters.art',
+            '',
+            'World Watercolor Masters',
+        ]);
+
+        $html = self::saleLayout(
+            'Only 3 hours left',
+            $courseTitle,
+            $courseCoverUrl,
+            implode('', [
+                self::paragraph($greeting),
+                self::paragraph(
+                    'This is your <strong>final reminder</strong>: your 40% discount on '
+                    . '<strong>' . self::e($courseTitle) . '</strong> expires in <strong>3 hours</strong>.'
+                ),
+                self::couponBox($couponCode, 'Use this code before time runs out'),
+                self::bulletList([
+                    'Full video course access with all lessons',
+                    'Step-by-step guidance from Elke Memmler',
+                    'Your reserved 40% discount',
+                    'Lifetime access to course materials',
+                ]),
+                self::button($buyUrl, 'Get Instant Access & Save 40%'),
+                self::supportBlock(),
+            ])
+        );
+
+        return compact('subject', 'text', 'html');
+    }
+
+    /**
      * @return array{subject: string, text: string, html: null}
      */
     public static function magicLinkPreview(?string $name = null): array
@@ -379,6 +491,65 @@ final class TransactionalEmail
             $bodyHtml,
             str_replace("\n", '<br>', self::e($title))
         );
+    }
+
+    private static function saleLayout(
+        string $titleHtml,
+        string $courseTitle,
+        ?string $coverUrl,
+        string $bodyHtml
+    ): string {
+        return self::layout(
+            strip_tags(str_replace('<br>', ' ', $titleHtml)),
+            self::subtitle($courseTitle),
+            $coverUrl,
+            $bodyHtml,
+            $titleHtml
+        );
+    }
+
+    private static function shortCourseTitle(string $courseTitle): string
+    {
+        if (preg_match("/'([^']+)'/", $courseTitle, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return $courseTitle;
+    }
+
+    private static function couponBox(string $couponCode, string $note): string
+    {
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+            . 'style="margin:8px 0 20px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
+            . '<tr><td style="padding:20px 24px;text-align:center;">'
+            . '<p style="margin:0 0 8px;font-size:14px;line-height:1.4;color:#6e6e6e;text-transform:uppercase;'
+            . 'letter-spacing:0.06em;">Your coupon code</p>'
+            . '<p style="margin:0 0 8px;font-size:28px;line-height:1.2;font-weight:700;color:#e63027;'
+            . 'letter-spacing:0.08em;">' . self::e($couponCode) . '</p>'
+            . '<p style="margin:0;font-size:15px;line-height:1.5;color:#2a2a2a;">' . self::e($note) . '</p>'
+            . '</td></tr></table>';
+    }
+
+    /**
+     * @param list<string> $items
+     */
+    private static function bulletList(array $items): string
+    {
+        $rows = '';
+        foreach ($items as $item) {
+            $rows .= '<tr><td valign="top" style="padding:0 0 10px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
+                . '<span style="color:#e63027;font-weight:700;padding-right:8px;">&#8226;</span>'
+                . self::e($item) . '</td></tr>';
+        }
+
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+            . 'style="margin:0 0 20px;">'
+            . '<tr><td style="padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
+            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;">'
+            . 'If you do not act now, you will miss:</p>'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+            . $rows
+            . '</table></td></tr></table>';
     }
 
     private static function demoPasswordLabel(): string
