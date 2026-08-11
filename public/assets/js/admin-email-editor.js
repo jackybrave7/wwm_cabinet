@@ -1,6 +1,7 @@
 (function () {
   const config = window.__emailEditor || {};
   const hasHtml = !!config.hasHtml;
+  const previewVars = config.previewVars || {};
   const form = document.getElementById('email-editor-form');
   const visualFrame = document.getElementById('email-visual-frame');
   const htmlInput = document.getElementById('email-html-input');
@@ -9,6 +10,28 @@
   const previewText = document.getElementById('email-preview-text');
   const previewRefresh = document.getElementById('email-preview-refresh');
   let activeTab = hasHtml ? 'visual' : 'text';
+
+  function previewVarPairs() {
+    return Object.entries(previewVars)
+      .filter(([, value]) => String(value).trim() !== '')
+      .sort((a, b) => String(b[1]).length - String(a[1]).length);
+  }
+
+  function applyPreviewVars(html) {
+    let out = html;
+    previewVarPairs().forEach(([key, value]) => {
+      out = out.split('{{' + key + '}}').join(String(value));
+    });
+    return out;
+  }
+
+  function revertPreviewVars(html) {
+    let out = html;
+    previewVarPairs().forEach(([key, value]) => {
+      out = out.split(String(value)).join('{{' + key + '}}');
+    });
+    return out;
+  }
 
   function setActiveTab(name) {
     activeTab = name;
@@ -40,7 +63,7 @@
   function loadVisualFromHtml(html) {
     if (!visualFrame) return;
     visualFrame.onload = () => enableVisualEditing();
-    visualFrame.srcdoc = html || '<!DOCTYPE html><html><body><p></p></body></html>';
+    visualFrame.srcdoc = applyPreviewVars(html || '<!DOCTYPE html><html><body><p></p></body></html>');
   }
 
   function htmlFromVisual() {
@@ -51,7 +74,7 @@
 
   function syncVisualToHtml() {
     if (!hasHtml || !htmlInput) return;
-    htmlInput.value = htmlFromVisual();
+    htmlInput.value = revertPreviewVars(htmlFromVisual());
   }
 
   function syncHtmlToVisual() {
@@ -68,7 +91,8 @@
   }
 
   function renderPreview() {
-    const html = htmlInput ? htmlInput.value.trim() : '';
+    const rawHtml = htmlInput ? htmlInput.value.trim() : '';
+    const html = rawHtml ? applyPreviewVars(rawHtml) : '';
     const text = textInput ? textInput.value : '';
     if (previewFrame) {
       previewFrame.style.display = html ? 'block' : 'none';

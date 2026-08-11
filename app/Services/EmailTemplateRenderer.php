@@ -77,6 +77,7 @@ final class EmailTemplateRenderer
             'email' => '',
             'course_title' => '',
             'cover_url' => '',
+            'logo_url' => wwm_email_logo_url(),
             'course_page_url' => '',
             'password' => '',
             'expires_label' => '',

@@ -256,6 +256,16 @@ function wwm_course_cover_url(?string $url): ?string
     return $url;
 }
 
+function wwm_email_logo_url(): string
+{
+    return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/World%20Watercolor%20Masters.jpg';
+}
+
+function wwm_email_sample_cover_url(): string
+{
+    return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/Elke_Memmler/elkeflowers.jpg';
+}
+
 function wwm_render(string $template, array $vars = []): void
 {
     extract($vars, EXTR_SKIP);

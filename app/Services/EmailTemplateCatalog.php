@@ -147,7 +147,7 @@ final class EmailTemplateCatalog
     public static function variables(string $id): array
     {
         $common = ['{{name}}', '{{email}}', '{{base_url}}', '{{login_url}}', '{{password}}'];
-        $course = ['{{course_title}}', '{{cover_url}}', '{{course_page_url}}', '{{expires_label}}'];
+        $course = ['{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{course_page_url}}', '{{expires_label}}'];
         $sales = ['{{buy_url}}', '{{coupon_code}}'];
 
         return match ($id) {
@@ -308,6 +308,7 @@ final class EmailTemplateCatalog
      *   email: string,
      *   course_title: string,
      *   cover_url: string,
+     *   logo_url: string,
      *   course_page_url: string,
      *   login_url: string,
      *   expires_label: string,
@@ -323,7 +324,7 @@ final class EmailTemplateCatalog
         $catalog = new CourseCatalog();
         $course = $catalog->getAdmin('elke-en') ?? $catalog->getAdmin('alvaro') ?? [];
         $courseTitle = (string)($course['title'] ?? 'Elke Memmler\'s video course \'Watercolor Expressionism\'');
-        $coverUrl = wwm_course_cover_url(isset($course['cover_image']) ? (string)$course['cover_image'] : null);
+        $coverUrl = wwm_email_sample_cover_url();
         $coursePageUrl = trim((string)($course['buy_url'] ?? ''));
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = 'https://worldwatercolormasters.art/elke-memmler';
@@ -337,7 +338,8 @@ final class EmailTemplateCatalog
             'name' => 'Alexandra',
             'email' => 'student@example.com',
             'course_title' => $courseTitle,
-            'cover_url' => $coverUrl ?? '',
+            'cover_url' => $coverUrl,
+            'logo_url' => wwm_email_logo_url(),
             'course_page_url' => $coursePageUrl ?? '',
             'login_url' => wwm_login_url('student@example.com', $password, '/c/elke-en/1'),
             'expires_label' => gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',

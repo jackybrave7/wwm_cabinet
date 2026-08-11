@@ -604,13 +604,13 @@ final class TransactionalEmail
 
     private static function logoRow(): string
     {
+        $logoUrl = wwm_email_logo_url();
+
         return '<tr><td class="pad" align="center" style="padding:28px 40px 4px;background:#ffffff;">'
             . '<a href="https://worldwatercolormasters.art" style="text-decoration:none;">'
-            . '<span class="wwm-logo" style="display:inline-block;font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;'
-            . 'font-size:22px;line-height:1.15;letter-spacing:-0.01em;">'
-            . '<span style="font-weight:900;color:#1a110a;">World Watercolor</span>'
-            . '<span style="font-style:italic;font-weight:400;color:#c0440e;"> Masters</span>'
-            . '</span></a>'
+            . '<img src="' . self::e($logoUrl) . '" width="220" alt="World Watercolor Masters" '
+            . 'style="display:block;margin:0 auto;max-width:220px;width:100%;height:auto;border:0;">'
+            . '</a>'
             . '<p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:#6e6e6e;text-align:center;">'
             . 'by Bratec Lis School</p>'
             . '</td></tr>';
@@ -643,7 +643,7 @@ final class TransactionalEmail
         }
 
         return '<tr><td class="pad" style="padding:0 40px 24px;background:#ffffff;">'
-            . '<img src="' . self::e($url) . '" width="520" alt="" '
+            . '<img src="' . self::e($url) . '" width="520" alt="Course cover" '
             . 'style="width:100%;border-radius:8px;border:1px solid #e5e5e5;"></td></tr>';
     }
 
