@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 13;
+    public const SCHEMA_VERSION = 14;
 
     public static function connect(string $path): PDO
     {

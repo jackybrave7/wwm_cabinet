@@ -266,25 +266,83 @@ function wwm_email_logo_url(): string
     return '';
 }
 
+function wwm_email_font_family_heading(): string
+{
+    return '\'Playfair Display\',Georgia,\'Times New Roman\',serif';
+}
+
+function wwm_email_font_link_tag(): string
+{
+    return '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">';
+}
+
+function wwm_email_head_styles(): string
+{
+    $heading = wwm_email_font_family_heading();
+
+    return '<style>'
+        . 'body{margin:0;padding:0;background:#faf6f0;}'
+        . 'img{border:0;display:block;max-width:100%;height:auto;}'
+        . '.email-title,.email-logo{font-family:' . $heading . '!important;}'
+        . '@media only screen and (max-width:640px){'
+        . '.wrapper{width:100%!important;}'
+        . '.pad{padding-left:24px!important;padding-right:24px!important;}'
+        . '.email-title{font-size:26px!important;}'
+        . '.email-logo{font-size:20px!important;}'
+        . '.btn a{display:block!important;}'
+        . '}'
+        . '</style>';
+}
+
+function wwm_email_title_inline_style(): string
+{
+    return 'margin:0;font-family:' . wwm_email_font_family_heading() . ';'
+        . 'font-size:32px;line-height:1.2;font-weight:700;color:#1a110a;text-align:center;';
+}
+
+function wwm_email_logo_inline_style(): string
+{
+    return 'display:block;width:100%;text-align:center;font-family:' . wwm_email_font_family_heading() . ';'
+        . 'font-weight:900;font-size:24px;line-height:1.15;color:#1a110a;letter-spacing:-0.02em;';
+}
+
 function wwm_email_logo_block_html(string $siteUrl = 'https://worldwatercolormasters.art'): string
 {
     $href = htmlspecialchars($siteUrl, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
     return '<a href="' . $href . '" style="text-decoration:none;display:block;width:100%;text-align:center;">'
-        . '<span class="email-logo" style="display:block;width:100%;text-align:center;'
-        . 'font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;font-weight:900;font-size:36px;'
-        . 'line-height:1.15;color:#1a110a;letter-spacing:-0.02em;">'
+        . '<span class="email-logo" style="' . wwm_email_logo_inline_style() . '">'
         . 'World Watercolor <em style="font-style:italic;font-weight:400;color:#c0440e;">Masters</em>'
         . '</span></a>'
-        . '<p style="margin:10px 0 0;font-size:12px;line-height:1.4;color:#6e6e6e;text-align:center;width:100%;">'
+        . '<p style="margin:6px 0 0;font-size:11px;line-height:1.4;color:#6e6e6e;text-align:center;width:100%;">'
         . 'by Bratec Lis School</p>';
 }
 
 function wwm_email_logo_row_html(string $siteUrl = 'https://worldwatercolormasters.art'): string
 {
-    return '<tr><td class="pad" align="center" style="padding:32px 40px 8px;background:#ffffff;width:100%;">'
+    return '<tr><td class="pad" align="center" style="padding:20px 40px 4px;background:#ffffff;width:100%;">'
         . wwm_email_logo_block_html($siteUrl)
         . '</td></tr>';
+}
+
+function wwm_normalize_email_typography(?string $html): ?string
+{
+    if ($html === null || $html === '') {
+        return $html;
+    }
+
+    $titleStyle = wwm_email_title_inline_style();
+    $out = preg_replace(
+        '#<h1\s+class="email-title"\s+style="[^"]*">#i',
+        '<h1 class="email-title" style="' . $titleStyle . '">',
+        $html
+    ) ?? $html;
+
+    return preg_replace(
+        '#<h1\s+class="email-title">#i',
+        '<h1 class="email-title" style="' . $titleStyle . '">',
+        $out
+    ) ?? $out;
 }
 
 /**
@@ -311,7 +369,7 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
     $out = $html;
 
     $logoRowPatterns = [
-        '#<tr><td class="pad" align="center" style="padding:(?:28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
+        '#<tr><td class="pad" align="center" style="padding:(?:20|28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
             . '(?:<a[^>]*>\s*<img[^>]*>\s*</a>|'
             . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
             . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
@@ -375,6 +433,18 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
         }
     }
 
+    if (str_contains($out, 'class="email-logo"') && str_contains($out, 'World Watercolor')) {
+        $refreshed = preg_replace(
+            '#<tr><td class="pad" align="center" style="padding:[^"]*">\s*<a[^>]*>\s*<span class="email-logo"[^>]*>.*?</td></tr>#is',
+            $logoRow,
+            $out,
+            1
+        );
+        if (is_string($refreshed)) {
+            $out = $refreshed;
+        }
+    }
+
     return $out;
 }
 
@@ -426,7 +496,7 @@ function wwm_repair_email_html(?string $html): ?string
         ) ?? $out;
     }
 
-    return wwm_normalize_email_logo_html($out);
+    return wwm_normalize_email_logo_html(wwm_normalize_email_typography($out));
 }
 
 /**

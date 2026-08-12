@@ -320,18 +320,9 @@ final class EmailTemplateDrafts
             . '<html lang="en"><head><meta charset="UTF-8">'
             . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
             . '<title>' . $plainTitle . '</title>'
-            . '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">'
-            . '<style>'
-            . 'body{margin:0;padding:0;background:#faf6f0;}'
-            . 'img{border:0;display:block;max-width:100%;height:auto;}'
-            . '@media only screen and (max-width:640px){'
-            . '.wrapper{width:100%!important;}'
-            . '.pad{padding-left:24px!important;padding-right:24px!important;}'
-            . '.email-title{font-size:28px!important;}'
-            . '.email-logo{font-size:28px!important;}'
-            . '.btn a{display:block!important;}'
-            . '}'
-            . '</style></head>'
+            . wwm_email_font_link_tag()
+            . wwm_email_head_styles()
+            . '</head>'
             . '<body style="margin:0;padding:0;background:#faf6f0;font-family:Arial,Helvetica,sans-serif;color:#0a0a0a;">'
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf6f0;">'
             . '<tr><td align="center" style="padding:32px 16px;">'
@@ -339,8 +330,7 @@ final class EmailTemplateDrafts
             . 'style="width:600px;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(10,10,10,0.08);">'
             . self::logoRowDraft()
             . '<tr><td class="pad" style="padding:8px 40px 20px;background:#ffffff;">'
-            . '<h1 class="email-title" style="margin:0;font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;'
-            . 'font-size:36px;line-height:1.2;font-weight:700;color:#1a110a;text-align:center;">'
+            . '<h1 class="email-title" style="' . wwm_email_title_inline_style() . '">'
             . $titleHtml . '</h1>'
             . self::subtitleDraft()
             . '</td></tr>'
