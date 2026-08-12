@@ -100,7 +100,7 @@ final class AdminMailController
             $id,
             $subject,
             $bodyText,
-            trim($bodyHtml) !== '' ? $bodyHtml : null
+            trim($bodyHtml) !== '' ? wwm_repair_email_html($bodyHtml) : null
         );
 
         wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?saved=1');

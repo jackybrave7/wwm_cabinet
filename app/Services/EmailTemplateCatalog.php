@@ -189,6 +189,9 @@ final class EmailTemplateCatalog
         ];
 
         $message['html'] = EmailTemplateDrafts::finalizeHtml($message['html'], $vars);
+        if ($message['html'] !== null) {
+            $message['html'] = wwm_repair_email_html($message['html']);
+        }
 
         return $message;
     }

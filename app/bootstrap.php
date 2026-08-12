@@ -258,12 +258,7 @@ function wwm_course_cover_url(?string $url): ?string
 
 function wwm_email_logo_url(): string
 {
-    return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/World%20Watercolor%20Masters.jpg';
-}
-
-function wwm_email_sale_logo_url(): string
-{
-    $configured = trim((string)(wwm_config()['email_sale_logo_url'] ?? ''));
+    $configured = trim((string)(wwm_config()['email_logo_url'] ?? wwm_config()['email_sale_logo_url'] ?? ''));
     if ($configured !== '' && str_starts_with($configured, 'https://')) {
         return $configured;
     }
@@ -271,12 +266,182 @@ function wwm_email_sale_logo_url(): string
     return 'https://static.tildacdn.com/tild3666-3831-4932-b039-356262326639/World_Watercolor_Mas.jpg';
 }
 
-function wwm_email_logo_url_for_template(string $templateId): string
+function wwm_email_logo_block_html(string $siteUrl = 'https://worldwatercolormasters.art'): string
 {
-    if (in_array($templateId, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
-        return wwm_email_sale_logo_url();
+    $href = htmlspecialchars($siteUrl, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    return '<a href="' . $href . '" style="text-decoration:none;display:block;width:100%;text-align:center;">'
+        . '<span class="email-logo" style="display:block;width:100%;text-align:center;'
+        . 'font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;font-weight:900;font-size:36px;'
+        . 'line-height:1.15;color:#1a110a;letter-spacing:-0.02em;">'
+        . 'World Watercolor <em style="font-style:italic;font-weight:400;color:#c0440e;">Masters</em>'
+        . '</span></a>'
+        . '<p style="margin:10px 0 0;font-size:12px;line-height:1.4;color:#6e6e6e;text-align:center;width:100%;">'
+        . 'by Bratec Lis School</p>';
+}
+
+function wwm_email_logo_row_html(string $siteUrl = 'https://worldwatercolormasters.art'): string
+{
+    return '<tr><td class="pad" align="center" style="padding:32px 40px 8px;background:#ffffff;width:100%;">'
+        . wwm_email_logo_block_html($siteUrl)
+        . '</td></tr>';
+}
+
+/**
+ * @return list<string>
+ */
+function wwm_email_logo_legacy_urls(): array
+{
+    return [
+        'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/World%20Watercolor%20Masters.jpg',
+        'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/World Watercolor Masters.jpg',
+        'https://static.tildacdn.com/tild3666-3831-4932-b039-356262326639/World_Watercolor_Mas.jpg',
+    ];
+}
+
+function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = false): ?string
+{
+    if ($html === null || $html === '') {
+        return $html;
     }
 
+    unset($usePlaceholder);
+
+    $logoRow = wwm_email_logo_row_html();
+    $out = $html;
+
+    $replaced = preg_replace(
+        '#<tr><td class="pad" align="center" style="padding:(?:28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
+        . '(?:<a[^>]*>\s*<img[^>]*>\s*</a>|'
+        . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
+        . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
+        . '\s*</td></tr>#is',
+        $logoRow,
+        $out,
+        1
+    );
+    if (is_string($replaced)) {
+        $out = $replaced;
+    }
+
+    foreach (wwm_email_logo_legacy_urls() as $old) {
+        $out = str_replace($old, '', $out);
+    }
+
+    $out = preg_replace(
+        '#https?://f1\.autoweboffice\.ru/bl-school/Watercolor_masters/World[^"\'>\s]*#i',
+        '',
+        $out
+    ) ?? $out;
+
+    return $out;
+}
+
+function wwm_repair_email_html(?string $html): ?string
+{
+    if ($html === null || $html === '') {
+        return $html;
+    }
+
+    $out = $html;
+    foreach (['table', 'tr', 'td', 'th', 'p', 'a', 'span', 'div'] as $tag) {
+        $out = preg_replace('/<\s+' . $tag . '\b/i', '<' . $tag, $out) ?? $out;
+        $out = preg_replace('/<\s+\/' . $tag . '\b/i', '</' . $tag, $out) ?? $out;
+    }
+
+    $out = preg_replace('/&\s+#(\d+);/', '&#$1;', $out) ?? $out;
+    $out = preg_replace('/&\s+#x([0-9a-f]+);/i', '&#x$1;', $out) ?? $out;
+
+    $couponOpen = '<td style="padding:20px 24px;text-align:center;">';
+    $couponTable = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+        . 'style="margin:8px 0 20px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;"><tr>'
+        . $couponOpen;
+    if (str_contains($out, $couponOpen) && !str_contains($out, 'Your coupon code</p>')) {
+        // partial corruption — skip
+    } elseif (
+        str_contains($out, $couponOpen)
+        && !preg_match('/<table[^>]*>\s*<tr>\s*' . preg_quote($couponOpen, '/') . '/i', $out)
+    ) {
+        $out = str_replace($couponOpen, $couponTable, $out);
+    }
+
+    $credTd = '<td style="padding:20px 24px;">';
+    $credDiv = '<div style="margin-top:8px;padding:20px 24px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">';
+    if (
+        str_contains($out, 'Sign-in details</p>')
+        && str_contains($out, $credTd)
+        && !str_contains($out, '<!-- credentials:start -->')
+        && !str_contains($out, $credDiv)
+    ) {
+        $out = str_replace($credTd, $credDiv, $out);
+        $out = str_replace('</td></tr></table><!-- credentials:end -->', '</div><!-- credentials:end -->', $out);
+        $out = preg_replace(
+            '#<table role="presentation" width="100%"[^>]*>\s*<tr>\s*'
+            . preg_quote($credDiv, '#')
+            . '#i',
+            '<!-- credentials:start -->' . $credDiv,
+            $out,
+            1
+        ) ?? $out;
+    }
+
+    return wwm_normalize_email_logo_html($out);
+}
+
+/**
+ * @return list<string>
+ */
+function wwm_email_html_issues(?string $html): array
+{
+    if ($html === null || trim($html) === '') {
+        return [];
+    }
+
+    $issues = [];
+    if (!str_starts_with(ltrim($html), '<!DOCTYPE')) {
+        $issues[] = 'missing doctype';
+    }
+    if (preg_match('/<\s+(td|tr|table|p|a|span|div)\b/i', $html)) {
+        $issues[] = 'broken tag spacing (visual editor corruption)';
+    }
+    if (preg_match('/&\s+#/i', $html)) {
+        $issues[] = 'broken html entity';
+    }
+    if (preg_match('/\{\{[^}]+\}\}/', $html)) {
+        $issues[] = 'unresolved placeholder';
+    }
+    if (str_contains($html, 'f1.autoweboffice.ru/bl-school/Watercolor_masters/World')) {
+        $issues[] = 'legacy image logo url';
+    }
+    if (!str_contains($html, 'World Watercolor')) {
+        $issues[] = 'missing text logo';
+    }
+    if (preg_match('/<img[^>]+src="[^"]*(?:logo|Watercolor)[^"]*"/i', $html)) {
+        $issues[] = 'image logo in header';
+    }
+
+    $openTables = substr_count(strtolower($html), '<table');
+    $closeTables = substr_count(strtolower($html), '</table>');
+    if ($openTables !== $closeTables) {
+        $issues[] = 'unbalanced table tags (' . $openTables . ' open, ' . $closeTables . ' close)';
+    }
+
+    $openTr = substr_count(strtolower($html), '<tr');
+    $closeTr = substr_count(strtolower($html), '</tr>');
+    if ($openTr !== $closeTr) {
+        $issues[] = 'unbalanced tr tags (' . $openTr . ' open, ' . $closeTr . ' close)';
+    }
+
+    return $issues;
+}
+
+function wwm_email_sale_logo_url(): string
+{
+    return wwm_email_logo_url();
+}
+
+function wwm_email_logo_url_for_template(string $templateId): string
+{
     return wwm_email_logo_url();
 }
 

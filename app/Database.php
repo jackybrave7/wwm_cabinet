@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 7;
+    public const SCHEMA_VERSION = 12;
 
     public static function connect(string $path): PDO
     {
@@ -161,6 +161,33 @@ CREATE TABLE IF NOT EXISTS email_templates (
   updated_at TEXT NOT NULL
 );
 SQL);
+
+        self::migrateEmailTemplatesLogo($pdo);
+    }
+
+    private static function migrateEmailTemplatesLogo(PDO $pdo): void
+    {
+        $stmt = $pdo->query('SELECT template_id, body_html FROM email_templates WHERE body_html IS NOT NULL');
+        $rows = $stmt ? $stmt->fetchAll() : [];
+        if ($rows === []) {
+            return;
+        }
+
+        $update = $pdo->prepare(
+            'UPDATE email_templates SET body_html = ?, updated_at = ? WHERE template_id = ?'
+        );
+        foreach ($rows as $row) {
+            $html = (string)($row['body_html'] ?? '');
+            $normalized = wwm_repair_email_html($html);
+            if ($normalized === $html) {
+                continue;
+            }
+            $update->execute([
+                $normalized,
+                gmdate('c'),
+                (string)$row['template_id'],
+            ]);
+        }
     }
 
     private static function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void

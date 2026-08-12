@@ -328,6 +328,7 @@ final class EmailTemplateDrafts
             . '.wrapper{width:100%!important;}'
             . '.pad{padding-left:24px!important;padding-right:24px!important;}'
             . '.email-title{font-size:28px!important;}'
+            . '.email-logo{font-size:28px!important;}'
             . '.btn a{display:block!important;}'
             . '}'
             . '</style></head>'
@@ -351,14 +352,7 @@ final class EmailTemplateDrafts
 
     private static function logoRowDraft(): string
     {
-        return '<tr><td class="pad" align="center" style="padding:28px 40px 4px;background:#ffffff;">'
-            . '<a href="https://worldwatercolormasters.art" style="text-decoration:none;">'
-            . '<img src="{{logo_url}}" width="300" alt="World Watercolor Masters" '
-            . 'style="display:block;margin:0 auto;max-width:300px;width:100%;height:auto;border:0;">'
-            . '</a>'
-            . '<p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:#6e6e6e;text-align:center;">'
-            . 'by Bratec Lis School</p>'
-            . '</td></tr>';
+        return wwm_email_logo_row_html();
     }
 
     private static function subtitleDraft(): string
@@ -381,9 +375,8 @@ final class EmailTemplateDrafts
                 . 'You can change your password anytime under Account after signing in.</p>'
             : '';
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin-top:8px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
-            . '<tr><td style="padding:20px 24px;">'
+        return '<!-- credentials:start -->'
+            . '<div style="margin-top:8px;padding:20px 24px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
             . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;text-transform:uppercase;'
             . 'letter-spacing:0.04em;">Sign-in details</p>'
             . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
@@ -394,7 +387,7 @@ final class EmailTemplateDrafts
             . '<p style="margin:0;font-size:16px;line-height:1.5;color:#2a2a2a;">'
             . '<strong>Password:</strong> {{password}}</p>'
             . $hint
-            . '</td></tr></table>';
+            . '</div><!-- credentials:end -->';
     }
 
     private static function courseLinkDraft(): string
@@ -409,15 +402,14 @@ final class EmailTemplateDrafts
 
     private static function couponBoxDraft(string $note): string
     {
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin:8px 0 20px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
-            . '<tr><td style="padding:20px 24px;text-align:center;">'
+        return '<!-- coupon:start -->'
+            . '<div style="margin:8px 0 20px;padding:20px 24px;text-align:center;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
             . '<p style="margin:0 0 8px;font-size:14px;line-height:1.4;color:#6e6e6e;text-transform:uppercase;'
             . 'letter-spacing:0.06em;">Your coupon code</p>'
             . '<p style="margin:0 0 8px;font-size:28px;line-height:1.2;font-weight:700;color:#e63027;'
             . 'letter-spacing:0.08em;">{{coupon_code}}</p>'
             . '<p style="margin:0;font-size:15px;line-height:1.5;color:#2a2a2a;">' . self::e($note) . '</p>'
-            . '</td></tr></table>';
+            . '</div><!-- coupon:end -->';
     }
 
     /**
@@ -425,21 +417,18 @@ final class EmailTemplateDrafts
      */
     private static function bulletList(array $items): string
     {
-        $rows = '';
+        $html = '<!-- benefits:start -->'
+            . '<div style="margin:0 0 20px;padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
+            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;">'
+            . 'If you do not act now, you will miss:</p>';
+
         foreach ($items as $item) {
-            $rows .= '<tr><td valign="top" style="padding:0 0 10px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
-                . '<span style="color:#e63027;font-weight:700;padding-right:8px;">&#8226;</span>'
-                . self::e($item) . '</td></tr>';
+            $html .= '<p style="margin:0 0 10px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
+                . '<span style="color:#e63027;font-weight:700;padding-right:8px;">•</span>'
+                . self::e($item) . '</p>';
         }
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin:0 0 20px;">'
-            . '<tr><td style="padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
-            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;">'
-            . 'If you do not act now, you will miss:</p>'
-            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-            . $rows
-            . '</table></td></tr></table>';
+        return $html . '</div><!-- benefits:end -->';
     }
 
     private static function footerRow(): string

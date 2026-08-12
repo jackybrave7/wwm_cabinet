@@ -16,12 +16,14 @@ final class EmailTemplateRenderer
         $vars = self::normalizeVars($context);
         $custom = EmailTemplate::find(wwm_pdo(), $templateId);
         if ($custom !== null) {
+            $bodyHtml = $custom['body_html'] !== null
+                ? wwm_repair_email_html((string)$custom['body_html'])
+                : null;
+
             return [
                 'subject' => self::applyVars($custom['subject'], $vars),
                 'text' => self::applyVars($custom['body_text'], $vars),
-                'html' => $custom['body_html'] !== null
-                    ? self::applyVars($custom['body_html'], $vars)
-                    : null,
+                'html' => $bodyHtml !== null ? self::applyVars($bodyHtml, $vars) : null,
             ];
         }
 
@@ -47,7 +49,9 @@ final class EmailTemplateRenderer
             return [
                 'subject' => $custom['subject'],
                 'text' => $custom['body_text'],
-                'html' => $custom['body_html'],
+                'html' => wwm_repair_email_html(
+                    $custom['body_html'] !== null ? (string)$custom['body_html'] : null
+                ),
                 'customized' => true,
             ];
         }

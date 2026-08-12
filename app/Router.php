@@ -10,6 +10,7 @@ use Wwm\Controllers\Admin\AdminMailController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Api\DemoWebhookController;
 use Wwm\Controllers\Api\EngagementController;
+use Wwm\Controllers\Api\MailSamplesWebhookController;
 use Wwm\Controllers\Api\MailWebhookController;
 use Wwm\Controllers\Api\PaymentWebhookController;
 use Wwm\Controllers\AuthController;
@@ -80,6 +81,10 @@ final class Router
         }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/mail') {
             (new MailWebhookController())->send();
+            return;
+        }
+        if (($method === 'POST' || $method === 'GET') && $path === '/api/mail-samples') {
+            (new MailSamplesWebhookController())->send();
             return;
         }
         if ($method === 'GET' && preg_match('#^/t/o/([a-f0-9]{32})$#', $path, $m)) {

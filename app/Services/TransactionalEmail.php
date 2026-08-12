@@ -519,15 +519,14 @@ final class TransactionalEmail
 
     private static function couponBox(string $couponCode, string $note): string
     {
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin:8px 0 20px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
-            . '<tr><td style="padding:20px 24px;text-align:center;">'
+        return '<!-- coupon:start -->'
+            . '<div style="margin:8px 0 20px;padding:20px 24px;text-align:center;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
             . '<p style="margin:0 0 8px;font-size:14px;line-height:1.4;color:#6e6e6e;text-transform:uppercase;'
             . 'letter-spacing:0.06em;">Your coupon code</p>'
             . '<p style="margin:0 0 8px;font-size:28px;line-height:1.2;font-weight:700;color:#e63027;'
             . 'letter-spacing:0.08em;">' . self::e($couponCode) . '</p>'
             . '<p style="margin:0;font-size:15px;line-height:1.5;color:#2a2a2a;">' . self::e($note) . '</p>'
-            . '</td></tr></table>';
+            . '</div><!-- coupon:end -->';
     }
 
     /**
@@ -535,21 +534,18 @@ final class TransactionalEmail
      */
     private static function bulletList(array $items): string
     {
-        $rows = '';
+        $html = '<!-- benefits:start -->'
+            . '<div style="margin:0 0 20px;padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
+            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;">'
+            . 'If you do not act now, you will miss:</p>';
+
         foreach ($items as $item) {
-            $rows .= '<tr><td valign="top" style="padding:0 0 10px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
-                . '<span style="color:#e63027;font-weight:700;padding-right:8px;">&#8226;</span>'
-                . self::e($item) . '</td></tr>';
+            $html .= '<p style="margin:0 0 10px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
+                . '<span style="color:#e63027;font-weight:700;padding-right:8px;">•</span>'
+                . self::e($item) . '</p>';
         }
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin:0 0 20px;">'
-            . '<tr><td style="padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
-            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;">'
-            . 'If you do not act now, you will miss:</p>'
-            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-            . $rows
-            . '</table></td></tr></table>';
+        return $html . '</div><!-- benefits:end -->';
     }
 
     private static function demoPasswordLabel(): string
@@ -583,6 +579,7 @@ final class TransactionalEmail
             . '.pad{padding-left:24px!important;padding-right:24px!important;}'
             . '.wwm-logo{font-size:18px!important;}'
             . '.email-title{font-size:28px!important;}'
+            . '.email-logo{font-size:28px!important;}'
             . '.btn a{display:block!important;}'
             . '}'
             . '</style></head>'
@@ -604,16 +601,7 @@ final class TransactionalEmail
 
     private static function logoRow(): string
     {
-        $logoUrl = wwm_email_logo_url();
-
-        return '<tr><td class="pad" align="center" style="padding:28px 40px 4px;background:#ffffff;">'
-            . '<a href="https://worldwatercolormasters.art" style="text-decoration:none;">'
-            . '<img src="' . self::e($logoUrl) . '" width="220" alt="World Watercolor Masters" '
-            . 'style="display:block;margin:0 auto;max-width:220px;width:100%;height:auto;border:0;">'
-            . '</a>'
-            . '<p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:#6e6e6e;text-align:center;">'
-            . 'by Bratec Lis School</p>'
-            . '</td></tr>';
+        return wwm_email_logo_row_html();
     }
 
     private static function footerRow(): string
@@ -624,7 +612,7 @@ final class TransactionalEmail
             . '<p style="margin:0;font-size:14px;line-height:1.5;color:#c8bdb3;">'
             . '<a href="https://worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
             . 'worldwatercolormasters.art</a>'
-            . ' ┬╖ <a href="mailto:support@worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
+            . ' &middot; <a href="mailto:support@worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
             . 'support@worldwatercolormasters.art</a></p>'
             . '</td></tr>';
     }
@@ -688,9 +676,8 @@ final class TransactionalEmail
                 . 'You can change your password anytime under Account after signing in.</p>'
             : '';
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-            . 'style="margin-top:8px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
-            . '<tr><td style="padding:20px 24px;">'
+        return '<!-- credentials:start -->'
+            . '<div style="margin-top:8px;padding:20px 24px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
             . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;text-transform:uppercase;'
             . 'letter-spacing:0.04em;">Sign-in details</p>'
             . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
@@ -701,7 +688,7 @@ final class TransactionalEmail
             . '<p style="margin:0;font-size:16px;line-height:1.5;color:#2a2a2a;">'
             . '<strong>Password:</strong> ' . self::e($password) . '</p>'
             . $hint
-            . '</td></tr></table>';
+            . '</div><!-- credentials:end -->';
     }
 
     private static function courseLink(?string $url): string
