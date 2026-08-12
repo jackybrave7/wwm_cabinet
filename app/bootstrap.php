@@ -263,7 +263,7 @@ function wwm_email_logo_url(): string
         return $configured;
     }
 
-    return 'https://static.tildacdn.com/tild3666-3831-4932-b039-356262326639/World_Watercolor_Mas.jpg';
+    return '';
 }
 
 function wwm_email_logo_block_html(string $siteUrl = 'https://worldwatercolormasters.art'): string
@@ -310,18 +310,23 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
     $logoRow = wwm_email_logo_row_html();
     $out = $html;
 
-    $replaced = preg_replace(
+    $logoRowPatterns = [
         '#<tr><td class="pad" align="center" style="padding:(?:28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
-        . '(?:<a[^>]*>\s*<img[^>]*>\s*</a>|'
-        . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
-        . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
-        . '\s*</td></tr>#is',
-        $logoRow,
-        $out,
-        1
-    );
-    if (is_string($replaced)) {
-        $out = $replaced;
+            . '(?:<a[^>]*>\s*<img[^>]*>\s*</a>|'
+            . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
+            . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
+            . '\s*</td></tr>#is',
+        '#<tr>\s*<td[^>]*>\s*(?:<a[^>]*>\s*)?<img[^>]+(?:autoweboffice|tildacdn|Watercolor_masters|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:</a>\s*)?(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
+        '#<tr>\s*<td[^>]*>\s*<img[^>]+(?:autoweboffice|tildacdn|Watercolor_masters|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
+    ];
+
+    foreach ($logoRowPatterns as $pattern) {
+        $count = 0;
+        $replaced = preg_replace($pattern, $logoRow, $out, 1, $count);
+        if ($count > 0 && is_string($replaced)) {
+            $out = $replaced;
+            break;
+        }
     }
 
     foreach (wwm_email_logo_legacy_urls() as $old) {
@@ -333,6 +338,42 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
         '',
         $out
     ) ?? $out;
+
+    $out = preg_replace(
+        '#https?://static\.tildacdn\.com/[^"\'>\s]*World_Watercolor[^"\'>\s]*#i',
+        '',
+        $out
+    ) ?? $out;
+
+    $out = preg_replace('#<img[^>]*src=""[^>]*>#i', '', $out) ?? $out;
+    $out = preg_replace('#<img[^>]*src="\{\{logo_url\}\}"[^>]*>#i', '', $out) ?? $out;
+
+    if (
+        !str_contains($out, 'class="email-logo"')
+        && preg_match('/<img[^>]+src="[^"]*(?:tildacdn|autoweboffice|Watercolor|logo)[^"]*"/i', substr($out, 0, 8000))
+    ) {
+        $replaced = preg_replace(
+            '#(<table[^>]*class="wrapper"[^>]*>)\s*<tr>.*?</tr>#is',
+            '$1' . $logoRow,
+            $out,
+            1
+        );
+        if (is_string($replaced)) {
+            $out = $replaced;
+        }
+    }
+
+    if (!str_contains($out, 'class="email-logo"') && str_contains($out, 'class="wrapper"')) {
+        $replaced = preg_replace(
+            '#(<table[^>]*class="wrapper"[^>]*>)#i',
+            '$1' . $logoRow,
+            $out,
+            1
+        );
+        if (is_string($replaced)) {
+            $out = $replaced;
+        }
+    }
 
     return $out;
 }
@@ -416,7 +457,7 @@ function wwm_email_html_issues(?string $html): array
     if (!str_contains($html, 'World Watercolor')) {
         $issues[] = 'missing text logo';
     }
-    if (preg_match('/<img[^>]+src="[^"]*(?:logo|Watercolor)[^"]*"/i', $html)) {
+    if (preg_match('/<img[^>]+src="[^"]*(?:logo|Watercolor|tildacdn|autoweboffice)[^"]*"/i', $html)) {
         $issues[] = 'image logo in header';
     }
 

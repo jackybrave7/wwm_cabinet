@@ -17,13 +17,13 @@ final class EmailTemplateRenderer
         $custom = EmailTemplate::find(wwm_pdo(), $templateId);
         if ($custom !== null) {
             $bodyHtml = $custom['body_html'] !== null
-                ? wwm_repair_email_html((string)$custom['body_html'])
+                ? wwm_repair_email_html(self::applyVars((string)$custom['body_html'], $vars))
                 : null;
 
             return [
                 'subject' => self::applyVars($custom['subject'], $vars),
                 'text' => self::applyVars($custom['body_text'], $vars),
-                'html' => $bodyHtml !== null ? self::applyVars($bodyHtml, $vars) : null,
+                'html' => $bodyHtml,
             ];
         }
 

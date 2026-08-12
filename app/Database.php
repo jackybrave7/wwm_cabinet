@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 12;
+    public const SCHEMA_VERSION = 13;
 
     public static function connect(string $path): PDO
     {
@@ -178,7 +178,11 @@ SQL);
         );
         foreach ($rows as $row) {
             $html = (string)($row['body_html'] ?? '');
-            $normalized = wwm_repair_email_html($html);
+            $simulated = str_replace('{{logo_url}}', wwm_email_logo_url(), $html);
+            $normalized = wwm_repair_email_html($simulated);
+            if ($normalized === $html) {
+                $normalized = wwm_repair_email_html($html);
+            }
             if ($normalized === $html) {
                 continue;
             }
