@@ -8,6 +8,13 @@ $formatDate = static function (?string $iso): string {
     $ts = strtotime($iso);
     return $ts ? date('M j, Y', $ts) : '—';
 };
+$formatDateTime = static function (?string $iso): string {
+    if ($iso === null || $iso === '') {
+        return '—';
+    }
+    $ts = strtotime($iso);
+    return $ts ? date('M j, Y H:i', $ts) : '—';
+};
 ?>
 <div class="admin-topbar">
   <div>
@@ -43,7 +50,7 @@ $formatDate = static function (?string $iso): string {
       <tr>
         <th>Student</th>
         <th>Location</th>
-        <th>Channel</th>
+        <th>Registered</th>
         <th>Access</th>
         <th>Progress</th>
         <th>Last activity</th>
@@ -64,8 +71,6 @@ $formatDate = static function (?string $iso): string {
           $label = (string)$row['access_label'];
           $badgeClass = $label === 'Paid' ? 'badge-paid' : ($label === 'Demo' ? 'badge-demo' : 'badge-draft');
           $location = StudentAttribution::locationLabel($u);
-          $channel = StudentAttribution::channelLabel($u);
-          $channelDetail = StudentAttribution::channelDetail($u);
         ?>
         <tr>
           <td>
@@ -73,12 +78,7 @@ $formatDate = static function (?string $iso): string {
             <span style="color:var(--mute);font-size:0.85rem"><?= wwm_escape((string)$u['email']) ?></span>
           </td>
           <td class="admin-meta-cell"><?= wwm_escape($location) ?></td>
-          <td class="admin-meta-cell">
-            <?= wwm_escape($channel) ?>
-            <?php if ($channelDetail !== null): ?>
-              <span class="admin-meta-sub"><?= wwm_escape($channelDetail) ?></span>
-            <?php endif; ?>
-          </td>
+          <td class="admin-meta-cell"><?= wwm_escape($formatDateTime((string)($u['created_at'] ?? ''))) ?></td>
           <td><span class="badge <?= $badgeClass ?>" style="margin:0"><?= wwm_escape($label) ?></span></td>
           <td class="progress-cell">
             <span class="progress-label"><?= $opened ?> / <?= $total ?></span>
