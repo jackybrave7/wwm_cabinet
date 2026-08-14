@@ -204,6 +204,10 @@ final class Router
             (new AdminMailController())->edit($m[1]);
             return;
         }
+        if ($method === 'POST' && $path === '/admin/emails/save') {
+            (new AdminMailController())->save();
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)$#', $path, $m)) {
             (new AdminMailController())->update($m[1]);
             return;

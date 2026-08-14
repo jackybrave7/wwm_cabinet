@@ -30,6 +30,7 @@ final class AdminMailController
             'fromEmail' => (string)($mail['from_email'] ?? ''),
             'webhooksEnabled' => !empty($webhooks['enabled']),
             'templateWebhooks' => $this->templateWebhooks(),
+            'saveError' => (string)($_GET['error'] ?? ''),
         ]);
     }
 
@@ -69,6 +70,13 @@ final class AdminMailController
     {
         Session::requireAdmin();
 
+        $id = trim($id);
+        if ($id === '') {
+            http_response_code(400);
+            wwm_render('error', ['pageTitle' => 'Bad request', 'code' => 400, 'message' => 'Email template id is required.']);
+            return;
+        }
+
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             http_response_code(400);
             $this->renderEditError($id, 'Invalid request.');
@@ -104,6 +112,17 @@ final class AdminMailController
         );
 
         wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?saved=1');
+    }
+
+    public function save(): void
+    {
+        $id = trim((string)($_POST['template_id'] ?? ''));
+        if ($id === '') {
+            wwm_redirect('/admin/emails?error=save');
+            return;
+        }
+
+        $this->update($id);
     }
 
     public function reset(string $id): void

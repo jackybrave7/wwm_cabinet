@@ -33,8 +33,9 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
   <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
 <?php endif; ?>
 
-<form method="post" action="/admin/emails/<?= wwm_escape($templateId) ?>" class="email-editor-form" id="email-editor-form">
+<form method="post" action="/admin/emails/save" class="email-editor-form" id="email-editor-form">
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+  <input type="hidden" name="template_id" value="<?= wwm_escape($templateId) ?>">
 
   <div class="admin-card">
     <h2>Subject</h2>

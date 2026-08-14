@@ -24,6 +24,9 @@
 <?php if (!$mailEnabled): ?>
   <div class="alert alert-error">Mail is disabled in config. Templates are shown for preview only.</div>
 <?php endif; ?>
+<?php if (($saveError ?? '') === 'save'): ?>
+  <div class="alert alert-error">Could not save the template — template id was missing. Open the template from this list and try again.</div>
+<?php endif; ?>
 
 <div class="admin-card">
   <h2>Templates</h2>
