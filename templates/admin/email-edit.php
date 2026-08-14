@@ -72,7 +72,7 @@ $hasHtml = !empty($emailTemplate['has_html']) || !empty($draft['html']);
           <button type="button" data-cmd="formatBlock" data-value="h2">H2</button>
           <button type="button" data-cmd="formatBlock" data-value="p">P</button>
         </div>
-        <iframe class="email-visual-frame" id="email-visual-frame" title="Visual email editor"></iframe>
+        <iframe class="email-visual-frame" id="email-visual-frame" title="Visual email editor" height="640"></iframe>
         <p class="field-hint" style="margin-top:10px">Visual and HTML tabs show <code>{{placeholders}}</code>. Open <strong>Preview</strong> to see sample data.</p>
       </div>
 
@@ -124,6 +124,7 @@ $hasHtml = !empty($emailTemplate['has_html']) || !empty($draft['html']);
   </form>
 <?php endif; ?>
 
+<script type="application/json" id="email-html-seed"><?= wwm_json_for_script((string)($draft['html'] ?? '')) ?></script>
 <script>
 window.__emailEditor = {
   hasHtml: <?= $hasHtml ? 'true' : 'false' ?>,

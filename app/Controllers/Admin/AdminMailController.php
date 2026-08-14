@@ -47,10 +47,18 @@ final class AdminMailController
 
         $draft = EmailTemplateRenderer::forAdmin($id);
         $loadError = null;
-        if ($draft['customized'] && $draft['html'] === null && !empty($meta['has_html'])) {
-            $builtin = EmailTemplateCatalog::placeholderDraft($id);
+        $builtin = EmailTemplateCatalog::placeholderDraft($id);
+        if (trim((string)($draft['html'] ?? '')) === '' && !empty($meta['has_html'])) {
             $draft['html'] = $builtin['html'] ?? null;
-            $loadError = 'Saved HTML could not be loaded. Showing the built-in layout — save again to repair this template.';
+            if (!empty($draft['customized'])) {
+                $loadError = 'Saved HTML could not be loaded. Showing the built-in layout — save again to repair this template.';
+            }
+        }
+        if (trim((string)($draft['text'] ?? '')) === '') {
+            $draft['text'] = (string)($builtin['text'] ?? '');
+        }
+        if (trim((string)($draft['subject'] ?? '')) === '') {
+            $draft['subject'] = (string)($builtin['subject'] ?? '');
         }
         $flash = null;
         if (isset($_GET['saved'])) {

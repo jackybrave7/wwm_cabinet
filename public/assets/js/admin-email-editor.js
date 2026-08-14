@@ -153,13 +153,34 @@
     }
   }
 
+  function readHtmlSeed() {
+    const node = document.getElementById('email-html-seed');
+    if (!node) {
+      return '';
+    }
+    try {
+      const parsed = JSON.parse(node.textContent || '""');
+      return typeof parsed === 'string' ? parsed : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
   function loadVisualFromHtml(html) {
     if (!visualFrame) return;
-    visualFrame.onload = () => {
+    const docHtml = html || '<!DOCTYPE html><html><body><p></p></body></html>';
+    const onReady = () => {
       enableVisualEditing();
       prepareVisualDocument(visualDocument());
     };
-    visualFrame.srcdoc = html || '<!DOCTYPE html><html><body><p></p></body></html>';
+    visualFrame.onload = onReady;
+    visualFrame.srcdoc = docHtml;
+    window.setTimeout(() => {
+      const doc = visualDocument();
+      if (doc && doc.body && doc.body.innerHTML.trim() !== '') {
+        onReady();
+      }
+    }, 0);
   }
 
   function prepareVisualDocument(doc) {
@@ -366,7 +387,11 @@
   }
 
   if (hasHtml) {
-    const seed = htmlInput && htmlInput.value.trim() !== '' ? htmlInput.value : (config.initialHtml || '');
+    const seedFromTextarea = htmlInput && htmlInput.value.trim() !== '' ? htmlInput.value : '';
+    const seed = seedFromTextarea || readHtmlSeed() || (config.initialHtml || '');
+    if (htmlInput && seed !== '' && seedFromTextarea === '') {
+      htmlInput.value = seed;
+    }
     loadVisualFromHtml(seed);
     syncHtmlHighlight();
   }
