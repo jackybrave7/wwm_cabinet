@@ -156,6 +156,11 @@ final class AvoClient
             return [];
         }
 
+        if (!isset($param['pagesize'])) {
+            $param['pagesize'] = 5;
+        }
+        $limit = max(1, (int)$param['pagesize']);
+
         $response = $this->request('GET', $resource, [
             'search' => $search,
             'param' => $param,
@@ -168,6 +173,9 @@ final class AvoClient
         foreach ($this->extractRows($response) as $row) {
             if (is_array($row)) {
                 $rows[] = $row;
+            }
+            if (count($rows) >= $limit) {
+                break;
             }
         }
 
@@ -285,6 +293,10 @@ final class AvoClient
             return null;
         }
 
+        if ($this->isList($decoded) && count($decoded) > 25) {
+            $decoded = array_slice($decoded, 0, 25);
+        }
+
         return $decoded;
     }
 
@@ -309,6 +321,12 @@ final class AvoClient
 
             if (!is_string($response)) {
                 $this->lastError = $error !== '' ? $error : 'curl_failed';
+                return null;
+            }
+
+            if (strlen($response) > 1048576) {
+                $this->lastError = 'response_too_large';
+                wwm_log('avo api response too large ' . $method . ' ' . $url);
                 return null;
             }
 
@@ -338,6 +356,12 @@ final class AvoClient
 
         if (!is_string($response)) {
             $this->lastError = 'http_failed';
+            return null;
+        }
+
+        if (strlen($response) > 1048576) {
+            $this->lastError = 'response_too_large';
+            wwm_log('avo api response too large ' . $method . ' ' . $url);
             return null;
         }
 
