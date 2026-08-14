@@ -116,16 +116,25 @@ final class AvoUtmResolver
             $utm = StudentAttribution::mergeUtm($utm, $contactUtm);
 
             foreach (self::CONTACT_UTM_RESOURCES as $resource) {
-                $rows = $this->client->searchRows($resource, [
-                    'id_contact' => (string)$contactId,
-                ], ['pagesize' => 25]);
-                $resourceUtm = [];
-                foreach ($rows as $row) {
-                    $resourceUtm = StudentAttribution::mergeUtm($resourceUtm, $this->utmFromAdvertisingData($row));
-                }
-                $debug['sources'][$resource] = ['rows' => count($rows), 'utm' => $resourceUtm];
-                $utm = StudentAttribution::mergeUtm($utm, $resourceUtm);
+            $rows = $this->client->searchRows($resource, [
+                'id_contact' => (string)$contactId,
+            ], ['pagesize' => 10]);
+            if ($rows === []) {
+                $debug['sources'][$resource] = ['rows' => 0, 'utm' => []];
+                continue;
             }
+
+            if (in_array($resource, ['contactadvertisingchannelpage', 'contactnewsletterlinks'], true)) {
+                $rows = [$this->pickFirstTouchRow($rows)];
+            }
+
+            $resourceUtm = [];
+            foreach ($rows as $row) {
+                $resourceUtm = StudentAttribution::mergeUtm($resourceUtm, $this->utmFromAdvertisingData($row));
+            }
+            $debug['sources'][$resource] = ['rows' => count($rows), 'utm' => $resourceUtm];
+            $utm = StudentAttribution::mergeUtm($utm, $resourceUtm);
+        }
         }
 
         $debug['resolved_utm'] = $utm;
@@ -167,7 +176,7 @@ final class AvoUtmResolver
         foreach (self::CONTACT_UTM_RESOURCES as $resource) {
             $rows = $this->client->searchRows($resource, [
                 'id_contact' => (string)$contactId,
-            ], ['pagesize' => 50]);
+            ], ['pagesize' => 10]);
             if ($rows === []) {
                 continue;
             }
