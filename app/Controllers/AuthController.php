@@ -41,6 +41,9 @@ final class AuthController
                 Session::login((int)$user['id']);
                 User::touchLogin(wwm_pdo(), (int)$user['id']);
                 StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
+                if (StudentAttribution::utmFields($user) === []) {
+                    StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$user['id']);
+                }
                 AvoEngagementSync::onLogin((int)$user['id']);
                 wwm_log('login via url user_id=' . $user['id']);
                 wwm_redirect($next);
@@ -88,6 +91,9 @@ final class AuthController
         Session::login((int)$user['id']);
         User::touchLogin(wwm_pdo(), (int)$user['id']);
         StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
+        if (StudentAttribution::utmFields($user) === []) {
+            StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$user['id']);
+        }
         AvoEngagementSync::onLogin((int)$user['id']);
         wwm_log('login user_id=' . $user['id']);
         wwm_redirect($next);
@@ -110,6 +116,10 @@ final class AuthController
         Session::login((int)$row['user_id']);
         User::touchLogin(wwm_pdo(), (int)$row['user_id']);
         StudentAttribution::recordForUser(wwm_pdo(), (int)$row['user_id']);
+        $magicUser = User::findById(wwm_pdo(), (int)$row['user_id']);
+        if (is_array($magicUser) && StudentAttribution::utmFields($magicUser) === []) {
+            StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$row['user_id']);
+        }
         AvoEngagementSync::onLogin((int)$row['user_id']);
         wwm_log('magic login user_id=' . $row['user_id']);
 

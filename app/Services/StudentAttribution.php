@@ -236,6 +236,57 @@ final class StudentAttribution
     }
 
     /**
+     * Backfill missing UTM fields from AVO for an existing cabinet user.
+     */
+    public static function backfillUtmFromAvo(\PDO $pdo, int $userId): bool
+    {
+        $user = User::findById($pdo, $userId);
+        if ($user === null) {
+            return false;
+        }
+
+        $payload = ['email' => (string)$user['email']];
+        $contactId = (int)($user['avo_contact_id'] ?? 0);
+        if ($contactId > 0) {
+            $payload['id_contact'] = $contactId;
+        }
+
+        $utm = (new AvoUtmResolver())->resolve($payload);
+        if ($utm === []) {
+            return false;
+        }
+
+        $client = new AvoClient();
+        if ($contactId <= 0 && $client->isEnabled()) {
+            $found = $client->findContactIdByEmail((string)$user['email']);
+            if ($found !== null && $found > 0) {
+                User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $found]);
+            }
+        }
+
+        self::recordForUser($pdo, $userId, false, $utm, false);
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return array<string, string>
+     */
+    public static function utmFields(array $user): array
+    {
+        $fields = [];
+        foreach (self::UTM_KEYS as $key) {
+            $value = trim((string)($user[$key] ?? ''));
+            if ($value !== '') {
+                $fields[$key] = $value;
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
      * @param array<string, mixed> $user
      */
     private static function firstNonEmpty(array $user, string ...$keys): ?string

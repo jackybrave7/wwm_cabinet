@@ -13,6 +13,7 @@ use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\AvoClient;
+use Wwm\Services\StudentAttribution;
 
 final class AdminStudentController
 {
@@ -284,7 +285,7 @@ final class AdminStudentController
                 '1' => 'Student created.',
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
-                'avo' => 'AVO tags synced.',
+                'avo' => 'AVO tags and UTM synced.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
@@ -434,6 +435,7 @@ final class AdminStudentController
         }
 
         AvoEngagementSync::resync($id);
+        StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
         wwm_redirect('/admin/students/' . $id . '?created=avo');
     }
 

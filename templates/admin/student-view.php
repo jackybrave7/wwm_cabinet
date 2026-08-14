@@ -18,6 +18,9 @@ if ($location === '—') {
     $location = StudentAttribution::signupLocationLabel($student);
 }
 $signupLocation = StudentAttribution::signupLocationLabel($student);
+$channel = StudentAttribution::channelLabel($student);
+$channelDetail = StudentAttribution::channelDetail($student);
+$utmFields = StudentAttribution::utmFields($student);
 ?>
 <div class="admin-topbar">
   <div>
@@ -64,6 +67,22 @@ $signupLocation = StudentAttribution::signupLocationLabel($student);
   </div>
 </div>
 
+<?php if ($utmFields !== []): ?>
+<div class="admin-card" style="margin-bottom:24px">
+  <h2>UTM attribution</h2>
+  <table class="admin-table admin-table-compact">
+    <tbody>
+      <?php foreach ($utmFields as $key => $value): ?>
+        <tr>
+          <th style="width:180px"><?= wwm_escape($key) ?></th>
+          <td><?= wwm_escape($value) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</div>
+<?php endif; ?>
+
 <?php if (!empty($avo_enabled)): ?>
 <div class="admin-card" style="margin-bottom:24px">
   <h2>AVO sync</h2>
@@ -76,7 +95,7 @@ $signupLocation = StudentAttribution::signupLocationLabel($student);
   </p>
   <form method="post" action="/admin/students/<?= $id ?>/avo-sync" class="inline-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-    <button type="submit" class="btn btn-ghost btn-sm">Resync AVO tags</button>
+    <button type="submit" class="btn btn-ghost btn-sm">Resync AVO tags &amp; UTM</button>
   </form>
 </div>
 <?php endif; ?>

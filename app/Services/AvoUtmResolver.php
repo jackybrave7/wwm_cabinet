@@ -52,7 +52,14 @@ final class AvoUtmResolver
         }
 
         $contactId = (int)($payload['id_contact'] ?? 0);
-        if ($contactId > 0 && !$this->hasCoreUtm($utm)) {
+        if ($contactId <= 0) {
+            $email = strtolower(trim((string)($payload['email'] ?? '')));
+            if ($email !== '') {
+                $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
+            }
+        }
+
+        if ($contactId > 0) {
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContact($contactId));
         }
 
@@ -82,6 +89,16 @@ final class AvoUtmResolver
      */
     private function utmFromContact(int $contactId): array
     {
+        $rows = $this->client->searchRows('contacts', [
+            'id_contact' => (string)$contactId,
+        ], ['pagesize' => 1]);
+        if ($rows !== []) {
+            $utm = $this->utmFromAdvertisingData($rows[0]);
+            if ($utm !== []) {
+                return $utm;
+            }
+        }
+
         foreach (self::CONTACT_UTM_RESOURCES as $resource) {
             $rows = $this->client->searchRows($resource, [
                 'id_contact' => (string)$contactId,
@@ -148,6 +165,7 @@ final class AvoUtmResolver
     private function utmFromAdvertisingData(array $data): array
     {
         $utm = StudentAttribution::utmFromAvoPayload($data);
+        $utm = $this->applyFieldAliases($utm, $data);
 
         $pageId = (int)($data['id_advertising_channel_page'] ?? 0);
         if ($pageId > 0) {
@@ -198,11 +216,29 @@ final class AvoUtmResolver
     private function utmFromChannelPageRow(array $row): array
     {
         $utm = StudentAttribution::utmFromAvoPayload($row);
+        $utm = $this->applyFieldAliases($utm, $row);
 
+        $pageName = trim((string)($row['advertising_channel_page'] ?? $row['page'] ?? ''));
+        if ($pageName !== '' && !isset($utm['utm_campaign'])) {
+            $utm['utm_campaign'] = mb_substr($pageName, 0, 255);
+        }
+
+        return $utm;
+    }
+
+    /**
+     * @param array<string, string> $utm
+     * @param array<string, mixed> $row
+     * @return array<string, string>
+     */
+    private function applyFieldAliases(array $utm, array $row): array
+    {
         $aliases = [
             'utm_source' => ['advertising_channel_source', 'source', 'utm_source_name'],
             'utm_campaign' => ['advertising_campaign', 'advertising_channel_campaign', 'campaign', 'utm_campaign_name'],
-            'utm_medium' => ['advertising_channel_type_traffic', 'medium'],
+            'utm_medium' => ['advertising_channel_type_traffic', 'medium', 'type_traffic'],
+            'utm_term' => ['advertising_channel_keyword', 'keyword'],
+            'utm_content' => ['advertising_channel_location', 'location', 'ad_id', 'advertising_channel_ad_id'],
         ];
         foreach ($aliases as $target => $keys) {
             if (isset($utm[$target]) && $utm[$target] !== '') {
@@ -217,25 +253,6 @@ final class AvoUtmResolver
             }
         }
 
-        $pageName = trim((string)($row['advertising_channel_page'] ?? $row['page'] ?? ''));
-        if ($pageName !== '' && !isset($utm['utm_campaign'])) {
-            $utm['utm_campaign'] = mb_substr($pageName, 0, 255);
-        }
-
         return $utm;
-    }
-
-    /**
-     * @param array<string, string> $utm
-     */
-    private function hasCoreUtm(array $utm): bool
-    {
-        foreach (['utm_source', 'utm_medium', 'utm_campaign'] as $key) {
-            if (trim((string)($utm[$key] ?? '')) !== '') {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
