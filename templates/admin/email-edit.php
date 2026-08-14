@@ -1,16 +1,17 @@
 <?php
-/** @var array<string, mixed> $template */
+/** @var array<string, mixed> $emailTemplate */
 /** @var array{subject: string, text: string, html: ?string, customized: bool} $draft */
 /** @var list<string> $variables */
 /** @var array{url: string, token_label: string, endpoint: string}|null $webhook */
 /** @var bool $webhooksEnabled */
-$templateId = (string)($template['id'] ?? '');
-$hasHtml = !empty($template['has_html']) || !empty($draft['html']);
+$emailTemplate = is_array($emailTemplate ?? null) ? $emailTemplate : [];
+$templateId = (string)($emailTemplate['id'] ?? '');
+$hasHtml = !empty($emailTemplate['has_html']) || !empty($draft['html']);
 ?>
 <div class="admin-topbar">
   <div>
     <p class="badge badge-admin">Edit email</p>
-    <h1 class="page-title page-title-sm"><?= wwm_escape((string)($template['label'] ?? 'Template')) ?></h1>
+    <h1 class="page-title page-title-sm"><?= wwm_escape((string)($emailTemplate['label'] ?? 'Template')) ?></h1>
     <p class="field-hint">
       <code><?= wwm_escape($templateId) ?></code>
       <?php if (!empty($draft['customized'])): ?>

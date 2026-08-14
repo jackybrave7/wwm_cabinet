@@ -62,7 +62,7 @@ final class AdminMailController
         wwm_render_admin('email-edit', [
             'title' => $meta['label'] . ' — Edit email',
             'adminNav' => 'emails',
-            'template' => $meta,
+            'emailTemplate' => $meta,
             'draft' => $draft,
             'variables' => EmailTemplateCatalog::variables($id),
             'webhook' => EmailWebhookCatalog::forTemplate($id),
@@ -187,7 +187,7 @@ final class AdminMailController
         wwm_render_admin('email-preview', [
             'title' => $meta['label'] . ' — Email preview',
             'adminNav' => 'emails',
-            'template' => $meta,
+            'emailTemplate' => $meta,
             'message' => $message,
             'webhook' => EmailWebhookCatalog::forTemplate($id),
             'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
@@ -233,7 +233,7 @@ final class AdminMailController
         wwm_render_admin('email-edit', [
             'title' => $meta['label'] . ' — Edit email',
             'adminNav' => 'emails',
-            'template' => $meta,
+            'emailTemplate' => $meta,
             'draft' => [
                 'subject' => (string)($_POST['subject'] ?? ''),
                 'text' => (string)($_POST['body_text'] ?? ''),
