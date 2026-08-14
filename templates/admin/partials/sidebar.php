@@ -7,6 +7,7 @@
     <a href="/admin/courses" class="<?= ($adminNav ?? '') === 'courses' ? 'is-active' : '' ?>">Courses</a>
     <a href="/admin/students" class="<?= ($adminNav ?? '') === 'students' ? 'is-active' : '' ?>">Students</a>
     <a href="/admin/emails" class="<?= ($adminNav ?? '') === 'emails' ? 'is-active' : '' ?>">Emails</a>
+    <a href="/admin/settings" class="<?= ($adminNav ?? '') === 'settings' ? 'is-active' : '' ?>">Analytics</a>
     <a href="/">← Student view</a>
   </nav>
 </aside>

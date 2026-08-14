@@ -662,6 +662,16 @@ function wwm_email_sample_cover_url(): string
     return 'https://f1.autoweboffice.ru/bl-school/Watercolor_masters/Elke_Memmler/elkeflowers.jpg';
 }
 
+function wwm_analytics_head_html(): string
+{
+    return \Wwm\Models\SiteSettings::analyticsHead(wwm_pdo());
+}
+
+function wwm_analytics_body_html(): string
+{
+    return \Wwm\Models\SiteSettings::analyticsBody(wwm_pdo());
+}
+
 function wwm_render(string $template, array $vars = []): void
 {
     extract($vars, EXTR_SKIP);

@@ -7,6 +7,7 @@ use Wwm\Controllers\AccountController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminMailController;
+use Wwm\Controllers\Admin\AdminSettingsController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Api\AvoUtmDebugController;
 use Wwm\Controllers\Api\DemoWebhookController;
@@ -209,6 +210,15 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/reset$#', $path, $m)) {
             (new AdminMailController())->reset($m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/admin/settings') {
+            (new AdminSettingsController())->index();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/settings') {
+            (new AdminSettingsController())->update();
             return;
         }
 

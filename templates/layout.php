@@ -11,6 +11,7 @@
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="/favicon.png">
   <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/cabinet.css')) ?>">
+  <?= wwm_analytics_head_html() ?>
 </head>
 <body>
   <header class="site-header">
@@ -47,6 +48,7 @@
       <p>&copy; <?= date('Y') ?> Bratec Lis School · <a href="https://worldwatercolormasters.art" target="_blank" rel="noopener">worldwatercolormasters.art</a> · <a href="mailto:support@worldwatercolormasters.art">support@worldwatercolormasters.art</a></p>
     </div>
   </footer>
+  <?= wwm_analytics_body_html() ?>
   <script src="<?= wwm_escape(wwm_asset_url('js/cabinet.js')) ?>" defer></script>
 </body>
 </html>

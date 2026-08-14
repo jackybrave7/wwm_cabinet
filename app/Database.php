@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 14;
+    public const SCHEMA_VERSION = 15;
 
     public static function connect(string $path): PDO
     {
@@ -159,6 +159,12 @@ CREATE TABLE IF NOT EXISTS email_templates (
   subject TEXT NOT NULL,
   body_text TEXT NOT NULL,
   body_html TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS site_settings (
+  setting_key TEXT PRIMARY KEY,
+  setting_value TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );
 SQL);
