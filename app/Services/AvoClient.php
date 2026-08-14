@@ -48,8 +48,13 @@ final class AvoClient
     public function findContactIdByEmail(string $email): ?int
     {
         $contact = $this->findContactByEmail($email);
+        if ($contact === null) {
+            return null;
+        }
 
-        return $contact === null ? null : (int)($contact['id_contact'] ?? $contact['id'] ?? 0) ?: null;
+        $id = (int)($contact['id_contact'] ?? $contact['id'] ?? 0);
+
+        return $id > 0 ? $id : null;
     }
 
     /**

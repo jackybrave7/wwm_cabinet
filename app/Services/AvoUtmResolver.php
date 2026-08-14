@@ -5,24 +5,9 @@ namespace Wwm\Services;
 
 /**
  * Resolves standard utm_* tags from AVO webhook payloads and REST API.
- *
- * AVO stores UTM in contact/advertising stats; webhooks expose advertising_channel_* fields
- * (see autoweboffice.com help: webhooks + accounts API).
  */
 final class AvoUtmResolver
 {
-    /** @var list<string> */
-    private const CONTACT_UTM_RESOURCES = [
-        'contactadvertisingchannelpage',
-        'contactnewsletterlinks',
-    ];
-
-    /** @var list<string> */
-    private const CHANNEL_PAGE_RESOURCES = [
-        'advertisingchannelpage',
-        'advertisingchannelpages',
-    ];
-
     private AvoClient $client;
 
     /** @var array<string, array<string, string>> */
@@ -46,7 +31,10 @@ final class AvoUtmResolver
 
         $accountId = (int)($payload['id_account'] ?? 0);
         if ($accountId > 0) {
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAccount($accountId));
+            $rows = $this->client->searchRows('accounts', ['id_account' => (string)$accountId], ['pagesize' => 1]);
+            if ($rows !== []) {
+                $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($rows[0]));
+            }
         }
 
         $contactId = (int)($payload['id_contact'] ?? 0);
@@ -70,122 +58,44 @@ final class AvoUtmResolver
      */
     public function resolveDebug(array $payload): array
     {
-        $debug = [
-            'avo_enabled' => $this->client->isEnabled(),
-            'payload_utm' => StudentAttribution::utmFromAvoPayload($payload),
-            'contact_id' => (int)($payload['id_contact'] ?? 0),
-            'sources' => [],
-            'resolved_utm' => [],
-            'last_error' => null,
-        ];
-
-        if (!$this->client->isEnabled()) {
-            return $debug;
-        }
-
-        $contactId = $debug['contact_id'];
+        $contactId = (int)($payload['id_contact'] ?? 0);
         if ($contactId <= 0) {
             $email = strtolower(trim((string)($payload['email'] ?? '')));
             if ($email !== '') {
                 $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
-                $debug['contact_id'] = $contactId;
             }
         }
 
-        $utm = $debug['payload_utm'];
-
-        $accountId = (int)($payload['id_account'] ?? 0);
-        if ($accountId > 0) {
-            $rows = $this->client->searchRows('accounts', ['id_account' => (string)$accountId], ['pagesize' => 1]);
-            $accountUtm = $rows === [] ? [] : $this->utmFromAdvertisingData($rows[0]);
-            $debug['sources']['account'] = ['rows' => count($rows), 'utm' => $accountUtm];
-            $utm = StudentAttribution::mergeUtm($utm, $accountUtm);
-        }
-
-        if ($contactId > 0) {
-            $contact = $this->client->findContactById($contactId);
-            $contactUtm = $contact === null ? [] : $this->utmFromAdvertisingData($contact);
-            $debug['sources']['contact'] = [
-                'found' => $contact !== null,
-                'page_ref' => $contact === null ? null : ($contact['id_advertising_channel_page'] ?? null),
-                'utm' => $contactUtm,
-            ];
-            $utm = StudentAttribution::mergeUtm($utm, $contactUtm);
-
-            foreach (self::CONTACT_UTM_RESOURCES as $resource) {
-                try {
-                    $rows = $this->client->searchRows($resource, [
-                        'id_contact' => (string)$contactId,
-                    ], ['pagesize' => 5]);
-                    if ($rows === []) {
-                        $debug['sources'][$resource] = ['rows' => 0, 'utm' => []];
-                        continue;
-                    }
-
-                    $row = $this->pickFirstTouchRow($rows);
-                    $resourceUtm = $this->utmFromAdvertisingData($row);
-                    $debug['sources'][$resource] = ['rows' => count($rows), 'utm' => $resourceUtm];
-                    $utm = StudentAttribution::mergeUtm($utm, $resourceUtm);
-                } catch (\Throwable $e) {
-                    $debug['sources'][$resource] = ['rows' => 0, 'utm' => [], 'error' => $e->getMessage()];
-                }
-            }
-        }
-
-        $debug['resolved_utm'] = $utm;
-        $debug['last_error'] = $this->client->lastError();
-
-        return $debug;
+        return [
+            'avo_enabled' => $this->client->isEnabled(),
+            'contact_id' => $contactId,
+            'resolved_utm' => $this->resolve($payload),
+            'last_error' => $this->client->lastError(),
+        ];
     }
 
     /**
-     * @return array<string, string>
-     */
-    private function utmFromAccount(int $accountId): array
-    {
-        $rows = $this->client->searchRows('accounts', [
-            'id_account' => (string)$accountId,
-        ], ['pagesize' => 1]);
-
-        if ($rows === []) {
-            return [];
-        }
-
-        return $this->utmFromAdvertisingData($rows[0]);
-    }
-
-    /**
-     * First-touch UTM history for contact (oldest transition with data).
-     *
      * @return array<string, string>
      */
     private function utmFromContact(int $contactId): array
     {
         $utm = [];
 
-        try {
-            $contact = $this->client->findContactById($contactId);
-            if ($contact !== null) {
-                $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAdvertisingData($contact));
-            }
-        } catch (\Throwable $e) {
-            wwm_log('avo utm contact lookup failed: ' . $e->getMessage());
+        $contact = $this->client->findContactById($contactId);
+        if ($contact !== null) {
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($contact));
         }
 
-        foreach (self::CONTACT_UTM_RESOURCES as $resource) {
-            try {
-                $rows = $this->client->searchRows($resource, [
-                    'id_contact' => (string)$contactId,
-                ], ['pagesize' => 5]);
-                if ($rows === []) {
-                    continue;
-                }
-
-                $row = $this->pickFirstTouchRow($rows);
-                $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAdvertisingData($row));
-            } catch (\Throwable $e) {
-                wwm_log('avo utm resource ' . $resource . ' failed: ' . $e->getMessage());
+        foreach (['contactadvertisingchannelpage', 'contactnewsletterlinks'] as $resource) {
+            $rows = $this->client->searchRows($resource, [
+                'id_contact' => (string)$contactId,
+            ], ['pagesize' => 5]);
+            if ($rows === []) {
+                continue;
             }
+
+            $row = $this->pickOldestRow($rows);
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
         }
 
         return $utm;
@@ -195,46 +105,13 @@ final class AvoUtmResolver
      * @param list<array<string, mixed>> $rows
      * @return array<string, mixed>
      */
-    private function pickFirstTouchRow(array $rows): array
+    private function pickOldestRow(array $rows): array
     {
         usort($rows, static function (array $a, array $b): int {
-            $ta = self::rowTimestamp($a);
-            $tb = self::rowTimestamp($b);
-
-            return $ta <=> $tb;
+            return self::rowTimestamp($a) <=> self::rowTimestamp($b);
         });
 
-        foreach ($rows as $row) {
-            if ($this->rowHasAdvertisingHints($row)) {
-                return $row;
-            }
-        }
-
         return $rows[0];
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function rowHasAdvertisingHints(array $row): bool
-    {
-        foreach ([
-            'utm_source',
-            'utm_medium',
-            'utm_campaign',
-            'utm_term',
-            'utm_content',
-            'advertising_channel_type_traffic',
-            'advertising_channel_keyword',
-            'advertising_channel_location',
-            'id_advertising_channel_page',
-        ] as $key) {
-            if (trim((string)($row[$key] ?? '')) !== '') {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -244,7 +121,7 @@ final class AvoUtmResolver
     {
         foreach (['date_transition', 'creation_date', 'date_registration', 'datetime_notify', 'confirmed_date'] as $key) {
             $raw = trim((string)($data[$key] ?? ''));
-            if ($raw === '' || str_starts_with($raw, '0000-00-00')) {
+            if ($raw === '' || strncmp($raw, '0000-00-00', 10) === 0) {
                 continue;
             }
             $ts = strtotime($raw);
@@ -257,15 +134,15 @@ final class AvoUtmResolver
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<string, mixed> $row
      * @return array<string, string>
      */
-    private function utmFromAdvertisingData(array $data): array
+    private function utmFromRow(array $row): array
     {
-        $utm = StudentAttribution::utmFromAvoPayload($data);
-        $utm = $this->applyFieldAliases($utm, $data);
+        $utm = StudentAttribution::utmFromAvoPayload($row);
+        $utm = $this->applyFieldAliases($utm, $row);
 
-        $pageRef = trim((string)($data['id_advertising_channel_page'] ?? ''));
+        $pageRef = trim((string)($row['id_advertising_channel_page'] ?? ''));
         if ($pageRef !== '' && $pageRef !== '0') {
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromChannelPage($pageRef));
         }
@@ -278,79 +155,28 @@ final class AvoUtmResolver
      */
     private function utmFromChannelPage(string $pageRef): array
     {
-        $pageRef = trim($pageRef);
-        if ($pageRef === '') {
-            return [];
-        }
-
         if (isset($this->channelPageCache[$pageRef])) {
             return $this->channelPageCache[$pageRef];
         }
 
         $utm = [];
-        $pageRow = null;
-        $searchKeys = ['id_advertising_channel_page', 'id', 'advertising_channel_page'];
-        foreach (self::CHANNEL_PAGE_RESOURCES as $resource) {
-            foreach ($searchKeys as $searchKey) {
+        foreach (['advertisingchannelpage', 'advertisingchannelpages'] as $resource) {
+            foreach (['id_advertising_channel_page', 'id'] as $searchKey) {
                 $rows = $this->client->searchRows($resource, [$searchKey => $pageRef], ['pagesize' => 1]);
                 if ($rows === []) {
                     continue;
                 }
 
-                $pageRow = $rows[0];
-                $utm = $this->utmFromChannelPageRow($pageRow);
-                if ($utm !== []) {
-                    break 2;
+                $utm = $this->applyFieldAliases(StudentAttribution::utmFromAvoPayload($rows[0]), $rows[0]);
+                $pageName = trim((string)($rows[0]['advertising_channel_page'] ?? $rows[0]['page'] ?? ''));
+                if ($pageName !== '' && !isset($utm['utm_campaign'])) {
+                    $utm['utm_campaign'] = mb_substr($pageName, 0, 255);
                 }
-            }
-        }
-
-        if (!isset($utm['utm_source']) && is_array($pageRow)) {
-            $channelId = (int)($pageRow['id_advertising_channel'] ?? 0);
-            if ($channelId > 0) {
-                $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAdvertisingChannel($channelId));
+                break 2;
             }
         }
 
         $this->channelPageCache[$pageRef] = $utm;
-
-        return $utm;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function utmFromAdvertisingChannel(int $channelId): array
-    {
-        $rows = $this->client->searchRows('advertisingchannel', [
-            'id_advertising_channel' => (string)$channelId,
-        ], ['pagesize' => 1]);
-        if ($rows === []) {
-            $rows = $this->client->searchRows('advertisingchannel', [
-                'id' => (string)$channelId,
-            ], ['pagesize' => 1]);
-        }
-        $row = $rows[0] ?? null;
-        if ($row === null) {
-            return [];
-        }
-
-        return $this->applyFieldAliases([], $row);
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     * @return array<string, string>
-     */
-    private function utmFromChannelPageRow(array $row): array
-    {
-        $utm = StudentAttribution::utmFromAvoPayload($row);
-        $utm = $this->applyFieldAliases($utm, $row);
-
-        $pageName = trim((string)($row['advertising_channel_page'] ?? $row['page'] ?? ''));
-        if ($pageName !== '' && !isset($utm['utm_campaign'])) {
-            $utm['utm_campaign'] = mb_substr($pageName, 0, 255);
-        }
 
         return $utm;
     }
@@ -363,12 +189,13 @@ final class AvoUtmResolver
     private function applyFieldAliases(array $utm, array $row): array
     {
         $aliases = [
-            'utm_source' => ['advertising_channel_source', 'advertising_channel', 'source', 'utm_source_name'],
-            'utm_campaign' => ['advertising_campaign', 'advertising_channel_campaign', 'advertising_channel_page', 'campaign', 'utm_campaign_name'],
+            'utm_source' => ['advertising_channel_source', 'advertising_channel', 'source'],
+            'utm_campaign' => ['advertising_campaign', 'advertising_channel_campaign', 'advertising_channel_page', 'campaign'],
             'utm_medium' => ['advertising_channel_type_traffic', 'medium', 'type_traffic'],
             'utm_term' => ['advertising_channel_keyword', 'keyword'],
-            'utm_content' => ['advertising_channel_location', 'location', 'ad_id', 'advertising_channel_ad_id'],
+            'utm_content' => ['advertising_channel_location', 'location', 'ad_id'],
         ];
+
         foreach ($aliases as $target => $keys) {
             if (isset($utm[$target]) && $utm[$target] !== '') {
                 continue;
