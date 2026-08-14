@@ -33,13 +33,15 @@ final class AvoUtmDebugController
                 $payload['email'] = $email;
             }
 
-            $utm = (new AvoUtmResolver($client))->resolve($payload);
+            $resolver = new AvoUtmResolver($client);
+            $utm = $resolver->resolve($payload);
 
             wwm_json_response(200, [
                 'ok' => true,
                 'email' => $email !== '' ? $email : null,
                 'contact_id' => $contactId > 0 ? $contactId : null,
                 'utm' => $utm,
+                'debug' => $resolver->resolveDebug($payload),
                 'avo_last_error' => $client->lastError(),
             ]);
         } catch (\Throwable $e) {

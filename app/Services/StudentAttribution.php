@@ -251,13 +251,19 @@ final class StudentAttribution
             $payload['id_contact'] = $contactId;
         }
 
-        $utm = (new AvoUtmResolver())->resolve($payload);
+        $client = new AvoClient();
+        $utm = (new AvoUtmResolver($client))->resolve($payload);
         if ($utm === []) {
-            wwm_log('avo utm backfill empty for user ' . $userId . ' contact ' . ($contactId > 0 ? $contactId : 'n/a'));
+            wwm_log(sprintf(
+                'avo utm backfill empty for user %d contact %s email %s last_error=%s',
+                $userId,
+                $contactId > 0 ? (string)$contactId : 'n/a',
+                (string)$user['email'],
+                $client->lastError() ?? 'none'
+            ));
             return false;
         }
 
-        $client = new AvoClient();
         if ($contactId <= 0 && $client->isEnabled()) {
             $found = $client->findContactIdByEmail((string)$user['email']);
             if ($found !== null && $found > 0) {

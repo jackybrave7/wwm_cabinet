@@ -5,9 +5,20 @@ namespace Wwm\Services;
 
 /**
  * Resolves standard utm_* tags from AVO webhook payloads and REST API.
+ *
+ * Note: AVO contacts REST resource does not expose advertising_channel_* fields.
+ * UTM data is available on accounts (orders) and contactnewsletterlinks.
  */
 final class AvoUtmResolver
 {
+    /** @var list<string> */
+    private const CONTACT_LINK_RESOURCES = [
+        'contactnewsletterlinks',
+        'contactadvertisingchannelpage',
+        'advertisingchannelcontactstatistics',
+        'advertisingchannelcontact',
+    ];
+
     private AvoClient $client;
 
     /** @var array<string, array<string, string>> */
@@ -29,24 +40,25 @@ final class AvoUtmResolver
             return $utm;
         }
 
+        $email = strtolower(trim((string)($payload['email'] ?? '')));
+
         $accountId = (int)($payload['id_account'] ?? 0);
         if ($accountId > 0) {
             $rows = $this->client->searchRows('accounts', ['id_account' => (string)$accountId], ['pagesize' => 1]);
             if ($rows !== []) {
                 $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($rows[0]));
             }
+        } elseif ($email !== '') {
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAccountsByEmail($email));
         }
 
         $contactId = (int)($payload['id_contact'] ?? 0);
-        if ($contactId <= 0) {
-            $email = strtolower(trim((string)($payload['email'] ?? '')));
-            if ($email !== '') {
-                $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
-            }
+        if ($contactId <= 0 && $email !== '') {
+            $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
         }
 
         if ($contactId > 0) {
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContact($contactId));
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactLinks($contactId));
         }
 
         return $utm;
@@ -58,17 +70,38 @@ final class AvoUtmResolver
      */
     public function resolveDebug(array $payload): array
     {
+        $email = strtolower(trim((string)($payload['email'] ?? '')));
         $contactId = (int)($payload['id_contact'] ?? 0);
-        if ($contactId <= 0) {
-            $email = strtolower(trim((string)($payload['email'] ?? '')));
-            if ($email !== '') {
-                $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
+        if ($contactId <= 0 && $email !== '') {
+            $contactId = (int)($this->client->findContactIdByEmail($email) ?? 0);
+        }
+
+        $sources = [];
+        if ($email !== '') {
+            foreach ($this->client->searchRows('accounts', ['email' => $email], [
+                'pagesize' => 5,
+                'sort' => 'date_of_orderDESC',
+            ]) as $i => $row) {
+                $sources['accounts'][$i] = $this->summarizeRow($row);
+            }
+        }
+        if ($contactId > 0) {
+            foreach (self::CONTACT_LINK_RESOURCES as $resource) {
+                $rows = $this->client->searchRows($resource, [
+                    'id_contact' => (string)$contactId,
+                ], ['pagesize' => 5]);
+                $sources[$resource] = [
+                    'rows' => count($rows),
+                    'samples' => array_map(fn (array $row): array => $this->summarizeRow($row), $rows),
+                ];
             }
         }
 
         return [
             'avo_enabled' => $this->client->isEnabled(),
-            'contact_id' => $contactId,
+            'email' => $email !== '' ? $email : null,
+            'contact_id' => $contactId > 0 ? $contactId : null,
+            'sources' => $sources,
             'resolved_utm' => $this->resolve($payload),
             'last_error' => $this->client->lastError(),
         ];
@@ -77,16 +110,39 @@ final class AvoUtmResolver
     /**
      * @return array<string, string>
      */
-    private function utmFromContact(int $contactId): array
+    private function utmFromAccountsByEmail(string $email): array
+    {
+        $rows = $this->client->searchRows('accounts', ['email' => $email], [
+            'pagesize' => 10,
+            'sort' => 'date_of_orderDESC',
+        ]);
+        if ($rows === []) {
+            return [];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            return self::rowTimestamp($b) <=> self::rowTimestamp($a);
+        });
+
+        $utm = [];
+        foreach ($rows as $row) {
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
+            if ($this->hasCoreUtm($utm)) {
+                break;
+            }
+        }
+
+        return $utm;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function utmFromContactLinks(int $contactId): array
     {
         $utm = [];
 
-        $contact = $this->client->findContactById($contactId);
-        if ($contact !== null) {
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($contact));
-        }
-
-        foreach (['contactadvertisingchannelpage', 'contactnewsletterlinks'] as $resource) {
+        foreach (self::CONTACT_LINK_RESOURCES as $resource) {
             $rows = $this->client->searchRows($resource, [
                 'id_contact' => (string)$contactId,
             ], ['pagesize' => 5]);
@@ -96,9 +152,26 @@ final class AvoUtmResolver
 
             $row = $this->pickOldestRow($rows);
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
+            if ($this->hasCoreUtm($utm)) {
+                break;
+            }
         }
 
         return $utm;
+    }
+
+    /**
+     * @param array<string, string> $utm
+     */
+    private function hasCoreUtm(array $utm): bool
+    {
+        foreach (['utm_source', 'utm_medium', 'utm_campaign'] as $key) {
+            if (trim((string)($utm[$key] ?? '')) === '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -119,7 +192,7 @@ final class AvoUtmResolver
      */
     private static function rowTimestamp(array $data): int
     {
-        foreach (['date_transition', 'creation_date', 'date_registration', 'datetime_notify', 'confirmed_date'] as $key) {
+        foreach (['date_transition', 'date_of_order', 'creation_date', 'date_registration', 'datetime_notify', 'confirmed_date'] as $key) {
             $raw = trim((string)($data[$key] ?? ''));
             if ($raw === '' || strncmp($raw, '0000-00-00', 10) === 0) {
                 continue;
@@ -160,8 +233,8 @@ final class AvoUtmResolver
         }
 
         $utm = [];
-        foreach (['advertisingchannelpage', 'advertisingchannelpages'] as $resource) {
-            foreach (['id_advertising_channel_page', 'id'] as $searchKey) {
+        foreach (['advertisingchannelpage', 'advertisingchannelpages', 'advertisingchannel'] as $resource) {
+            foreach (['id_advertising_channel_page', 'id', 'advertising_channel_page', 'advertising_channel'] as $searchKey) {
                 $rows = $this->client->searchRows($resource, [$searchKey => $pageRef], ['pagesize' => 1]);
                 if ($rows === []) {
                     continue;
@@ -179,6 +252,42 @@ final class AvoUtmResolver
         $this->channelPageCache[$pageRef] = $utm;
 
         return $utm;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function summarizeRow(array $row): array
+    {
+        $keys = [
+            'id_account',
+            'id_contact',
+            'email',
+            'id_advertising_channel_page',
+            'advertising_channel_keyword',
+            'advertising_channel_location',
+            'advertising_channel_type_traffic',
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+            'utm_term',
+            'utm_content',
+            'date_of_order',
+            'creation_date',
+        ];
+        $summary = [];
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $row)) {
+                continue;
+            }
+            $value = trim((string)$row[$key]);
+            if ($value !== '') {
+                $summary[$key] = $value;
+            }
+        }
+
+        return $summary;
     }
 
     /**
