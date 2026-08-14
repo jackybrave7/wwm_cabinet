@@ -83,6 +83,15 @@ final class AdminMailController
             return;
         }
 
+        if ($this->postPayloadTooLarge()) {
+            $this->renderEditError(
+                $id,
+                'The template is too large for the server upload limit (post_max_size). '
+                . 'Try saving a shorter HTML version or ask hosting to raise the limit.'
+            );
+            return;
+        }
+
         $meta = EmailTemplateCatalog::find($id);
         if ($meta === null) {
             http_response_code(404);
@@ -114,7 +123,12 @@ final class AdminMailController
         wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?saved=1');
     }
 
-    public function save(): void
+    public function save(string $id): void
+    {
+        $this->update($id);
+    }
+
+    public function saveLegacy(): void
     {
         $id = trim((string)($_POST['template_id'] ?? ''));
         if ($id === '') {
@@ -240,5 +254,20 @@ final class AdminMailController
         }
 
         return $webhooks;
+    }
+
+    private function postPayloadTooLarge(): bool
+    {
+        $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        if ($method !== 'POST') {
+            return false;
+        }
+
+        $length = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($length <= 0) {
+            return false;
+        }
+
+        return $_POST === [] && $_FILES === [];
     }
 }

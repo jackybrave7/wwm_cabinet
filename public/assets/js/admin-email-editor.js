@@ -354,15 +354,9 @@
   }
 
   if (form) {
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', () => {
       if (hasHtml) {
         syncVisualToHtml();
-      }
-      const templateIdInput = form.querySelector('input[name="template_id"]');
-      const templateId = templateIdInput ? String(templateIdInput.value || '').trim() : '';
-      if (!templateId) {
-        event.preventDefault();
-        window.alert('Template id is missing. Reload the page and try again.');
       }
     });
   }
