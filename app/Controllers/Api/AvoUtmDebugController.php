@@ -1,0 +1,44 @@
+<?php
+declare(strict_types=1);
+
+namespace Wwm\Controllers\Api;
+
+use Wwm\Services\AvoClient;
+use Wwm\Services\AvoUtmResolver;
+
+final class AvoUtmDebugController
+{
+    public function show(): void
+    {
+        WebhookAuth::requireDemo();
+
+        $email = strtolower(trim((string)($_GET['email'] ?? '')));
+        $contactId = (int)($_GET['id_contact'] ?? 0);
+
+        if ($email === '' && $contactId <= 0) {
+            wwm_json_response(400, ['ok' => false, 'error' => 'email_or_id_contact_required']);
+        }
+
+        $client = new AvoClient();
+        if ($contactId <= 0 && $email !== '') {
+            $contactId = (int)($client->findContactIdByEmail($email) ?? 0);
+        }
+
+        $payload = [];
+        if ($contactId > 0) {
+            $payload['id_contact'] = $contactId;
+        }
+        if ($email !== '') {
+            $payload['email'] = $email;
+        }
+
+        $debug = (new AvoUtmResolver($client))->resolveDebug($payload);
+
+        wwm_json_response(200, [
+            'ok' => true,
+            'email' => $email !== '' ? $email : null,
+            'contact_id' => $contactId > 0 ? $contactId : null,
+            'debug' => $debug,
+        ]);
+    }
+}

@@ -47,27 +47,73 @@ final class AvoClient
 
     public function findContactIdByEmail(string $email): ?int
     {
+        $contact = $this->findContactByEmail($email);
+
+        return $contact === null ? null : (int)($contact['id_contact'] ?? $contact['id'] ?? 0) ?: null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findContactByEmail(string $email): ?array
+    {
         $email = strtolower(trim($email));
         if ($email === '') {
             return null;
         }
 
-        $response = $this->request('GET', 'contacts', [
-            'search' => ['email' => $email],
-            'param' => ['pagesize' => 1],
-        ], null, 'get');
-        if ($response === null) {
+        $rows = $this->searchRows('contacts', ['email' => $email], ['pagesize' => 5]);
+        foreach ($rows as $row) {
+            $rowEmail = strtolower(trim((string)($row['email'] ?? '')));
+            if ($rowEmail === '' || $rowEmail === $email) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findContactById(int $contactId): ?array
+    {
+        if ($contactId <= 0) {
+            return null;
+        }
+
+        $byId = $this->getResourceById('contacts', $contactId);
+        if ($byId !== null) {
+            return $byId;
+        }
+
+        foreach (['id_contact', 'id'] as $key) {
+            $rows = $this->searchRows('contacts', [$key => (string)$contactId], ['pagesize' => 1]);
+            if ($rows !== []) {
+                return $rows[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getResourceById(string $resource, int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $response = $this->request('GET', $resource, ['id' => (string)$id], null, 'get');
+        if ($response === null || $response === []) {
             return null;
         }
 
         foreach ($this->extractRows($response) as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $id = (int)($row['id_contact'] ?? $row['id'] ?? 0);
-            $rowEmail = strtolower(trim((string)($row['email'] ?? '')));
-            if ($id > 0 && ($rowEmail === '' || $rowEmail === $email)) {
-                return $id;
+            if (is_array($row)) {
+                return $row;
             }
         }
 
@@ -323,12 +369,14 @@ final class AvoClient
             'contacttaglnk',
             'contacts',
             'accounts',
+            'contactnewsletterlinks',
             'advertisingchannelstatistics',
             'advertisingchannelcontactstatistics',
             'contactadvertisingchannelpage',
             'advertisingchannelcontact',
             'advertisingchannelpage',
             'advertisingchannelpages',
+            'advertisingchannel',
             'data',
             'rows',
             'items',

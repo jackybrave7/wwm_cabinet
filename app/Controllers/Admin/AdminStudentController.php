@@ -286,6 +286,7 @@ final class AdminStudentController
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
                 'avo' => 'AVO tags and UTM synced.',
+                'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — check cabinet.log.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
@@ -435,8 +436,8 @@ final class AdminStudentController
         }
 
         AvoEngagementSync::resync($id);
-        StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
-        wwm_redirect('/admin/students/' . $id . '?created=avo');
+        $utmSynced = StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
+        wwm_redirect('/admin/students/' . $id . '?created=' . ($utmSynced ? 'avo' : 'avo_tags'));
     }
 
     private function renderCreateForm(string $error): void

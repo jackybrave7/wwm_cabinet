@@ -8,6 +8,7 @@ use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminMailController;
 use Wwm\Controllers\Admin\AdminStudentController;
+use Wwm\Controllers\Api\AvoUtmDebugController;
 use Wwm\Controllers\Api\DemoWebhookController;
 use Wwm\Controllers\Api\EngagementController;
 use Wwm\Controllers\Api\MailSamplesWebhookController;
@@ -85,6 +86,10 @@ final class Router
         }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/mail-samples') {
             (new MailSamplesWebhookController())->send();
+            return;
+        }
+        if ($method === 'GET' && $path === '/api/avo-utm') {
+            (new AvoUtmDebugController())->show();
             return;
         }
         if ($method === 'GET' && preg_match('#^/t/o/([a-f0-9]{32})$#', $path, $m)) {

@@ -253,6 +253,7 @@ final class StudentAttribution
 
         $utm = (new AvoUtmResolver())->resolve($payload);
         if ($utm === []) {
+            wwm_log('avo utm backfill empty for user ' . $userId . ' contact ' . ($contactId > 0 ? $contactId : 'n/a'));
             return false;
         }
 
