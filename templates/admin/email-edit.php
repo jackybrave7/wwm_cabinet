@@ -33,7 +33,11 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
   <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
 <?php endif; ?>
 
-<form method="post" action="/admin/emails/<?= wwm_escape($templateId) ?>/save" class="email-editor-form" id="email-editor-form">
+<?php if ($templateId === ''): ?>
+  <div class="alert alert-error">Template id is missing. <a href="/admin/emails">Back to templates</a></div>
+<?php else: ?>
+
+<form method="post" action="/admin/emails/<?= wwm_escape($templateId) ?>/save" class="email-editor-form" id="email-editor-form" data-template-id="<?= wwm_escape($templateId) ?>">
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
   <div class="admin-card">
@@ -124,6 +128,8 @@ window.__emailEditor = {
   hasHtml: <?= $hasHtml ? 'true' : 'false' ?>,
   initialHtml: <?= json_encode((string)($draft['html'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
   initialText: <?= json_encode((string)$draft['text'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-  previewVars: <?= json_encode(\Wwm\Services\EmailTemplateCatalog::sampleContext($templateId), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
+  previewVars: <?= json_encode(\Wwm\Services\EmailTemplateCatalog::sampleContext($templateId), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+  templateId: <?= json_encode($templateId, JSON_UNESCAPED_UNICODE) ?>
 };
 </script>
+<?php endif; ?>

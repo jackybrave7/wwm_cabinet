@@ -358,6 +358,10 @@
       if (hasHtml) {
         syncVisualToHtml();
       }
+      const templateId = String(config.templateId || form.getAttribute('data-template-id') || '').trim();
+      if (templateId !== '') {
+        form.action = '/admin/emails/' + encodeURIComponent(templateId) + '/save';
+      }
     });
   }
 

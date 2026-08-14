@@ -26,6 +26,7 @@ final class Router
     public function dispatch(string $method, string $uri): void
     {
         $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+        $path = preg_replace('#/+#', '/', $path) ?? $path;
         $path = rtrim($path, '/') ?: '/';
 
         if ($method === 'GET' && $path === '/login') {
@@ -202,6 +203,10 @@ final class Router
         }
         if ($method === 'GET' && preg_match('#^/admin/emails/([a-z0-9_]+)/edit$#', $path, $m)) {
             (new AdminMailController())->edit($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/edit$#', $path, $m)) {
+            (new AdminMailController())->save($m[1]);
             return;
         }
         if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/save$#', $path, $m)) {
