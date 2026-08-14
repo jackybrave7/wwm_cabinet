@@ -48,10 +48,10 @@ final class AdminMailController
         $draft = EmailTemplateRenderer::forAdmin($id);
         $loadError = null;
         $builtin = EmailTemplateCatalog::placeholderDraft($id);
-        if (trim((string)($draft['html'] ?? '')) === '' && !empty($meta['has_html'])) {
+        if (!wwm_email_html_is_editor_ready($draft['html'] ?? null) && !empty($meta['has_html'])) {
             $draft['html'] = $builtin['html'] ?? null;
             if (!empty($draft['customized'])) {
-                $loadError = 'Saved HTML could not be loaded. Showing the built-in layout — save again to repair this template.';
+                $loadError = 'Saved HTML was empty or corrupted. Showing the built-in layout — save again to repair this template.';
             }
         }
         if (trim((string)($draft['text'] ?? '')) === '') {

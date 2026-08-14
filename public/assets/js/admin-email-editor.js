@@ -166,6 +166,31 @@
     }
   }
 
+  function looksEscapedHtml(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.startsWith('&lt;') || trimmed.includes('&lt;html') || trimmed.includes('&lt;!DOCTYPE');
+  }
+
+  function visualHasContent() {
+    const doc = visualDocument();
+    if (!doc || !doc.body) {
+      return false;
+    }
+    const bodyHtml = doc.body.innerHTML
+      .replace(/<style[^>]*id=["']wwm-visual-editor-style["'][^>]*>[\s\S]*?<\/style>/gi, '')
+      .trim();
+    return bodyHtml.length > 40 && bodyHtml !== '<p></p>' && bodyHtml !== '<p><br></p>';
+  }
+
+  function resolveHtmlSeed() {
+    const fromJson = readHtmlSeed();
+    const fromTextarea = htmlInput ? htmlInput.value.trim() : '';
+    if (fromJson && (fromTextarea === '' || looksEscapedHtml(fromTextarea))) {
+      return fromJson;
+    }
+    return fromTextarea || fromJson || '';
+  }
+
   function loadVisualFromHtml(html) {
     if (!visualFrame) return;
     const docHtml = html || '<!DOCTYPE html><html><body><p></p></body></html>';
@@ -228,6 +253,9 @@
 
   function syncVisualToHtml() {
     if (!hasHtml || !htmlInput) return;
+    if (!visualHasContent() && htmlInput.value.trim() !== '') {
+      return;
+    }
     htmlInput.value = htmlFromVisual();
     syncHtmlHighlight();
   }
@@ -387,9 +415,8 @@
   }
 
   if (hasHtml) {
-    const seedFromTextarea = htmlInput && htmlInput.value.trim() !== '' ? htmlInput.value : '';
-    const seed = seedFromTextarea || readHtmlSeed() || (config.initialHtml || '');
-    if (htmlInput && seed !== '' && seedFromTextarea === '') {
+    const seed = resolveHtmlSeed();
+    if (htmlInput && seed !== '') {
       htmlInput.value = seed;
     }
     loadVisualFromHtml(seed);

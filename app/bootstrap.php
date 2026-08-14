@@ -149,6 +149,11 @@ function wwm_escape(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
+function wwm_textarea_raw(string $text): string
+{
+    return str_replace('</textarea>', '&lt;/textarea&gt;', $text);
+}
+
 function wwm_sanitize_utf8(string $text): string
 {
     if ($text === '') {
@@ -570,6 +575,28 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
     return wwm_email_dedupe_logo_rows($out);
 }
 
+function wwm_email_html_is_editor_ready(?string $html): bool
+{
+    if ($html === null || trim($html) === '') {
+        return false;
+    }
+
+    $trim = trim($html);
+    if (strlen($trim) < 200) {
+        return false;
+    }
+
+    if (str_contains($trim, 'wwm-visual-editor-style') && !str_contains($trim, 'role="presentation"')) {
+        return false;
+    }
+
+    if (!str_contains($trim, 'World Watercolor') && !preg_match('/\{\{[a-z_]+\}\}/', $trim)) {
+        return false;
+    }
+
+    return str_starts_with(ltrim($trim), '<!DOCTYPE') || str_contains($trim, '<table');
+}
+
 function wwm_repair_email_html(?string $html): ?string
 {
     if ($html === null || $html === '') {
@@ -577,6 +604,8 @@ function wwm_repair_email_html(?string $html): ?string
     }
 
     $out = $html;
+    $out = preg_replace('/<style[^>]*\bid=["\']wwm-visual-editor-style["\'][^>]*>[\s\S]*?<\/style>/i', '', $out) ?? $out;
+    $out = preg_replace('/\scontenteditable=(["\'])true\1/i', '', $out) ?? $out;
     foreach (['table', 'tr', 'td', 'th', 'p', 'a', 'span', 'div'] as $tag) {
         $out = preg_replace('/<\s+' . $tag . '\b/i', '<' . $tag, $out) ?? $out;
         $out = preg_replace('/<\s+\/' . $tag . '\b/i', '</' . $tag, $out) ?? $out;
