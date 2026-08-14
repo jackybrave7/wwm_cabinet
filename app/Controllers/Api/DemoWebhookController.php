@@ -6,6 +6,7 @@ namespace Wwm\Controllers\Api;
 use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
+use Wwm\Services\AvoAdvertisingSnapshot;
 use Wwm\Services\StudentAttribution;
 
 final class DemoWebhookController
@@ -46,6 +47,7 @@ final class DemoWebhookController
                 $this->resolveUtmSafely($payload),
                 $avoContactId > 0 ? $avoContactId : null
             );
+            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), (int)$result['user_id'], $payload);
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
         } catch (\RuntimeException $e) {

@@ -67,21 +67,36 @@ $utmFields = StudentAttribution::utmFields($student);
   </div>
 </div>
 
-<?php if ($utmFields !== []): ?>
 <div class="admin-card" style="margin-bottom:24px">
   <h2>UTM attribution</h2>
-  <table class="admin-table admin-table-compact">
-    <tbody>
-      <?php foreach ($utmFields as $key => $value): ?>
-        <tr>
-          <th style="width:180px"><?= wwm_escape($key) ?></th>
-          <td><?= wwm_escape($value) ?></td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+  <?php if ($utmFields !== []): ?>
+    <table class="admin-table admin-table-compact" style="margin-bottom:16px">
+      <tbody>
+        <?php foreach ($utmFields as $key => $value): ?>
+          <tr>
+            <th style="width:180px"><?= wwm_escape($key) ?></th>
+            <td><?= wwm_escape($value) ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+  <p class="field-hint" style="margin-bottom:12px">
+    AVO REST API usually does not return contact-card UTM. Copy values from the AVO contact card if auto-sync is empty, then click <strong>Save UTM</strong> — Marketing channel updates immediately.
+  </p>
+  <form method="post" action="/admin/students/<?= $id ?>/utm" class="form">
+    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    <?php foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $utmKey): ?>
+      <label class="field">
+        <span class="field-label"><?= wwm_escape($utmKey) ?></span>
+        <input type="text" name="<?= wwm_escape($utmKey) ?>" value="<?= wwm_escape((string)($student[$utmKey] ?? '')) ?>" class="input">
+      </label>
+    <?php endforeach; ?>
+    <div class="top-actions" style="margin-top:12px">
+      <button type="submit" class="btn btn-primary btn-sm">Save UTM</button>
+    </div>
+  </form>
 </div>
-<?php endif; ?>
 
 <?php if (!empty($avo_enabled)): ?>
 <div class="admin-card" style="margin-bottom:24px">

@@ -13,6 +13,7 @@ use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\AvoClient;
+use Wwm\Services\AvoAdvertisingSnapshot;
 use Wwm\Services\StudentAttribution;
 
 final class AdminStudentController
@@ -286,13 +287,15 @@ final class AdminStudentController
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
                 'avo' => 'AVO tags and UTM synced.',
-                'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — check cabinet.log.',
+                'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — set UTM manually below or check cabinet.log.',
+                'utm' => 'UTM attribution saved.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
                 'csrf' => 'Session expired. Please try again.',
                 'course' => 'Course not found.',
                 'period' => 'Invalid access period or date.',
+                'utm' => 'Enter at least one UTM field.',
                 default => null,
             },
         ]);
@@ -438,6 +441,39 @@ final class AdminStudentController
         AvoEngagementSync::resync($id);
         $utmSynced = StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
         wwm_redirect('/admin/students/' . $id . '?created=' . ($utmSynced ? 'avo' : 'avo_tags'));
+    }
+
+    public function updateUtm(int $id): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students/' . $id . '?error=csrf');
+        }
+
+        $student = User::findById(wwm_pdo(), $id);
+        if ($student === null) {
+            http_response_code(404);
+            wwm_render('error', ['pageTitle' => 'Not found', 'code' => 404, 'message' => 'Student not found.']);
+            return;
+        }
+
+        $utm = [];
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+            $value = trim((string)($_POST[$key] ?? ''));
+            if ($value !== '') {
+                $utm[$key] = mb_substr($value, 0, 255);
+            }
+        }
+
+        if ($utm === []) {
+            wwm_redirect('/admin/students/' . $id . '?error=utm');
+            return;
+        }
+
+        User::updateUtmFields(wwm_pdo(), $id, $utm);
+        AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), $id, $utm);
+        wwm_redirect('/admin/students/' . $id . '?created=utm');
     }
 
     private function renderCreateForm(string $error): void

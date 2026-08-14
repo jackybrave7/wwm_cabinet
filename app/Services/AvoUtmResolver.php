@@ -17,6 +17,7 @@ final class AvoUtmResolver
         'contactadvertisingchannelpage',
         'advertisingchannelcontactstatistics',
         'advertisingchannelcontact',
+        'advertisingchannelstatistics',
     ];
 
     private AvoClient $client;
@@ -61,6 +62,31 @@ final class AvoUtmResolver
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactLinks($contactId));
         }
 
+        if ($email !== '' && !$this->hasCoreUtm($utm)) {
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromStatisticsByEmail($email));
+        }
+
+        return $utm;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function utmFromStatisticsByEmail(string $email): array
+    {
+        $utm = [];
+        foreach (['advertisingchannelstatistics', 'advertisingchannelcontactstatistics'] as $resource) {
+            $rows = $this->client->searchRows($resource, ['email' => $email], ['pagesize' => 5]);
+            if ($rows === []) {
+                continue;
+            }
+            $row = $this->pickOldestRow($rows);
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
+            if ($this->hasCoreUtm($utm)) {
+                break;
+            }
+        }
+
         return $utm;
     }
 
@@ -78,10 +104,7 @@ final class AvoUtmResolver
 
         $sources = [];
         if ($email !== '') {
-            foreach ($this->client->searchRows('accounts', ['email' => $email], [
-                'pagesize' => 5,
-                'sort' => 'date_of_orderDESC',
-            ]) as $i => $row) {
+            foreach ($this->client->searchRows('accounts', ['email' => $email], ['pagesize' => 5]) as $i => $row) {
                 $sources['accounts'][$i] = $this->summarizeRow($row);
             }
         }
@@ -114,7 +137,6 @@ final class AvoUtmResolver
     {
         $rows = $this->client->searchRows('accounts', ['email' => $email], [
             'pagesize' => 10,
-            'sort' => 'date_of_orderDESC',
         ]);
         if ($rows === []) {
             return [];

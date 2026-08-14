@@ -96,6 +96,7 @@ SQL);
         self::ensureColumn($pdo, 'users', 'avo_contact_id', 'INTEGER');
         self::ensureColumn($pdo, 'users', 'avo_logged_in_tagged', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'users', 'avo_demo_opened_tagged', 'INTEGER NOT NULL DEFAULT 0');
+        self::ensureColumn($pdo, 'users', 'avo_ad_snapshot', 'TEXT');
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS lesson_opens (

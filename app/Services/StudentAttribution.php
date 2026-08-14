@@ -251,8 +251,11 @@ final class StudentAttribution
             $payload['id_contact'] = $contactId;
         }
 
+        $utm = AvoAdvertisingSnapshot::utmFromUser($user);
         $client = new AvoClient();
-        $utm = (new AvoUtmResolver($client))->resolve($payload);
+        if ($utm === []) {
+            $utm = (new AvoUtmResolver($client))->resolve($payload);
+        }
         if ($utm === []) {
             wwm_log(sprintf(
                 'avo utm backfill empty for user %d contact %s email %s last_error=%s',

@@ -298,6 +298,17 @@ final class AvoClient
             return null;
         }
 
+        foreach (['error', 'errors', 'message'] as $errorKey) {
+            if (!isset($decoded[$errorKey])) {
+                continue;
+            }
+            $errorValue = $decoded[$errorKey];
+            if (is_string($errorValue) && $errorValue !== '') {
+                $this->lastError = 'api_' . $errorKey . ':' . mb_substr($errorValue, 0, 200);
+                return null;
+            }
+        }
+
         if ($this->isList($decoded) && count($decoded) > 25) {
             $decoded = array_slice($decoded, 0, 25);
         }
