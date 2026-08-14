@@ -65,7 +65,16 @@ final class Router
         }
         if ($method === 'GET' && $path === '/api/health') {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => true, 'service' => 'wwm-cabinet']);
+            $health = ['ok' => true, 'service' => 'wwm-cabinet'];
+            if (isset($_GET['avo_utm']) && $_GET['avo_utm'] === '1') {
+                try {
+                    $health['avo_utm_class'] = class_exists(\Wwm\Services\AvoUtmResolver::class);
+                    $health['avo_utm_resolve'] = (new \Wwm\Services\AvoUtmResolver())->resolve(['email' => 'healthcheck@invalid.test']);
+                } catch (\Throwable $e) {
+                    $health['avo_utm_error'] = $e->getMessage();
+                }
+            }
+            echo json_encode($health);
             return;
         }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/demo') {
