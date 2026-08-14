@@ -366,7 +366,8 @@
   }
 
   if (hasHtml) {
-    loadVisualFromHtml(config.initialHtml || '');
+    const seed = htmlInput && htmlInput.value.trim() !== '' ? htmlInput.value : (config.initialHtml || '');
+    loadVisualFromHtml(seed);
     syncHtmlHighlight();
   }
 })();

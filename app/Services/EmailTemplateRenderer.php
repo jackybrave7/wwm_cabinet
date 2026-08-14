@@ -46,12 +46,21 @@ final class EmailTemplateRenderer
     {
         $custom = EmailTemplate::find(wwm_pdo(), $templateId);
         if ($custom !== null) {
+            $html = null;
+            if ($custom['body_html'] !== null && trim((string)$custom['body_html']) !== '') {
+                $raw = wwm_sanitize_utf8((string)$custom['body_html']);
+                try {
+                    $html = wwm_repair_email_html($raw);
+                } catch (\Throwable $e) {
+                    wwm_log('email template repair failed for ' . $templateId . ': ' . $e->getMessage());
+                    $html = $raw;
+                }
+            }
+
             return [
-                'subject' => $custom['subject'],
-                'text' => $custom['body_text'],
-                'html' => wwm_repair_email_html(
-                    $custom['body_html'] !== null ? (string)$custom['body_html'] : null
-                ),
+                'subject' => wwm_sanitize_utf8((string)$custom['subject']),
+                'text' => wwm_sanitize_utf8((string)$custom['body_text']),
+                'html' => is_string($html) ? $html : null,
                 'customized' => true,
             ];
         }

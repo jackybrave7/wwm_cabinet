@@ -27,6 +27,9 @@
 <?php if (($saveError ?? '') === 'save'): ?>
   <div class="alert alert-error">Could not save the template. Open it from this list with <strong>Edit</strong> and try again. If the HTML is very large, the server may reject the upload — shorten the template or raise <code>post_max_size</code> on hosting.</div>
 <?php endif; ?>
+<?php if (isset($_GET['reset'])): ?>
+  <div class="alert alert-success">Template reset to default.</div>
+<?php endif; ?>
 
 <div class="admin-card">
   <h2>Templates</h2>
@@ -65,6 +68,10 @@
             <a href="/admin/emails/<?= wwm_escape($templateId) ?>/edit" class="btn btn-primary btn-sm">Edit</a>
             <a href="/admin/emails/<?= wwm_escape($templateId) ?>" class="btn btn-ghost btn-sm">Preview</a>
             <?php if (in_array($templateId, $customized ?? [], true)): ?>
+              <form method="post" action="/admin/emails/<?= wwm_escape($templateId) ?>/reset" class="inline-form" style="display:inline" onsubmit="return confirm('Reset this template to the built-in default?');">
+                <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                <button type="submit" class="btn btn-ghost btn-sm">Reset</button>
+              </form>
               <span class="badge badge-paid">Custom</span>
             <?php endif; ?>
           </td>

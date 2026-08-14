@@ -32,7 +32,8 @@ $templateId = (string)($template['id'] ?? '');
 
   <?php if (!empty($message['html'])): ?>
     <div class="email-preview-panel is-active" data-panel="html">
-      <iframe class="email-preview-frame" title="HTML email preview" srcdoc="<?= wwm_escape((string)$message['html']) ?>"></iframe>
+      <textarea id="email-preview-html-source" hidden readonly><?= wwm_escape((string)$message['html']) ?></textarea>
+      <iframe class="email-preview-frame" title="HTML email preview" id="email-preview-html-frame"></iframe>
     </div>
   <?php endif; ?>
 
@@ -52,4 +53,12 @@ document.querySelectorAll('.email-preview-tab').forEach((tab) => {
     if (panel) panel.classList.add('is-active');
   });
 });
+
+(function () {
+  const source = document.getElementById('email-preview-html-source');
+  const frame = document.getElementById('email-preview-html-frame');
+  if (source && frame) {
+    frame.srcdoc = source.value;
+  }
+})();
 </script>

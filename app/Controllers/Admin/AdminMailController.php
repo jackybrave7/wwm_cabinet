@@ -46,6 +46,12 @@ final class AdminMailController
         }
 
         $draft = EmailTemplateRenderer::forAdmin($id);
+        $loadError = null;
+        if ($draft['customized'] && $draft['html'] === null && !empty($meta['has_html'])) {
+            $builtin = EmailTemplateCatalog::placeholderDraft($id);
+            $draft['html'] = $builtin['html'] ?? null;
+            $loadError = 'Saved HTML could not be loaded. Showing the built-in layout — save again to repair this template.';
+        }
         $flash = null;
         if (isset($_GET['saved'])) {
             $flash = 'Template saved.';
@@ -62,7 +68,7 @@ final class AdminMailController
             'webhook' => EmailWebhookCatalog::forTemplate($id),
             'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
             'message' => $flash,
-            'error' => null,
+            'error' => $loadError,
         ]);
     }
 
@@ -99,9 +105,9 @@ final class AdminMailController
             return;
         }
 
-        $subject = trim((string)($_POST['subject'] ?? ''));
-        $bodyText = (string)($_POST['body_text'] ?? '');
-        $bodyHtml = (string)($_POST['body_html'] ?? '');
+        $subject = trim(wwm_sanitize_utf8((string)($_POST['subject'] ?? '')));
+        $bodyText = wwm_sanitize_utf8((string)($_POST['body_text'] ?? ''));
+        $bodyHtml = wwm_sanitize_utf8((string)($_POST['body_html'] ?? ''));
 
         if ($subject === '') {
             $this->renderEditError($id, 'Subject is required.');
@@ -156,7 +162,7 @@ final class AdminMailController
         }
 
         EmailTemplate::delete(wwm_pdo(), $id);
-        wwm_redirect('/admin/emails/' . rawurlencode($id) . '/edit?reset=1');
+        wwm_redirect('/admin/emails?reset=1');
     }
 
     public function preview(string $id): void

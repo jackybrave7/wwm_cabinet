@@ -149,6 +149,35 @@ function wwm_escape(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
+function wwm_sanitize_utf8(string $text): string
+{
+    if ($text === '') {
+        return '';
+    }
+
+    if (function_exists('mb_convert_encoding')) {
+        $clean = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        return is_string($clean) ? $clean : $text;
+    }
+
+    return $text;
+}
+
+function wwm_json_for_script(mixed $value): string
+{
+    $json = json_encode(
+        $value,
+        JSON_UNESCAPED_UNICODE
+            | JSON_HEX_TAG
+            | JSON_HEX_AMP
+            | JSON_HEX_APOS
+            | JSON_HEX_QUOT
+            | JSON_INVALID_UTF8_SUBSTITUTE
+    );
+
+    return $json !== false ? $json : 'null';
+}
+
 function wwm_asset_url(string $path): string
 {
     $relative = ltrim($path, '/');

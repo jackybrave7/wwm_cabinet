@@ -126,10 +126,8 @@ $hasHtml = !empty($template['has_html']) || !empty($draft['html']);
 <script>
 window.__emailEditor = {
   hasHtml: <?= $hasHtml ? 'true' : 'false' ?>,
-  initialHtml: <?= json_encode((string)($draft['html'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-  initialText: <?= json_encode((string)$draft['text'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-  previewVars: <?= json_encode(\Wwm\Services\EmailTemplateCatalog::sampleContext($templateId), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-  templateId: <?= json_encode($templateId, JSON_UNESCAPED_UNICODE) ?>
+  previewVars: <?= wwm_json_for_script(\Wwm\Services\EmailTemplateCatalog::sampleContext($templateId)) ?>,
+  templateId: <?= wwm_json_for_script($templateId) ?>
 };
 </script>
 <?php endif; ?>
