@@ -102,31 +102,6 @@ final class User
     }
 
     /**
-     * @param array<string, string> $utm
-     */
-    public static function updateUtmFields(PDO $pdo, int $userId, array $utm): void
-    {
-        $sets = [];
-        $params = [];
-        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
-            if (!array_key_exists($key, $utm)) {
-                continue;
-            }
-            $value = trim((string)$utm[$key]);
-            $sets[] = $key . ' = ?';
-            $params[] = $value === '' ? null : mb_substr($value, 0, 255);
-        }
-
-        if ($sets === []) {
-            return;
-        }
-
-        $params[] = $userId;
-        $stmt = $pdo->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?');
-        $stmt->execute($params);
-    }
-
-    /**
      * @param array{
      *   ip?: ?string,
      *   country?: ?string,

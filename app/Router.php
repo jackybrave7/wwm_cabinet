@@ -186,10 +186,6 @@ final class Router
             (new AdminStudentController())->resyncAvo((int)$m[1]);
             return;
         }
-        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/utm$#', $path, $m)) {
-            (new AdminStudentController())->updateUtm((int)$m[1]);
-            return;
-        }
 
         if ($method === 'GET' && $path === '/admin/mail-test') {
             (new AdminMailController())->test();

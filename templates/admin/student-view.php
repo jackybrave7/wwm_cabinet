@@ -70,7 +70,7 @@ $utmFields = StudentAttribution::utmFields($student);
 <div class="admin-card" style="margin-bottom:24px">
   <h2>UTM attribution</h2>
   <?php if ($utmFields !== []): ?>
-    <table class="admin-table admin-table-compact" style="margin-bottom:16px">
+    <table class="admin-table admin-table-compact">
       <tbody>
         <?php foreach ($utmFields as $key => $value): ?>
           <tr>
@@ -80,22 +80,9 @@ $utmFields = StudentAttribution::utmFields($student);
         <?php endforeach; ?>
       </tbody>
     </table>
+  <?php else: ?>
+    <p class="field-hint">No UTM data yet. Use Resync below or wait for the next AVO webhook with advertising fields.</p>
   <?php endif; ?>
-  <p class="field-hint" style="margin-bottom:12px">
-    AVO REST API usually does not return contact-card UTM. Copy values from the AVO contact card if auto-sync is empty, then click <strong>Save UTM</strong> — Marketing channel updates immediately.
-  </p>
-  <form method="post" action="/admin/students/<?= $id ?>/utm" class="form">
-    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-    <?php foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $utmKey): ?>
-      <label class="field">
-        <span class="field-label"><?= wwm_escape($utmKey) ?></span>
-        <input type="text" name="<?= wwm_escape($utmKey) ?>" value="<?= wwm_escape((string)($student[$utmKey] ?? '')) ?>" class="input">
-      </label>
-    <?php endforeach; ?>
-    <div class="top-actions" style="margin-top:12px">
-      <button type="submit" class="btn btn-primary btn-sm">Save UTM</button>
-    </div>
-  </form>
 </div>
 
 <?php if (!empty($avo_enabled)): ?>
