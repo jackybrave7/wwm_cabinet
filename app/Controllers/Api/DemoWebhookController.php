@@ -6,6 +6,7 @@ namespace Wwm\Controllers\Api;
 use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
+use Wwm\Services\StudentAttribution;
 
 final class DemoWebhookController
 {
@@ -42,7 +43,7 @@ final class DemoWebhookController
                 $courseSlug,
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
-                (new AvoUtmResolver())->resolve($payload),
+                $this->resolveUtmSafely($payload),
                 $avoContactId > 0 ? $avoContactId : null
             );
         } catch (\InvalidArgumentException $e) {
@@ -56,5 +57,19 @@ final class DemoWebhookController
         }
 
         wwm_json_response(200, ['ok' => true] + $result);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function resolveUtmSafely(array $payload): array
+    {
+        try {
+            return (new AvoUtmResolver())->resolve($payload);
+        } catch (\Throwable $e) {
+            wwm_log('avo utm resolve failed: ' . $e->getMessage());
+            return StudentAttribution::utmFromAvoPayload($payload);
+        }
     }
 }

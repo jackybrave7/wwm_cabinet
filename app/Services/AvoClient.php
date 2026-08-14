@@ -82,11 +82,6 @@ final class AvoClient
             return null;
         }
 
-        $byId = $this->getResourceById('contacts', $contactId);
-        if ($byId !== null) {
-            return $byId;
-        }
-
         foreach (['id_contact', 'id'] as $key) {
             $rows = $this->searchRows('contacts', [$key => (string)$contactId], ['pagesize' => 1]);
             if ($rows !== []) {

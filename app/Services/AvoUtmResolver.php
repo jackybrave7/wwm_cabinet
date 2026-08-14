@@ -300,13 +300,15 @@ final class AvoUtmResolver
      */
     private function utmFromAdvertisingChannel(int $channelId): array
     {
-        $row = $this->client->getResourceById('advertisingchannel', $channelId);
-        if ($row === null) {
+        $rows = $this->client->searchRows('advertisingchannel', [
+            'id_advertising_channel' => (string)$channelId,
+        ], ['pagesize' => 1]);
+        if ($rows === []) {
             $rows = $this->client->searchRows('advertisingchannel', [
-                'id_advertising_channel' => (string)$channelId,
+                'id' => (string)$channelId,
             ], ['pagesize' => 1]);
-            $row = $rows[0] ?? null;
         }
+        $row = $rows[0] ?? null;
         if ($row === null) {
             return [];
         }
