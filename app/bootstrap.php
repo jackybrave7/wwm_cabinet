@@ -357,6 +357,99 @@ function wwm_email_logo_legacy_urls(): array
     ];
 }
 
+function wwm_email_is_logo_image_tag(string $imgTag): bool
+{
+    if (preg_match('/alt="Course cover"/i', $imgTag) || str_contains($imgTag, '{{cover_url}}')) {
+        return false;
+    }
+
+    return (bool)preg_match(
+        '/src="[^"]*(?:Watercolor_masters\/World|World[\s_%]Watercolor|World_Watercolor|'
+        . 'tild3666-3831-4932-b039-356262326639|\{\{logo_url\}\})[^"]*"/i',
+        $imgTag
+    );
+}
+
+function wwm_email_html_has_legacy_logo_image(string $html): bool
+{
+    if (!preg_match_all('/<img[^>]+>/i', substr($html, 0, 8000), $matches)) {
+        return false;
+    }
+
+    foreach ($matches[0] as $tag) {
+        if (wwm_email_is_logo_image_tag($tag)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function wwm_email_dedupe_logo_rows(string $html): string
+{
+    $seen = 0;
+
+    $deduped = preg_replace_callback(
+        '#<tr><td class="pad" align="center" style="padding:[^"]*">\s*<a[^>]*>\s*'
+        . '<span class="email-logo"[^>]*>.*?</td></tr>#is',
+        static function (array $match) use (&$seen): string {
+            $seen++;
+            return $seen === 1 ? $match[0] : '';
+        },
+        $html
+    );
+
+    return is_string($deduped) ? $deduped : $html;
+}
+
+function wwm_email_cover_row_html(string $coverUrl): string
+{
+    $escaped = htmlspecialchars($coverUrl, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    return '<!-- cover:start --><tr><td class="pad" style="padding:0 40px 24px;background:#ffffff;">'
+        . '<img src="' . $escaped . '" width="520" alt="Course cover" '
+        . 'style="width:100%;border-radius:8px;border:1px solid #e5e5e5;"></td></tr><!-- cover:end -->';
+}
+
+function wwm_email_has_cover_image(?string $html): bool
+{
+    if ($html === null || $html === '') {
+        return false;
+    }
+
+    if (str_contains($html, '<!-- cover:start -->')) {
+        return true;
+    }
+
+    return (bool)preg_match('/<img[^>]+alt="Course cover"[^>]*>/i', $html);
+}
+
+function wwm_email_ensure_cover_row(?string $html, string $coverUrl): ?string
+{
+    if ($html === null || $html === '') {
+        return $html;
+    }
+
+    $coverUrl = trim($coverUrl);
+    if ($coverUrl === '' || !str_starts_with($coverUrl, 'https://')) {
+        return $html;
+    }
+
+    if (wwm_email_has_cover_image($html)) {
+        return $html;
+    }
+
+    $coverRow = wwm_email_cover_row_html($coverUrl);
+    $replaced = preg_replace(
+        '#(</h1>.*?</td>\s*</tr>)#is',
+        '$1' . $coverRow,
+        $html,
+        1
+    );
+
+    return is_string($replaced) ? $replaced : $html;
+}
+
 function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = false): ?string
 {
     if ($html === null || $html === '') {
@@ -374,8 +467,8 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
             . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
             . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
             . '\s*</td></tr>#is',
-        '#<tr>\s*<td[^>]*>\s*(?:<a[^>]*>\s*)?<img[^>]+(?:autoweboffice|tildacdn|Watercolor_masters|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:</a>\s*)?(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
-        '#<tr>\s*<td[^>]*>\s*<img[^>]+(?:autoweboffice|tildacdn|Watercolor_masters|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
+        '#<tr>\s*<td[^>]*>\s*(?:<a[^>]*>\s*)?<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:</a>\s*)?(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
+        '#<tr>\s*<td[^>]*>\s*<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
     ];
 
     foreach ($logoRowPatterns as $pattern) {
@@ -408,7 +501,7 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
 
     if (
         !str_contains($out, 'class="email-logo"')
-        && preg_match('/<img[^>]+src="[^"]*(?:tildacdn|autoweboffice|Watercolor|logo)[^"]*"/i', substr($out, 0, 8000))
+        && wwm_email_html_has_legacy_logo_image($out)
     ) {
         $replaced = preg_replace(
             '#(<table[^>]*class="wrapper"[^>]*>)\s*<tr>.*?</tr>#is',
@@ -445,7 +538,7 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
         }
     }
 
-    return $out;
+    return wwm_email_dedupe_logo_rows($out);
 }
 
 function wwm_repair_email_html(?string $html): ?string
@@ -527,8 +620,16 @@ function wwm_email_html_issues(?string $html): array
     if (!str_contains($html, 'World Watercolor')) {
         $issues[] = 'missing text logo';
     }
-    if (preg_match('/<img[^>]+src="[^"]*(?:logo|Watercolor|tildacdn|autoweboffice)[^"]*"/i', $html)) {
-        $issues[] = 'image logo in header';
+    if (substr_count($html, 'class="email-logo"') > 1) {
+        $issues[] = 'duplicate text logo';
+    }
+    if (preg_match_all('/<img[^>]+>/i', $html, $imgTags)) {
+        foreach ($imgTags[0] as $tag) {
+            if (wwm_email_is_logo_image_tag($tag)) {
+                $issues[] = 'image logo in header';
+                break;
+            }
+        }
     }
 
     $openTables = substr_count(strtolower($html), '<table');

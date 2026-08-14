@@ -17,7 +17,7 @@ final class EmailTemplateRenderer
         $custom = EmailTemplate::find(wwm_pdo(), $templateId);
         if ($custom !== null) {
             $bodyHtml = $custom['body_html'] !== null
-                ? wwm_repair_email_html(self::applyVars((string)$custom['body_html'], $vars))
+                ? self::finalizeHtmlBody(self::applyVars((string)$custom['body_html'], $vars), $vars)
                 : null;
 
             return [
@@ -115,5 +115,16 @@ final class EmailTemplateRenderer
         }
 
         return strtr($template, $replacements);
+    }
+
+    /**
+     * @param array<string, string> $vars
+     */
+    private static function finalizeHtmlBody(string $html, array $vars): string
+    {
+        $html = wwm_repair_email_html($html) ?? '';
+        $html = wwm_email_ensure_cover_row($html, $vars['cover_url'] ?? '') ?? '';
+
+        return EmailTemplateDrafts::finalizeHtml($html, $vars) ?? '';
     }
 }

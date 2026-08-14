@@ -190,7 +190,10 @@ final class EmailTemplateCatalog
 
         $message['html'] = EmailTemplateDrafts::finalizeHtml($message['html'], $vars);
         if ($message['html'] !== null) {
-            $message['html'] = wwm_repair_email_html($message['html']);
+            $message['html'] = wwm_email_ensure_cover_row(
+                wwm_repair_email_html($message['html']),
+                $vars['cover_url'] ?? ''
+            );
         }
 
         return $message;
