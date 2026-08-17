@@ -31,6 +31,10 @@ $formatDateTime = static function (?string $iso): string {
         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
         <button type="submit" class="btn btn-ghost btn-sm">Sync names from AVO</button>
       </form>
+      <form method="post" action="/admin/students/avo-sync-utm" class="inline-form" onsubmit="return confirm('Pull UTM / marketing channels from AVO for all <?= (int)($totalStudents ?? 0) ?> students? This may take several minutes.');">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Sync UTM from AVO</button>
+      </form>
     <?php endif; ?>
     <a href="/admin/students/new" class="btn btn-primary btn-sm">Add student</a>
   </div>

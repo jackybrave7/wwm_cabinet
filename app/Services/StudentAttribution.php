@@ -211,6 +211,15 @@ final class StudentAttribution
         }
 
         if ($parts === []) {
+            foreach (['utm_medium', 'utm_term', 'utm_content'] as $key) {
+                $value = trim((string)($user[$key] ?? ''));
+                if ($value !== '') {
+                    $parts[] = $value;
+                }
+            }
+        }
+
+        if ($parts === []) {
             return '—';
         }
 
@@ -238,36 +247,45 @@ final class StudentAttribution
     /**
      * Backfill missing UTM fields from AVO for an existing cabinet user.
      */
-    public static function backfillUtmFromAvo(\PDO $pdo, int $userId): bool
+    public static function backfillUtmFromAvo(\PDO $pdo, int $userId, ?AvoClient $client = null): bool
+    {
+        return self::backfillUtmStatus($pdo, $userId, $client) === 'updated';
+    }
+
+    /**
+     * @return 'updated'|'unchanged'|'empty'|'disabled'|'missing_user'
+     */
+    public static function backfillUtmStatus(\PDO $pdo, int $userId, ?AvoClient $client = null): string
     {
         $user = User::findById($pdo, $userId);
         if ($user === null) {
-            return false;
+            return 'missing_user';
         }
 
-        $payload = ['email' => (string)$user['email']];
-        $contactId = (int)($user['avo_contact_id'] ?? 0);
-        if ($contactId > 0) {
-            $payload['id_contact'] = $contactId;
+        $client ??= new AvoClient();
+        if (!$client->isEnabled()) {
+            return 'disabled';
         }
 
+        $before = self::utmFields($user);
         $utm = AvoAdvertisingSnapshot::utmFromUser($user);
-        $client = new AvoClient();
-        if ($utm === []) {
-            $utm = (new AvoUtmResolver($client))->resolve($payload);
-        }
+        $resolved = (new AvoUtmResolver($client))->resolve(self::avoPayloadForUser($pdo, $user));
+        $utm = self::mergeUtm($utm, $resolved);
+
         if ($utm === []) {
             wwm_log(sprintf(
                 'avo utm backfill empty for user %d contact %s email %s last_error=%s',
                 $userId,
-                $contactId > 0 ? (string)$contactId : 'n/a',
+                (int)($user['avo_contact_id'] ?? 0) > 0 ? (string)$user['avo_contact_id'] : 'n/a',
                 (string)$user['email'],
                 $client->lastError() ?? 'none'
             ));
-            return false;
+
+            return 'empty';
         }
 
-        if ($contactId <= 0 && $client->isEnabled()) {
+        $contactId = (int)($user['avo_contact_id'] ?? 0);
+        if ($contactId <= 0) {
             $found = $client->findContactIdByEmail((string)$user['email']);
             if ($found !== null && $found > 0) {
                 User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $found]);
@@ -276,7 +294,96 @@ final class StudentAttribution
 
         self::recordForUser($pdo, $userId, false, $utm, false);
 
-        return true;
+        $afterUser = User::findById($pdo, $userId);
+        $after = $afterUser !== null ? self::utmFields($afterUser) : $before;
+
+        return count($after) > count($before) ? 'updated' : 'unchanged';
+    }
+
+    /**
+     * @return array{
+     *   total: int,
+     *   updated: int,
+     *   unchanged: int,
+     *   empty: int,
+     *   disabled: bool
+     * }
+     */
+    public static function backfillAllUtmFromAvo(\PDO $pdo, int $pauseMicros = 150000): array
+    {
+        $stats = [
+            'total' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'empty' => 0,
+            'disabled' => false,
+        ];
+
+        $client = new AvoClient();
+        if (!$client->isEnabled()) {
+            $stats['disabled'] = true;
+
+            return $stats;
+        }
+
+        $stmt = $pdo->query('SELECT id FROM users ORDER BY id ASC');
+        $rows = $stmt ? ($stmt->fetchAll() ?: []) : [];
+        $stats['total'] = count($rows);
+
+        foreach ($rows as $row) {
+            $status = self::backfillUtmStatus($pdo, (int)$row['id'], $client);
+            if ($status === 'updated') {
+                $stats['updated']++;
+            } elseif ($status === 'unchanged') {
+                $stats['unchanged']++;
+            } elseif ($status === 'empty' || $status === 'missing_user') {
+                $stats['empty']++;
+            }
+
+            if ($pauseMicros > 0) {
+                usleep($pauseMicros);
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return array<string, mixed>
+     */
+    private static function avoPayloadForUser(\PDO $pdo, array $user): array
+    {
+        $payload = ['email' => (string)$user['email']];
+        $contactId = (int)($user['avo_contact_id'] ?? 0);
+        if ($contactId > 0) {
+            $payload['id_contact'] = $contactId;
+        }
+
+        $accountId = self::guessAccountId($pdo, (int)$user['id']);
+        if ($accountId > 0) {
+            $payload['id_account'] = $accountId;
+        }
+
+        return $payload;
+    }
+
+    private static function guessAccountId(\PDO $pdo, int $userId): int
+    {
+        $stmt = $pdo->prepare(
+            'SELECT source_ref FROM access WHERE user_id = ? AND source_ref IS NOT NULL AND source_ref != "" '
+            . 'ORDER BY granted_at ASC'
+        );
+        $stmt->execute([$userId]);
+        $rows = $stmt->fetchAll() ?: [];
+        foreach ($rows as $row) {
+            $ref = trim((string)($row['source_ref'] ?? ''));
+            if ($ref !== '' && ctype_digit($ref)) {
+                return (int)$ref;
+            }
+        }
+
+        return 0;
     }
 
     /**

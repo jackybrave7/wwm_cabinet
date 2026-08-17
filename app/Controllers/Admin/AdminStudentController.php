@@ -109,6 +109,13 @@ final class AdminStudentController
                     (int)($_GET['empty'] ?? 0),
                     (int)($_GET['total'] ?? 0)
                 ),
+                isset($_GET['sync']) && ($_GET['sync'] ?? '') === 'utm' => sprintf(
+                    'UTM from AVO: %d updated, %d already complete, %d without data in AVO (of %d students).',
+                    (int)($_GET['updated'] ?? 0),
+                    (int)($_GET['unchanged'] ?? 0),
+                    (int)($_GET['empty'] ?? 0),
+                    (int)($_GET['total'] ?? 0)
+                ),
                 isset($_GET['created']) => 'Student created.',
                 default => null,
             },
@@ -472,6 +479,39 @@ final class AdminStudentController
         ]));
     }
 
+    public function syncAllUtmFromAvo(): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students?error=csrf');
+        }
+
+        @set_time_limit(600);
+
+        $stats = StudentAttribution::backfillAllUtmFromAvo(wwm_pdo());
+        if (!empty($stats['disabled'])) {
+            wwm_redirect('/admin/students?error=avo_disabled');
+            return;
+        }
+
+        wwm_log(sprintf(
+            'avo utm backfill: total=%d updated=%d unchanged=%d empty=%d',
+            $stats['total'],
+            $stats['updated'],
+            $stats['unchanged'],
+            $stats['empty']
+        ));
+
+        wwm_redirect('/admin/students?' . http_build_query([
+            'sync' => 'utm',
+            'updated' => $stats['updated'],
+            'unchanged' => $stats['unchanged'],
+            'empty' => $stats['empty'],
+            'total' => $stats['total'],
+        ]));
+    }
+
     public function resyncAvo(int $id): void
     {
         Session::requireAdmin();
@@ -489,7 +529,9 @@ final class AdminStudentController
 
         AvoEngagementSync::resync($id);
         $nameSynced = AvoContactName::backfillFromAvo(wwm_pdo(), $id);
-        $utmSynced = StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
+        StudentAttribution::backfillUtmStatus(wwm_pdo(), $id);
+        $refreshed = User::findById(wwm_pdo(), $id);
+        $utmSynced = $refreshed !== null && StudentAttribution::utmFields($refreshed) !== [];
         $created = match (true) {
             $nameSynced && $utmSynced => 'avo_name_utm',
             $nameSynced => 'avo_name',

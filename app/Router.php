@@ -192,6 +192,10 @@ final class Router
             (new AdminStudentController())->syncAllNamesFromAvo();
             return;
         }
+        if ($method === 'POST' && $path === '/admin/students/avo-sync-utm') {
+            (new AdminStudentController())->syncAllUtmFromAvo();
+            return;
+        }
 
         if ($method === 'GET' && $path === '/admin/mail-test') {
             (new AdminMailController())->test();

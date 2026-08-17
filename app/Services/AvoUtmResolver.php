@@ -60,6 +60,7 @@ final class AvoUtmResolver
 
         if ($contactId > 0) {
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactLinks($contactId));
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAccountsByContact($contactId));
         }
 
         if ($email !== '' && !$this->hasCoreUtm($utm)) {
@@ -173,6 +174,33 @@ final class AvoUtmResolver
             }
 
             $row = $this->pickOldestRow($rows);
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
+            if ($this->hasCoreUtm($utm)) {
+                break;
+            }
+        }
+
+        return $utm;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function utmFromAccountsByContact(int $contactId): array
+    {
+        $rows = $this->client->searchRows('accounts', ['id_contact' => (string)$contactId], [
+            'pagesize' => 10,
+        ]);
+        if ($rows === []) {
+            return [];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            return self::rowTimestamp($a) <=> self::rowTimestamp($b);
+        });
+
+        $utm = [];
+        foreach ($rows as $row) {
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
             if ($this->hasCoreUtm($utm)) {
                 break;
