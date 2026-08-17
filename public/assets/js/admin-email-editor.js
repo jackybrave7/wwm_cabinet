@@ -251,12 +251,22 @@
     return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
   }
 
+  function cleanupEmailHtml(source) {
+    let html = String(source || '');
+    html = html.replace(/&lt;\s*(\/?)\s*([a-z][a-z0-9]*)\b/gi, '<$1$2');
+    html = html.replace(/<\s+([a-z][a-z0-9]*)\b/gi, '<$1');
+    html = html.replace(/<\s*\/\s*([a-z][a-z0-9]*)\b/gi, '</$1');
+    html = html.replace(/<style[^>]*id=["']wwm-visual-editor-style["'][^>]*>[\s\S]*?<\/style>/gi, '');
+    html = html.replace(/\scontenteditable=(["'])true\1/gi, '');
+    return html;
+  }
+
   function syncVisualToHtml() {
     if (!hasHtml || !htmlInput) return;
     if (!visualHasContent() && htmlInput.value.trim() !== '') {
       return;
     }
-    htmlInput.value = htmlFromVisual();
+    htmlInput.value = cleanupEmailHtml(htmlFromVisual());
     syncHtmlHighlight();
   }
 
@@ -406,6 +416,9 @@
     form.addEventListener('submit', () => {
       if (hasHtml) {
         syncVisualToHtml();
+        if (htmlInput) {
+          htmlInput.value = cleanupEmailHtml(htmlInput.value);
+        }
       }
       const templateId = String(config.templateId || form.getAttribute('data-template-id') || '').trim();
       if (templateId !== '') {

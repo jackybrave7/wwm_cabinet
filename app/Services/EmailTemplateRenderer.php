@@ -17,7 +17,12 @@ final class EmailTemplateRenderer
         $custom = EmailTemplate::find(wwm_pdo(), $templateId);
         if ($custom !== null) {
             $bodyHtml = $custom['body_html'] !== null
-                ? self::finalizeHtmlBody(self::applyVars((string)$custom['body_html'], $vars), $vars)
+                ? self::finalizeHtmlBody(
+                    self::applyVars((string)$custom['body_html'], $vars),
+                    $vars,
+                    $templateId,
+                    $context
+                )
                 : null;
 
             return [
@@ -129,11 +134,36 @@ final class EmailTemplateRenderer
     /**
      * @param array<string, string> $vars
      */
-    private static function finalizeHtmlBody(string $html, array $vars): string
+    private static function finalizeHtmlBody(string $html, array $vars, string $templateId, array $context): string
     {
         $html = wwm_repair_email_html($html) ?? '';
         $html = wwm_email_ensure_cover_row($html, $vars['cover_url'] ?? '') ?? '';
+        $html = EmailTemplateDrafts::finalizeHtml($html, $vars) ?? '';
 
-        return EmailTemplateDrafts::finalizeHtml($html, $vars) ?? '';
+        $issues = wwm_email_html_issues($html);
+        $critical = array_filter(
+            $issues,
+            static fn (string $issue): bool => str_contains($issue, 'broken')
+                || str_contains($issue, 'unbalanced')
+        );
+        if ($critical !== []) {
+            try {
+                $builtin = EmailTemplateCatalog::builtInMessage($templateId, $context);
+                $builtinHtml = $builtin['html'] ?? null;
+                if (is_string($builtinHtml) && trim($builtinHtml) !== '') {
+                    wwm_log(
+                        'email template ' . $templateId
+                        . ' fell back to built-in HTML after repair: '
+                        . implode(', ', $critical)
+                    );
+
+                    return $builtinHtml;
+                }
+            } catch (\InvalidArgumentException) {
+                // keep repaired custom html
+            }
+        }
+
+        return $html;
     }
 }

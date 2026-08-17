@@ -575,6 +575,62 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
     return wwm_email_dedupe_logo_rows($out);
 }
 
+function wwm_email_button_html(string $url, string $label): string
+{
+    $url = htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $label = htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    return '<table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0" align="center" '
+        . 'style="margin:16px auto;border-collapse:separate;border-radius:8px;background:#e63027;">'
+        . '<tr><td align="center" bgcolor="#e63027" '
+        . 'style="border-radius:8px;background:#e63027;mso-padding-alt:16px 32px;">'
+        . '<a href="' . $url . '" target="_blank" '
+        . 'style="display:inline-block;padding:16px 32px;font-size:17px;font-weight:700;line-height:1.2;'
+        . 'color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;border-radius:8px;">'
+        . $label . '</a></td></tr></table>';
+}
+
+function wwm_email_repair_cta_blocks(string $html): string
+{
+    $repaired = preg_replace_callback(
+        '/<table[^>]*\bclass="btn"[^>]*>[\s\S]*?<\/table>/i',
+        static function (array $match): string {
+            $block = $match[0];
+            if (preg_match('/<a\s+[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i', $block, $anchor)) {
+                return wwm_email_button_html(
+                    html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                    html_entity_decode(trim($anchor[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8')
+                );
+            }
+
+            if (preg_match('/(?:<|&lt;)\s*a\s+href="([^"]+)"[^>]*>([^<]+)/i', $block, $anchor)) {
+                return wwm_email_button_html(
+                    html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                    html_entity_decode(trim($anchor[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8')
+                );
+            }
+
+            return $block;
+        },
+        $html
+    );
+
+    $out = is_string($repaired) ? $repaired : $html;
+
+    $repairedAnchors = preg_replace_callback(
+        '/(?:<|&lt;)\s*a\s+href="([^"]+)"[^>]*style="[^"]*display\s*:\s*inline-block[^"]*"[^>]*>([^<]+)/i',
+        static function (array $match): string {
+            return wwm_email_button_html(
+                html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                html_entity_decode(trim($match[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8')
+            );
+        },
+        $out
+    );
+
+    return is_string($repairedAnchors) ? $repairedAnchors : $out;
+}
+
 function wwm_email_html_is_editor_ready(?string $html): bool
 {
     if ($html === null || trim($html) === '') {
@@ -606,13 +662,17 @@ function wwm_repair_email_html(?string $html): ?string
     $out = $html;
     $out = preg_replace('/<style[^>]*\bid=["\']wwm-visual-editor-style["\'][^>]*>[\s\S]*?<\/style>/i', '', $out) ?? $out;
     $out = preg_replace('/\scontenteditable=(["\'])true\1/i', '', $out) ?? $out;
-    foreach (['table', 'tr', 'td', 'th', 'p', 'a', 'span', 'div'] as $tag) {
+    $out = preg_replace('/&lt;\s*(\/?)\s*([a-z][a-z0-9]*)\b/i', '<$1$2', $out) ?? $out;
+    $out = preg_replace('/<\s+([a-z][a-z0-9]*)\b/i', '<$1', $out) ?? $out;
+    $out = preg_replace('/<\s*\/\s*([a-z][a-z0-9]*)\b/i', '</$1', $out) ?? $out;
+    foreach (['table', 'tr', 'td', 'th', 'p', 'a', 'span', 'div', 'h1', 'h2', 'strong', 'img'] as $tag) {
         $out = preg_replace('/<\s+' . $tag . '\b/i', '<' . $tag, $out) ?? $out;
         $out = preg_replace('/<\s+\/' . $tag . '\b/i', '</' . $tag, $out) ?? $out;
     }
 
     $out = preg_replace('/&\s+#(\d+);/', '&#$1;', $out) ?? $out;
     $out = preg_replace('/&\s+#x([0-9a-f]+);/i', '&#x$1;', $out) ?? $out;
+    $out = wwm_email_repair_cta_blocks($out);
 
     $couponOpen = '<td style="padding:20px 24px;text-align:center;">';
     $couponTable = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -665,6 +725,9 @@ function wwm_email_html_issues(?string $html): array
     }
     if (preg_match('/<\s+(td|tr|table|p|a|span|div)\b/i', $html)) {
         $issues[] = 'broken tag spacing (visual editor corruption)';
+    }
+    if (preg_match('/(?:<|&lt;)\s*a\s+href=/i', $html)) {
+        $issues[] = 'broken cta button markup';
     }
     if (preg_match('/&\s+#/i', $html)) {
         $issues[] = 'broken html entity';

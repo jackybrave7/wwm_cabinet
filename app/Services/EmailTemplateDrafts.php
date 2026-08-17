@@ -446,13 +446,7 @@ final class EmailTemplateDrafts
 
     private static function button(string $url, string $label): string
     {
-        return '<table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0" align="center" '
-            . 'style="margin:8px auto 0;border-radius:8px;background:#e63027;">'
-            . '<tr><td align="center" style="border-radius:8px;background:#e63027;">'
-            . '<a href="' . $url . '" target="_blank" '
-            . 'style="display:inline-block;padding:16px 32px;font-size:17px;font-weight:700;color:#ffffff;'
-            . 'text-decoration:none;font-family:Arial,Helvetica,sans-serif;">'
-            . self::e($label) . '</a></td></tr></table>';
+        return wwm_email_button_html($url, $label);
     }
 
     private static function supportBlock(): string
