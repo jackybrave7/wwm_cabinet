@@ -188,6 +188,10 @@ final class Router
             (new AdminStudentController())->resyncAvo((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && $path === '/admin/students/avo-sync-names') {
+            (new AdminStudentController())->syncAllNamesFromAvo();
+            return;
+        }
 
         if ($method === 'GET' && $path === '/admin/mail-test') {
             (new AdminMailController())->test();

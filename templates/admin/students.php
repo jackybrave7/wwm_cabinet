@@ -26,6 +26,12 @@ $formatDateTime = static function (?string $iso): string {
       <input type="search" name="q" class="admin-search" placeholder="Search by name or email…" value="<?= wwm_escape($search ?? '') ?>" aria-label="Search students">
       <button type="submit" class="btn btn-ghost btn-sm">Search</button>
     </form>
+    <?php if (!empty($avo_enabled)): ?>
+      <form method="post" action="/admin/students/avo-sync-names" class="inline-form" onsubmit="return confirm('Update student names from AVO for all <?= (int)($totalStudents ?? 0) ?> students? This may take a minute.');">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Sync names from AVO</button>
+      </form>
+    <?php endif; ?>
     <a href="/admin/students/new" class="btn btn-primary btn-sm">Add student</a>
   </div>
 </div>

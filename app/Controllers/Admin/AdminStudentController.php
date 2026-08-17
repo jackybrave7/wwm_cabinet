@@ -100,13 +100,27 @@ final class AdminStudentController
             'totalStudents' => $totalStudents,
             'page' => $page,
             'totalPages' => $totalPages,
-            'message' => isset($_GET['created']) ? 'Student created.' : null,
+            'message' => match (true) {
+                isset($_GET['sync']) && ($_GET['sync'] ?? '') === 'names' => sprintf(
+                    'Names from AVO: %d updated, %d already complete, %d without AVO contact, %d empty in AVO (of %d students).',
+                    (int)($_GET['updated'] ?? 0),
+                    (int)($_GET['unchanged'] ?? 0),
+                    (int)($_GET['missing'] ?? 0),
+                    (int)($_GET['empty'] ?? 0),
+                    (int)($_GET['total'] ?? 0)
+                ),
+                isset($_GET['created']) => 'Student created.',
+                default => null,
+            },
             'error' => match ($_GET['error'] ?? '') {
                 'exists' => 'A student with this email already exists.',
                 'delete_self' => 'You cannot delete your own account.',
                 'delete_admin' => 'Admin accounts cannot be deleted.',
+                'csrf' => 'Session expired. Please try again.',
+                'avo_disabled' => 'AVO integration is disabled in config.',
                 default => null,
             },
+            'avo_enabled' => (new AvoClient())->isEnabled(),
         ]);
     }
 
@@ -421,6 +435,41 @@ final class AdminStudentController
         }
 
         return ['active' => $active, 'label' => $label, 'expires_at' => $expiresAt];
+    }
+
+    public function syncAllNamesFromAvo(): void
+    {
+        Session::requireAdmin();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students?error=csrf');
+        }
+
+        @set_time_limit(300);
+
+        $stats = AvoContactName::backfillAll(wwm_pdo());
+        if (!empty($stats['disabled'])) {
+            wwm_redirect('/admin/students?error=avo_disabled');
+            return;
+        }
+
+        wwm_log(sprintf(
+            'avo name backfill: total=%d updated=%d unchanged=%d missing=%d empty=%d',
+            $stats['total'],
+            $stats['updated'],
+            $stats['unchanged'],
+            $stats['missing_contact'],
+            $stats['empty_name']
+        ));
+
+        wwm_redirect('/admin/students?' . http_build_query([
+            'sync' => 'names',
+            'updated' => $stats['updated'],
+            'unchanged' => $stats['unchanged'],
+            'missing' => $stats['missing_contact'],
+            'empty' => $stats['empty_name'],
+            'total' => $stats['total'],
+        ]));
     }
 
     public function resyncAvo(int $id): void

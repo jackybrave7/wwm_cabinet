@@ -77,16 +77,24 @@ final class AvoContactName
         return true;
     }
 
-    public static function backfillFromAvo(PDO $pdo, int $userId): bool
+    public static function backfillFromAvo(PDO $pdo, int $userId, ?AvoClient $client = null): bool
+    {
+        return self::backfillStatus($pdo, $userId, $client) === 'updated';
+    }
+
+    /**
+     * @return 'updated'|'unchanged'|'missing_contact'|'empty_name'|'disabled'|'missing_user'
+     */
+    public static function backfillStatus(PDO $pdo, int $userId, ?AvoClient $client = null): string
     {
         $user = User::findById($pdo, $userId);
         if ($user === null) {
-            return false;
+            return 'missing_user';
         }
 
-        $client = new AvoClient();
+        $client ??= new AvoClient();
         if (!$client->isEnabled()) {
-            return false;
+            return 'disabled';
         }
 
         $contactId = (int)($user['avo_contact_id'] ?? 0);
@@ -98,12 +106,12 @@ final class AvoContactName
             $contact = $client->findContactByEmail((string)$user['email']);
         }
         if ($contact === null) {
-            return false;
+            return 'missing_contact';
         }
 
         $name = self::resolveFromContact($contact);
         if ($name === '') {
-            return false;
+            return 'empty_name';
         }
 
         $updated = self::syncForUser($pdo, $userId, $name);
@@ -112,7 +120,59 @@ final class AvoContactName
             User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $foundId]);
         }
 
-        return $updated;
+        return $updated ? 'updated' : 'unchanged';
+    }
+
+    /**
+     * @return array{
+     *   total: int,
+     *   updated: int,
+     *   unchanged: int,
+     *   missing_contact: int,
+     *   empty_name: int,
+     *   disabled: bool
+     * }
+     */
+    public static function backfillAll(PDO $pdo, int $pauseMicros = 120000): array
+    {
+        $stats = [
+            'total' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'missing_contact' => 0,
+            'empty_name' => 0,
+            'disabled' => false,
+        ];
+
+        $client = new AvoClient();
+        if (!$client->isEnabled()) {
+            $stats['disabled'] = true;
+
+            return $stats;
+        }
+
+        $stmt = $pdo->query('SELECT id FROM users ORDER BY id ASC');
+        $rows = $stmt ? ($stmt->fetchAll() ?: []) : [];
+        $stats['total'] = count($rows);
+
+        foreach ($rows as $row) {
+            $status = self::backfillStatus($pdo, (int)$row['id'], $client);
+            if ($status === 'updated') {
+                $stats['updated']++;
+            } elseif ($status === 'unchanged') {
+                $stats['unchanged']++;
+            } elseif ($status === 'empty_name') {
+                $stats['empty_name']++;
+            } elseif ($status === 'missing_contact' || $status === 'missing_user') {
+                $stats['missing_contact']++;
+            }
+
+            if ($pauseMicros > 0) {
+                usleep($pauseMicros);
+            }
+        }
+
+        return $stats;
     }
 
     /**
