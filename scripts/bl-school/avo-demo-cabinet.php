@@ -21,7 +21,13 @@ if ($token === '' || !hash_equals(WWM_CABINET_DEMO_TOKEN, $token)) {
 }
 
 $email = trim((string)($_GET['email'] ?? $_POST['email'] ?? ''));
-$name = trim((string)($_GET['name'] ?? $_POST['name'] ?? ''));
+$name = resolveAvoContactName(array_merge(
+    extractAvoPayloadRow() ?? [],
+    [
+        'name' => trim((string)($_GET['name'] ?? $_POST['name'] ?? '')),
+        'last_name' => trim((string)($_GET['last_name'] ?? $_POST['last_name'] ?? '')),
+    ]
+));
 $course = trim((string)($_GET['course'] ?? $_POST['course'] ?? ''));
 $idGoods = (int)($_GET['id_goods'] ?? $_POST['id_goods'] ?? 0);
 
@@ -148,4 +154,20 @@ function forwardToCabinet(array $payload): array
         'status' => $status,
         'body' => is_string($body) && $body !== '' ? $body : json_encode(['ok' => false, 'error' => 'cabinet_unreachable']),
     ];
+}
+
+/**
+ * @param array<string, mixed> $payload
+ */
+function resolveAvoContactName(array $payload): string
+{
+    $first = trim((string)($payload['name'] ?? ''));
+    $last = trim((string)($payload['last_name'] ?? $payload['surname'] ?? ''));
+    $middle = trim((string)($payload['middle_name'] ?? ''));
+
+    if ($first !== '' && $last !== '') {
+        return trim($first . ($middle !== '' ? ' ' . $middle : '') . ' ' . $last);
+    }
+
+    return $first !== '' ? $first : $last;
 }

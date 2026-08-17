@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Api;
 
+use Wwm\Services\AvoContactName;
 use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\CabinetMail;
@@ -19,7 +20,7 @@ final class MailWebhookController
         $payload = AvoWebhookPayload::read();
         $template = $this->normalizeTemplate((string)($payload['template'] ?? $_GET['template'] ?? ''));
         $email = trim((string)($payload['email'] ?? ''));
-        $name = trim((string)($payload['name'] ?? ''));
+        $name = AvoContactName::resolveFromPayload($payload);
         $courseSlug = DemoAccess::resolveCourseSlug(
             isset($payload['course']) ? (string)$payload['course'] : null,
             isset($payload['id_goods']) ? (int)$payload['id_goods'] : null

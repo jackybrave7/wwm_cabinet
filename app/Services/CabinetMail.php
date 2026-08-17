@@ -51,8 +51,8 @@ final class CabinetMail
         }
 
         $userId = (int)$user['id'];
-        if ($name !== null && $name !== '' && trim((string)($user['name'] ?? '')) === '') {
-            User::updateName($pdo, $userId, $name);
+        if ($name !== null && $name !== '') {
+            AvoContactName::syncForUser($pdo, $userId, $name);
             $user = User::findById($pdo, $userId) ?? $user;
         }
         if ($avoContactId !== null && $avoContactId > 0) {

@@ -11,6 +11,7 @@ use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
+use Wwm\Services\AvoContactName;
 use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\AvoClient;
 use Wwm\Services\StudentAttribution;
@@ -286,6 +287,8 @@ final class AdminStudentController
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
                 'avo' => 'AVO tags and UTM synced.',
+                'avo_name' => 'Name updated from AVO.',
+                'avo_name_utm' => 'Name, AVO tags, and UTM synced.',
                 'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — check cabinet.log.',
                 default => null,
             },
@@ -436,8 +439,15 @@ final class AdminStudentController
         }
 
         AvoEngagementSync::resync($id);
+        $nameSynced = AvoContactName::backfillFromAvo(wwm_pdo(), $id);
         $utmSynced = StudentAttribution::backfillUtmFromAvo(wwm_pdo(), $id);
-        wwm_redirect('/admin/students/' . $id . '?created=' . ($utmSynced ? 'avo' : 'avo_tags'));
+        $created = match (true) {
+            $nameSynced && $utmSynced => 'avo_name_utm',
+            $nameSynced => 'avo_name',
+            $utmSynced => 'avo',
+            default => 'avo_tags',
+        };
+        wwm_redirect('/admin/students/' . $id . '?created=' . $created);
     }
 
     private function renderCreateForm(string $error): void

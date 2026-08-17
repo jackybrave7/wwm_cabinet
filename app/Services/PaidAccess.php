@@ -53,8 +53,8 @@ final class PaidAccess
             $userId = User::create($pdo, $email, $plainPassword, $name);
             $user = User::findById($pdo, $userId);
             $created = true;
-        } elseif ($name !== '' && trim((string)($user['name'] ?? '')) === '') {
-            User::updateName($pdo, (int)$user['id'], $name);
+        } elseif ($name !== '') {
+            AvoContactName::syncForUser($pdo, (int)$user['id'], $name);
         }
 
         if ($user === null) {
