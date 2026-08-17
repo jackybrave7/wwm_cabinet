@@ -61,12 +61,12 @@ final class AdminStudentController
                     'demo_active' => false,
                     'paid_active' => false,
                 ];
-                if (!$state['has_paid'] && !$state['demo_active']) {
+                $lessonCount = CourseWriter::lessonCount($course);
+                $opened = (int)($userOpenCounts[$slug] ?? 0);
+                if (!Access::adminProgressVisible($state, $opened)) {
                     continue;
                 }
 
-                $lessonCount = CourseWriter::lessonCount($course);
-                $opened = (int)($userOpenCounts[$slug] ?? 0);
                 $totalOpened += $opened;
                 $totalLessons += $lessonCount;
                 $courseProgress[] = [
@@ -74,7 +74,7 @@ final class AdminStudentController
                     'title' => (string)($course['title'] ?? $slug),
                     'opened' => $opened,
                     'total' => $lessonCount,
-                    'access' => $state['has_paid'] ? 'Paid' : 'Demo',
+                    'access' => Access::adminCourseAccessLabel($state),
                 ];
             }
 
@@ -223,11 +223,11 @@ final class AdminStudentController
                 'demo_active' => false,
                 'paid_active' => false,
             ];
-            if (!$state['has_paid'] && !$state['demo_active']) {
+            $opens = $opensByCourse[$slug] ?? [];
+            if (!Access::adminProgressVisible($state, count($opens))) {
                 continue;
             }
 
-            $opens = $opensByCourse[$slug] ?? [];
             $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
             $lessonRows = [];
             foreach ($lessons as $lesson) {
@@ -251,7 +251,7 @@ final class AdminStudentController
 
             $courseBlocks[] = [
                 'course' => $course,
-                'access' => $state['has_paid'] ? 'Paid' : 'Demo',
+                'access' => Access::adminCourseAccessLabel($state),
                 'lessons' => $lessonRows,
                 'opened' => count($opens),
                 'total' => count($lessonRows),

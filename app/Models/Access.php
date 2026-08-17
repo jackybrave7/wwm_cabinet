@@ -107,6 +107,41 @@ final class Access
         return 'Demo expired';
     }
 
+    /**
+     * Admin analytics: keep lesson progress after demo expires.
+     *
+     * @param array{has_paid?: bool, has_demo?: bool, demo_active?: bool} $state
+     */
+    public static function adminProgressVisible(array $state, int $lessonsOpened = 0): bool
+    {
+        if (!empty($state['has_paid']) || !empty($state['demo_active'])) {
+            return true;
+        }
+        if (!empty($state['has_demo'])) {
+            return true;
+        }
+
+        return $lessonsOpened > 0;
+    }
+
+    /**
+     * @param array{has_paid?: bool, has_demo?: bool, demo_active?: bool} $state
+     */
+    public static function adminCourseAccessLabel(array $state): string
+    {
+        if (!empty($state['has_paid'])) {
+            return 'Paid';
+        }
+        if (!empty($state['demo_active'])) {
+            return 'Demo';
+        }
+        if (!empty($state['has_demo'])) {
+            return 'Demo expired';
+        }
+
+        return 'Historical';
+    }
+
     public static function grant(
         PDO $pdo,
         int $userId,
