@@ -874,6 +874,49 @@ a:hover { text-decoration: underline; }
   border-color: var(--accent);
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mute);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid rgba(230, 48, 39, 0.35);
+  outline-offset: 1px;
+}
+
+.password-toggle-icon {
+  display: block;
+}
+
 .form-footer {
   margin-top: 20px;
   font-size: 0.9rem;

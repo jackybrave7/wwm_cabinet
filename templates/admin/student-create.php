@@ -26,7 +26,7 @@
 
     <label class="field">
       <span>Password <span class="field-hint">(leave empty for demo default)</span></span>
-      <input type="text" name="password" autocomplete="new-password" value="">
+      <input type="password" name="password" autocomplete="new-password" value="">
     </label>
 
     <div class="top-actions" style="margin-top:20px">

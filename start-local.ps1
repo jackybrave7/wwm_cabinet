@@ -104,10 +104,10 @@ Write-Step "Freeing port $Port..."
 Stop-PortListeners -ListenPort $Port
 Start-Sleep -Milliseconds 500
 
-Write-Step "Starting server at http://127.0.0.1:$Port"
+Write-Step "Starting server at http://localhost:$Port"
 Write-Host @"
 
-Open:   http://127.0.0.1:$Port/login
+Open:   http://localhost:$Port/login
 Login:  demo@wwm.test / demo-demo-demo
         student@example.com / password
 
@@ -117,7 +117,7 @@ Press Ctrl+C to stop.
 
 Push-Location (Join-Path $Root "public")
 try {
-    & $php -S "127.0.0.1:$Port" router.php
+    & $php -S "localhost:$Port" router.php
 } finally {
     Pop-Location
 }

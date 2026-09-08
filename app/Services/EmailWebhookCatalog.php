@@ -27,7 +27,7 @@ final class EmailWebhookCatalog
         );
 
         return [
-            'url' => rtrim(wwm_base_url(), '/') . $spec['path'] . '?' . self::buildAvoQuery($query),
+            'url' => rtrim(wwm_base_url(), '/') . $spec['path'] . '?' . self::query($query),
             'token_label' => $spec['token_label'],
             'endpoint' => $spec['path'],
         ];
@@ -36,7 +36,7 @@ final class EmailWebhookCatalog
     /**
      * @param array<string, string> $params
      */
-    private static function buildAvoQuery(array $params): string
+    public static function query(array $params): string
     {
         $parts = [];
         foreach ($params as $key => $value) {
@@ -80,7 +80,6 @@ final class EmailWebhookCatalog
                 'params' => [
                     'email' => '{email}',
                     'name' => '{name}',
-                    'id_goods' => '188',
                     'id_contact' => '{id_contact}',
                     'id_account' => '{id_account}',
                 ],

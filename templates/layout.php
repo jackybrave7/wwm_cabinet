@@ -49,6 +49,7 @@
     </div>
   </footer>
   <?= wwm_analytics_body_html() ?>
+  <script src="<?= wwm_escape(wwm_asset_url('js/password-toggle.js')) ?>" defer></script>
   <script src="<?= wwm_escape(wwm_asset_url('js/cabinet.js')) ?>" defer></script>
 </body>
 </html>

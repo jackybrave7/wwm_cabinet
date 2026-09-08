@@ -3,6 +3,10 @@ $slug = (string)($course['slug'] ?? '');
 $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
 $sections = is_array($course['sections'] ?? null) ? $course['sections'] : [];
 $status = strtolower((string)($course['status'] ?? 'published'));
+$paidEmail = array_key_exists('paid_email', $course) ? (bool)$course['paid_email'] : true;
+$paymentWebhook = $paymentWebhook ?? null;
+$demoWebhook = $demoWebhook ?? null;
+$webhooksEnabled = !empty($webhooksEnabled);
 ?>
 <div class="admin-topbar">
   <div>
@@ -88,7 +92,38 @@ $status = strtolower((string)($course['status'] ?? 'published'));
           <span>Landing / buy URL</span>
           <input type="url" name="buy_url" value="<?= wwm_escape((string)($course['buy_url'] ?? '')) ?>">
         </label>
+        <label class="field" style="display:flex;gap:10px;align-items:flex-start;margin-top:12px">
+          <input type="checkbox" name="paid_email" value="1"<?= $paidEmail ? ' checked' : '' ?> style="margin-top:3px">
+          <span>Send access email from <code>robot@</code> after AVO payment (same as Elke). Uncheck if AVO still sends the paid letter.</span>
+        </label>
       </div>
+
+      <?php if (!empty($paymentWebhook) || !empty($demoWebhook)): ?>
+      <div class="admin-card">
+        <h2>AVO sales webhook</h2>
+        <p class="field-hint" style="margin-bottom:16px">
+          Paste the payment URL into the AVO product (id_goods <?= (int)($course['avo_goods_id'] ?? 0) ?: '—' ?>)
+          → tab <strong>Дополнительно</strong> → URL for notifications.
+          After payment AVO calls the cabinet, which grants full access.
+          Keep macros like <code>{email}</code> unencoded.
+        </p>
+        <?php if (!empty($paymentWebhook)): ?>
+          <p class="field-hint" style="margin-bottom:8px"><strong>Payment</strong> · <?= wwm_escape((string)$paymentWebhook['token_label']) ?> · <code><?= wwm_escape((string)$paymentWebhook['endpoint']) ?></code></p>
+          <pre class="email-webhook-sample" id="course-payment-webhook"><?= wwm_escape((string)$paymentWebhook['url']) ?></pre>
+          <button type="button" class="btn btn-ghost btn-sm email-webhook-copy" data-copy-target="course-payment-webhook" style="margin:8px 0 20px">Copy payment URL</button>
+        <?php endif; ?>
+        <?php if (!empty($demoWebhook)): ?>
+          <p class="field-hint" style="margin-bottom:8px"><strong>Demo autofunnel</strong> · <?= wwm_escape((string)$demoWebhook['token_label']) ?> · <code><?= wwm_escape((string)$demoWebhook['endpoint']) ?></code></p>
+          <pre class="email-webhook-sample" id="course-demo-webhook"><?= wwm_escape((string)$demoWebhook['url']) ?></pre>
+          <button type="button" class="btn btn-ghost btn-sm email-webhook-copy" data-copy-target="course-demo-webhook" style="margin-top:8px">Copy demo URL</button>
+        <?php endif; ?>
+      </div>
+      <?php elseif (empty($webhooksEnabled)): ?>
+      <div class="admin-card">
+        <h2>AVO sales webhook</h2>
+        <p class="field-hint">Webhooks are disabled in config (<code>webhooks.enabled</code>). Enable them and set <code>WWM_WEBHOOK_PAYMENT_TOKEN</code> to copy the AVO URL here.</p>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div class="tab-panel" data-panel="demo">

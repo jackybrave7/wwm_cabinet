@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers;
 
-use Wwm\Auth\Password;
 use Wwm\Auth\Session;
 use Wwm\Models\User;
 
@@ -62,12 +61,11 @@ final class AccountController
             return;
         }
 
-        $current = (string)($_POST['current_password'] ?? '');
         $password = (string)($_POST['password'] ?? '');
         $confirm = (string)($_POST['password_confirm'] ?? '');
 
-        if ($user === null || !Password::verify($current, (string)($user['password_hash'] ?? ''))) {
-            $this->renderAccount($user, passwordError: 'Current password is incorrect.');
+        if ($user === null) {
+            $this->renderAccount($user, passwordError: 'Account not found.');
             return;
         }
 

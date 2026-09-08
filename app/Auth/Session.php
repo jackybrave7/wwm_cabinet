@@ -13,8 +13,12 @@ final class Session
 
     public static function login(int $userId): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         session_regenerate_id(true);
         $_SESSION['user_id'] = $userId;
+        session_write_close();
     }
 
     public static function logout(): void

@@ -50,10 +50,6 @@ $email = trim((string)($user['email'] ?? ''));
       <form method="post" action="/account/password" class="form account-form">
         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
         <label class="field">
-          <span>Current password</span>
-          <input type="password" name="current_password" required autocomplete="current-password">
-        </label>
-        <label class="field">
           <span>New password</span>
           <input type="password" name="password" required minlength="8" autocomplete="new-password">
         </label>

@@ -76,12 +76,10 @@ function wwm_request_path(): string
 function wwm_session_needs_write(): bool
 {
     $path = wwm_request_path();
-    if (in_array($path, ['/auth/magic', '/logout'], true)) {
+    if (in_array($path, ['/auth/magic', '/logout', '/login', '/forgot', '/reset', '/account'], true)) {
         return true;
     }
-    if ($path === '/login'
-        && trim((string)($_GET['email'] ?? '')) !== ''
-        && (string)($_GET['password'] ?? '') !== '') {
+    if (str_starts_with($path, '/admin')) {
         return true;
     }
     foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
@@ -210,6 +208,9 @@ function wwm_asset_url(string $path): string
 
 function wwm_csrf_token(): string
 {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
@@ -224,10 +225,12 @@ function wwm_verify_csrf(?string $token): bool
 
 function wwm_redirect(string $path, int $code = 302): never
 {
-    if (!str_starts_with($path, 'http')) {
-        $path = wwm_base_url() . ($path === '' ? '/' : $path);
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+        header('Location: ' . $path, true, $code);
+        exit;
     }
-    header('Location: ' . $path, true, $code);
+
+    header('Location: ' . ($path === '' ? '/' : $path), true, $code);
     exit;
 }
 

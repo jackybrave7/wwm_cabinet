@@ -30,10 +30,21 @@
       <input type="text" name="subtitle" autocomplete="off" value="<?= wwm_escape((string)($_POST['subtitle'] ?? '')) ?>">
     </label>
 
-    <label class="field">
-      <span>Landing / buy URL <span class="field-hint">(optional)</span></span>
-      <input type="url" name="buy_url" autocomplete="off" placeholder="https://worldwatercolormasters.art/..." value="<?= wwm_escape((string)($_POST['buy_url'] ?? '')) ?>">
-    </label>
+        <label class="field">
+          <span>Landing / buy URL <span class="field-hint">(optional)</span></span>
+          <input type="url" name="buy_url" autocomplete="off" placeholder="https://worldwatercolormasters.art/..." value="<?= wwm_escape((string)($_POST['buy_url'] ?? '')) ?>">
+        </label>
+
+        <label class="field" style="max-width:280px">
+          <span>AVO goods ID</span>
+          <input type="number" name="avo_goods_id" min="0" value="<?= (int)($_POST['avo_goods_id'] ?? 0) ?: '' ?>">
+          <span class="field-hint">Product id_goods. Payment webhook uses this to grant access.</span>
+        </label>
+
+        <label class="field" style="display:flex;gap:10px;align-items:center">
+          <input type="checkbox" name="paid_email" value="1"<?= isset($_POST['paid_email']) || !isset($_POST['title']) ? ' checked' : '' ?>>
+          <span>Send access email from robot@ after payment</span>
+        </label>
 
     <label class="field" style="max-width:280px">
       <span>Demo duration (hours)</span>

@@ -19,10 +19,11 @@
       <?= $content ?>
     </div>
   </div>
-  <script src="/assets/js/admin-tabs.js" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/password-toggle.js')) ?>" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-tabs.js')) ?>" defer></script>
   <script src="/assets/js/admin-lesson-sort.js" defer></script>
   <script src="/assets/js/admin-lesson-editor.js" defer></script>
-  <?php if (($adminNav ?? '') === 'emails'): ?>
+  <?php if (($adminNav ?? '') === 'emails' || ($adminNav ?? '') === 'courses'): ?>
   <script src="/assets/js/admin-email-webhook.js" defer></script>
   <?php endif; ?>
   <?php if (($adminNav ?? '') === 'emails' && str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/edit')): ?>
