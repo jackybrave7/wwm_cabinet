@@ -145,12 +145,7 @@ final class DemoAccess
             return null;
         }
 
-        $map = wwm_config()['avo_goods_to_course'] ?? [];
-        if (!is_array($map)) {
-            return null;
-        }
-
-        return isset($map[$goodsId]) ? (string)$map[$goodsId] : null;
+        return AvoSalesLinks::slugForGoodsId($goodsId);
     }
 
     public static function defaultNextPath(string $courseSlug): string

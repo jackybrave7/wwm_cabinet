@@ -120,12 +120,7 @@ final class PaidAccess
 
     public static function shouldSendPaidEmail(string $courseSlug): bool
     {
-        $slugs = wwm_config()['paid_email_slugs'] ?? null;
-        if (!is_array($slugs) || $slugs === []) {
-            $slugs = ['elke-en', 'elke-de', 'alvaro'];
-        }
-
-        return in_array($courseSlug, $slugs, true);
+        return AvoSalesLinks::shouldSendPaidEmail($courseSlug);
     }
 
     public static function courseNextPath(string $courseSlug): string

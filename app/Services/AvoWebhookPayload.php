@@ -82,7 +82,48 @@ final class AvoWebhookPayload
             $payload['source_ref'] = (string)$payload['id_account'];
         }
 
+        return self::fillMissingFromQuery($payload);
+    }
+
+    /**
+     * Product-level AVO URLs can carry id_goods / course in the query string
+     * even when the POST body omits them.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private static function fillMissingFromQuery(array $payload): array
+    {
+        if ($_GET === []) {
+            return $payload;
+        }
+
+        foreach (['id_goods', 'course', 'email', 'name', 'id_contact', 'id_account', 'id_account_status'] as $key) {
+            if (!self::isBlank($payload[$key] ?? null) || !isset($_GET[$key])) {
+                continue;
+            }
+            $value = $_GET[$key];
+            if (is_scalar($value) && (string)$value !== '') {
+                $payload[$key] = $value;
+            }
+        }
+
         return $payload;
+    }
+
+    private static function isBlank(mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+        if (is_string($value)) {
+            return trim($value) === '';
+        }
+        if (is_int($value) || is_float($value)) {
+            return (int)$value === 0;
+        }
+
+        return false;
     }
 
     public static function isPaidAccountStatus(array $payload): bool

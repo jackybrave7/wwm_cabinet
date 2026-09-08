@@ -6,6 +6,7 @@ namespace Wwm\Controllers\Admin;
 use Wwm\Auth\Session;
 use Wwm\Models\User;
 use Wwm\Services\AdminStats;
+use Wwm\Services\AvoSalesLinks;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 
@@ -56,6 +57,8 @@ final class AdminCourseController
             return;
         }
 
+        $goodsId = (int)($course['avo_goods_id'] ?? 0);
+
         wwm_render_admin('course-edit', [
             'pageTitle' => 'Edit course — ' . ($course['title'] ?? $slug),
             'user' => $user,
@@ -63,6 +66,9 @@ final class AdminCourseController
             'course' => $course,
             'saved' => isset($_GET['saved']),
             'error' => $_GET['error'] ?? null,
+            'paymentWebhook' => AvoSalesLinks::paymentWebhook($goodsId > 0 ? $goodsId : null),
+            'demoWebhook' => AvoSalesLinks::demoWebhook($slug),
+            'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
         ]);
     }
 
@@ -87,6 +93,7 @@ final class AdminCourseController
         $course['cover_image'] = trim((string)($_POST['cover_image'] ?? $course['cover_image'] ?? ''));
         $course['avo_goods_id'] = (int)($_POST['avo_goods_id'] ?? $course['avo_goods_id'] ?? 0) ?: null;
         $course['avo_training_id'] = (int)($_POST['avo_training_id'] ?? $course['avo_training_id'] ?? 0) ?: null;
+        $course['paid_email'] = isset($_POST['paid_email']);
         $course['status'] = ($_POST['status'] ?? 'published') === 'draft' ? 'draft' : 'published';
         $course['demo_hours'] = max(1, (int)($_POST['demo_hours'] ?? $course['demo_hours'] ?? 48));
         unset($course['demo_lessons']);
@@ -180,6 +187,8 @@ final class AdminCourseController
             'title' => $title,
             'subtitle' => trim((string)($_POST['subtitle'] ?? '')),
             'buy_url' => trim((string)($_POST['buy_url'] ?? '')),
+            'avo_goods_id' => (int)($_POST['avo_goods_id'] ?? 0) ?: null,
+            'paid_email' => isset($_POST['paid_email']),
             'status' => 'draft',
             'demo_hours' => max(1, (int)($_POST['demo_hours'] ?? 48)),
             'lessons' => [],

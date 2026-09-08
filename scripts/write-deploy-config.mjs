@@ -104,9 +104,13 @@ return [
         188 => 'elke-en',
         191 => 'elke-de',
         193 => 'alvaro',
+        199 => 'la-fe',
+        201 => 'angus',
+        321 => 'votsmush',
+        329 => 'nono',
     ],
 
-    'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro'],
+    'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro', 'angus', 'la-fe', 'votsmush', 'nono'],
 
     'avo' => [
         'enabled' => ${avoEnabled ? 'true' : 'false'},
