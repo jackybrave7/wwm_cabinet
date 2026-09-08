@@ -111,9 +111,27 @@ final class AvoSalesLinks
         $query = array_merge(['token' => $token], $params);
 
         return [
-            'url' => rtrim(wwm_base_url(), '/') . $path . '?' . EmailWebhookCatalog::query($query),
+            'url' => rtrim(wwm_base_url(), '/') . $path . '?' . self::query($query),
             'token_label' => $tokenLabel,
             'endpoint' => $path,
         ];
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    private static function query(array $params): string
+    {
+        $parts = [];
+        foreach ($params as $key => $value) {
+            $encodedKey = rawurlencode((string)$key);
+            if (preg_match('/^\{[a-z0-9_]+\}$/i', $value) === 1) {
+                $parts[] = $encodedKey . '=' . $value;
+                continue;
+            }
+            $parts[] = $encodedKey . '=' . rawurlencode((string)$value);
+        }
+
+        return implode('&', $parts);
     }
 }
