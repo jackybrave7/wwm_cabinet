@@ -1,22 +1,198 @@
 {
     "slug": "nono",
-    "title": "Nono Garcia — Glowing Watercolors",
-    "subtitle": "Glass, metal and ceramics — English subtitles",
+    "title": "Nono Garcia's video course 'Glowing Watercolors'",
+    "subtitle": "Glass, metal and ceramics — Spanish with English subtitles",
     "buy_url": "https://worldwatercolormasters.art/nono-garcia",
+    "cover_image": "https://static.tildacdn.com/tild3232-3035-4334-b438-666664343663/nono-cover.jpg",
     "avo_goods_id": 329,
     "demo_hours": 48,
     "paid_email": true,
     "status": "published",
+    "sections": [
+        {
+            "title": "Lesson 1. Ceramics",
+            "lessons": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]
+        },
+        {
+            "title": "Lesson 2. Glass",
+            "lessons": [
+                7,
+                8,
+                9,
+                10
+            ]
+        },
+        {
+            "title": "Lesson 3. Metal",
+            "lessons": [
+                11,
+                12,
+                13,
+                14
+            ]
+        },
+        {
+            "lessons": [
+                15
+            ]
+        }
+    ],
     "lessons": [
         {
             "num": 1,
-            "title": "Lesson 1",
+            "title": "Material Overview",
             "demo": true,
+            "materials": [],
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/ugaErJo5nWettUNuLndKpS"
             },
-            "materials": []
+            "duration": "2:11"
+        },
+        {
+            "num": 2,
+            "title": "Materials and references",
+            "demo": true,
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Nono Garcia uses for the ceramic bowl. He paints without a pencil. This lesson adds a short grading exercise before the bowl, then the ornament on the clay.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Cotton watercolor paper on a board. Have a spare scrap for the grading practice in the second video of this block.</li>\r\n<li><strong>Paints.</strong> A very small palette — students often work with only two colors here, a warm earth and a cool grey-blue. Follow the overview video rather than expanding the set.</li>\r\n<li><strong>Brushes.</strong> Rounds for the bowl’s volume and a finer point for the ornament. A wider brush for the atmosphere around the bowl.</li>\r\n<li><strong>Palette.</strong> A large mixing tray. A water jar and a spray bottle help keep the wash moving.</li>\r\n<li><strong>No pencil.</strong> The bowl and the ornament are placed with the brush. Reserved paper is the gloss on the ceramic.</li>\r\n<li><strong>A ceramic bowl</strong> (or a clear photo) in front of you — preferably one with a simple ornament you can read in the light.</li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo reference</h3>\r\n<p>The ceramic still life Nono paints in this lesson.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/nono/ceramic-reference.jpg\" alt=\"Ceramic still-life reference\"></div>\r\n<a class=\"reference-download\" href=\"/assets/courses/nono/ceramic-reference.jpg\" download=\"nono-garcia_ceramic.jpg\">Download reference image</a>\r\n</div>\r\n</div>"
+        },
+        {
+            "num": 3,
+            "title": "Practicing grading",
+            "demo": true,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/fL2baSihQPPEHC9i7BoCUP"
+            },
+            "duration": "2:09"
+        },
+        {
+            "num": 4,
+            "title": "Drawing the bowl",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/oMJcvpFV5JPeQRwCmbGr7e"
+            },
+            "duration": "11:24"
+        },
+        {
+            "num": 5,
+            "title": "Creating the atmosphere around the bowl",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/hzkZTg6pDzvwPQAHSK1ceT"
+            },
+            "duration": "3:24"
+        },
+        {
+            "num": 6,
+            "title": "Applying ornaments",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/0Rxp4TqEtadUiHVhCTwxVi"
+            },
+            "duration": "7:23"
+        },
+        {
+            "num": 7,
+            "title": "Material Overview",
+            "demo": true,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/r49521XqjEPeLr8nCW6bQR"
+            },
+            "duration": "2:18"
+        },
+        {
+            "num": 8,
+            "title": "Materials and references",
+            "demo": false,
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Nono Garcia uses for the glass still life. The setup is the same idea as the bowl: no pencil, a small palette, and the white of the paper as light inside the glass.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Cotton watercolor paper on a board. Keep the sheet clean — the glass is mostly reserved whites and very light washes.</li>\r\n<li><strong>Paints.</strong> A short range of cool greys and a touch of warmer earth for the reflections. The overview video shows the exact colors for this glass.</li>\r\n<li><strong>Brushes.</strong> A pointed round for the rim and the thin walls, and a wider brush for the first pale wash and the shadows on the table.</li>\r\n<li><strong>Palette</strong> and two jars of water — one clean, one for rinsing — plus a cloth or tissue to lift paint.</li>\r\n<li><strong>No pencil.</strong> The glass is drawn with the brush. Untouched paper is the highlight and the water.</li>\r\n<li><strong>A clear glass</strong> (or a photo) in front of you, with daylight so you can see the shadows through the water.</li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo references</h3>\r\n<p>The glass Nono paints in this lesson — two views of the same still life.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/nono/glass-reference.jpg\" alt=\"Glass still-life reference\"></div>\r\n<p><a class=\"reference-download\" href=\"/assets/courses/nono/glass-reference.jpg\" download=\"nono-garcia_glass.jpg\">Download reference image 1</a></p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/nono/glass-reference-2.jpg\" alt=\"Glass still-life reference, second view\"></div>\r\n<p><a class=\"reference-download\" href=\"/assets/courses/nono/glass-reference-2.jpg\" download=\"nono-garcia_glass_2.jpg\">Download reference image 2</a></p>\r\n</div>\r\n</div>"
+        },
+        {
+            "num": 9,
+            "title": "Watercolor drawing",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/jXdYSMVbg1WJeXN8pyg9TS"
+            },
+            "duration": "24:00"
+        },
+        {
+            "num": 10,
+            "title": "Detailed elaboration",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/inryyn46LX8KLcW96UsQsk"
+            },
+            "duration": "6:56"
+        },
+        {
+            "num": 11,
+            "title": "Material Overview",
+            "demo": true,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/4gnA4G5CPy7V4mKbwv9L8c"
+            },
+            "duration": "3:25"
+        },
+        {
+            "num": 12,
+            "title": "Materials and references",
+            "demo": false,
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Nono Garcia uses for the metal teapot. He still paints without a pencil — the form is built in tone, and the later parts layer reflections on the silver surface.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Cotton watercolor paper, taped or clipped to a board, used horizontally.</li>\r\n<li><strong>Paints.</strong> A very small set of greys, blues and earths. Nono keeps the palette austere so the metal reads as light, not as decoration. The overview video shows the tubes he opens for this teapot.</li>\r\n<li><strong>Brushes.</strong> A few rounds with a fine point for the highlights and ornament on the teapot, plus a wider brush for the first wash and the shadow.</li>\r\n<li><strong>Palette.</strong> A simple mixing tray — enough space to keep clean water-greys separate from the darker accents.</li>\r\n<li><strong>Water</strong> and a cloth or paper towel. Highlights are the untouched paper, not white paint.</li>\r\n<li><strong>No pencil.</strong> Nono draws the teapot with the brush. White paper left untouched is the shine on the metal.</li>\r\n<li><strong>The teapot</strong> (or a clear photo) in front of you while you paint — a small silver teapot with a pointed lid.</li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo reference</h3>\r\n<p>The silver teapot Nono paints in this lesson.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/nono/teapot-reference.jpg\" alt=\"Silver teapot reference\"></div>\r\n<a class=\"reference-download\" href=\"/assets/courses/nono/teapot-reference.jpg\" download=\"nono-garcia_teapot.jpg\">Download reference image</a>\r\n</div>\r\n</div>"
+        },
+        {
+            "num": 13,
+            "title": "Watercolor drawing",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/3XwWLGzbD5t9bnWedS6f1M"
+            },
+            "duration": "24:48"
+        },
+        {
+            "num": 14,
+            "title": "Detailed elaboration",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/qKCepjBfDtPkvtoXUjufqh"
+            },
+            "duration": "24:25"
+        },
+        {
+            "num": 15,
+            "title": "Your opinion is important to us!",
+            "demo": false,
+            "materials": [],
+            "kind": "feedback"
         }
     ]
 }
