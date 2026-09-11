@@ -19,56 +19,74 @@ $permCourses = $isEdit ? (!empty($t['admin_courses']) || $permSuper) : false;
   <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
 <?php endif; ?>
 
-<div class="admin-card" style="max-width:640px">
-  <form method="post" action="<?= wwm_escape((string)$formAction) ?>" class="form">
+<div class="admin-card admin-team-card">
+  <form method="post" action="<?= wwm_escape((string)$formAction) ?>" class="form admin-team-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
-    <?php if (!$isEdit): ?>
+    <div class="admin-team-section">
+      <h2 class="admin-team-section-title">Account</h2>
+      <?php if (!$isEdit): ?>
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="email" required autocomplete="off" value="<?= wwm_escape((string)($_POST['email'] ?? '')) ?>">
+        </label>
+      <?php else: ?>
+        <p class="admin-team-account-email"><?= wwm_escape((string)$t['email']) ?></p>
+      <?php endif; ?>
+
       <label class="field">
-        <span>Email</span>
-        <input type="email" name="email" required autocomplete="off" value="<?= wwm_escape((string)($_POST['email'] ?? '')) ?>">
+        <span>Name <span class="field-hint">(optional)</span></span>
+        <input type="text" name="name" autocomplete="off" value="<?= wwm_escape((string)($_POST['name'] ?? ($t['name'] ?? ''))) ?>">
       </label>
-    <?php else: ?>
-      <p class="field-hint" style="margin-bottom:16px">Account: <strong><?= wwm_escape((string)$t['email']) ?></strong></p>
-    <?php endif; ?>
 
-    <label class="field">
-      <span>Name <span class="field-hint">(optional)</span></span>
-      <input type="text" name="name" autocomplete="off" value="<?= wwm_escape((string)($_POST['name'] ?? ($t['name'] ?? ''))) ?>">
-    </label>
-
-    <label class="field">
-      <span>Password <?= $isEdit ? '<span class="field-hint">(leave empty to keep)</span>' : '<span class="field-hint">(min. 8 chars, or demo default for new users)</span>' ?></span>
-      <input type="password" name="password" autocomplete="new-password" minlength="8"<?= $isEdit ? '' : '' ?>>
-    </label>
-
-    <fieldset class="admin-perm-fieldset">
-      <legend>Permissions</legend>
-      <label class="checkbox-inline admin-perm-option">
-        <input type="checkbox" name="perm_super" value="1"<?= $permSuper ? ' checked' : '' ?> data-admin-perm-super>
-        <span><strong>Super administrator</strong> — manage admins, emails, analytics, everything</span>
+      <label class="field">
+        <span>Password<?= $isEdit ? ' <span class="field-hint">(leave empty to keep)</span>' : ' <span class="field-hint">(min. 8 characters, or demo default)</span>' ?></span>
+        <input type="password" name="password" autocomplete="new-password" minlength="8">
       </label>
-      <label class="checkbox-inline admin-perm-option">
-        <input type="checkbox" name="perm_students" value="1"<?= $permStudents ? ' checked' : '' ?> data-admin-perm-students>
-        <span><strong>Students</strong> — add students, grant course access, view profiles</span>
-      </label>
-      <label class="checkbox-inline admin-perm-option">
-        <input type="checkbox" name="perm_courses" value="1"<?= $permCourses ? ' checked' : '' ?> data-admin-perm-courses>
-        <span><strong>Courses</strong> — edit course content and lessons</span>
-      </label>
-    </fieldset>
+    </div>
 
-    <div class="top-actions" style="margin-top:20px">
-      <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save' : 'Add administrator' ?></button>
+    <div class="admin-team-section">
+      <h2 class="admin-team-section-title">Permissions</h2>
+      <div class="admin-perm-panel">
+        <label class="admin-perm-option">
+          <input type="checkbox" name="perm_super" value="1"<?= $permSuper ? ' checked' : '' ?> data-admin-perm-super>
+          <span class="admin-perm-option-text">
+            <strong>Super administrator</strong>
+            <span class="field-hint">Manage admins, emails, analytics, and all cabinet areas.</span>
+          </span>
+        </label>
+        <label class="admin-perm-option">
+          <input type="checkbox" name="perm_students" value="1"<?= $permStudents ? ' checked' : '' ?> data-admin-perm-students>
+          <span class="admin-perm-option-text">
+            <strong>Students</strong>
+            <span class="field-hint">Add students, grant course access, view profiles.</span>
+          </span>
+        </label>
+        <label class="admin-perm-option">
+          <input type="checkbox" name="perm_courses" value="1"<?= $permCourses ? ' checked' : '' ?> data-admin-perm-courses>
+          <span class="admin-perm-option-text">
+            <strong>Courses</strong>
+            <span class="field-hint">Edit course content and lessons.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="admin-form-footer">
+      <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save changes' : 'Add administrator' ?></button>
       <a href="/admin/admins" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 
   <?php if ($isEdit && !AdminAccess::isProtectedAccount($t)): ?>
-    <form method="post" action="/admin/admins/<?= (int)$t['id'] ?>/revoke" class="inline-form" style="margin-top:28px;padding-top:20px;border-top:1px solid var(--line)" onsubmit="return confirm('Remove administrator access for this user?');">
-      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-      <button type="submit" class="btn btn-danger btn-sm">Remove administrator access</button>
-    </form>
+    <div class="admin-form-revoke">
+      <h2 class="admin-team-section-title">Remove access</h2>
+      <p class="field-hint">This user will keep their student account but lose all administrator permissions.</p>
+      <form method="post" action="/admin/admins/<?= (int)$t['id'] ?>/revoke" class="admin-revoke-form" onsubmit="return confirm('Remove administrator access for this user?');">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-danger btn-sm">Remove administrator access</button>
+      </form>
+    </div>
   <?php endif; ?>
 </div>
 

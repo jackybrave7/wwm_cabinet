@@ -101,6 +101,15 @@ final class EmailTemplateCatalog
                 'webhook' => false,
             ],
             [
+                'id' => 'admin_invite',
+                'label' => 'Administrator invite',
+                'category' => 'Account',
+                'description' => 'Sent when a super admin grants cabinet administrator access.',
+                'trigger' => 'Super admin → Administrators → Add / update',
+                'has_html' => true,
+                'webhook' => false,
+            ],
+            [
                 'id' => 'test',
                 'label' => 'SMTP test',
                 'category' => 'System',
@@ -158,6 +167,16 @@ final class EmailTemplateCatalog
                 => ['{{name}}', '{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{buy_url}}', '{{coupon_code}}'],
             'magic' => ['{{name}}', '{{magic_link}}', '{{magic_link_hours}}'],
             'reset' => ['{{reset_link}}'],
+            'admin_invite' => [
+                '{{name}}',
+                '{{email}}',
+                '{{base_url}}',
+                '{{login_url}}',
+                '{{password}}',
+                '{{password_line}}',
+                '{{permissions_list}}',
+                '{{forgot_url}}',
+            ],
             'test' => ['{{base_url}}'],
             default => $common,
         };
@@ -228,6 +247,15 @@ final class EmailTemplateCatalog
         if ($password === '' && $id === 'paid') {
             $password = 'your-password';
         }
+        $permissionsList = trim((string)($context['permissions_list'] ?? ''));
+        $passwordLine = trim((string)($context['password_line'] ?? ''));
+        $forgotUrl = trim((string)($context['forgot_url'] ?? wwm_base_url() . '/forgot'));
+        if ($passwordLine === '' && $id === 'admin_invite') {
+            $passwordLine = 'Use your existing account password.';
+        }
+        if ($permissionsList === '' && $id === 'admin_invite') {
+            $permissionsList = 'Administrator';
+        }
         if ($expiresLabel === '' && in_array($id, ['demo'], true)) {
             $expiresLabel = gmdate('M j, Y H:i', time() + 48 * 3600) . ' UTC';
         }
@@ -250,6 +278,9 @@ final class EmailTemplateCatalog
             'magic_link' => $magicLink,
             'reset_link' => $resetLink,
             'magic_link_hours' => (string)max(1, (int)(\Wwm\Models\LoginLink::ttlSeconds() / 3600)),
+            'permissions_list' => $permissionsList,
+            'password_line' => $passwordLine,
+            'forgot_url' => $forgotUrl,
         ]);
     }
 

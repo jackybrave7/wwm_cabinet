@@ -718,6 +718,117 @@ body.admin-body {
   border: 0;
 }
 
+.admin-team-card {
+  max-width: 560px;
+}
+
+.admin-team-form.form {
+  margin-top: 0;
+  gap: 0;
+}
+
+.admin-team-section {
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-team-section:last-of-type {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-team-section-title {
+  margin: 0 0 16px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.admin-team-account-email {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.admin-team-form .field input[type="email"],
+.admin-team-form .field input[type="text"],
+.admin-team-form .field input[type="password"],
+.admin-team-form .password-field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-perm-panel {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.admin-perm-panel .admin-perm-option {
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.admin-perm-panel .admin-perm-option:last-child {
+  border-bottom: 0;
+}
+
+.admin-perm-option-text {
+  display: grid;
+  gap: 4px;
+  line-height: 1.4;
+}
+
+.admin-perm-option-text .field-hint {
+  display: block;
+  margin: 0;
+}
+
+.admin-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-form-revoke {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #f0d4d2;
+  background: linear-gradient(180deg, #fffafa 0%, #fff 48px);
+  margin-left: -24px;
+  margin-right: -24px;
+  margin-bottom: -22px;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: 22px;
+  border-radius: 0 0 calc(var(--radius) + 4px) calc(var(--radius) + 4px);
+}
+
+.admin-form-revoke .admin-team-section-title {
+  font-size: 0.95rem;
+  color: #8b2e2a;
+}
+
+.admin-revoke-form {
+  margin-top: 12px;
+}
+
 .admin-perm-fieldset legend {
   font-weight: 600;
   margin-bottom: 12px;
@@ -727,15 +838,18 @@ body.admin-body {
 .admin-perm-option {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
   font-size: 0.92rem;
   color: var(--ink-soft);
   cursor: pointer;
 }
 
 .admin-perm-option input {
-  margin-top: 3px;
+  margin-top: 4px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }
 
 .inline-form {

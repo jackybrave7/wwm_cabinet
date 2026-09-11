@@ -289,6 +289,38 @@ final class EmailTemplateDrafts
                 'text' => "Open this link to set a new password (valid 1 hour):\n\n{{reset_link}}\n",
                 'html' => null,
             ],
+            'admin_invite' => [
+                'subject' => 'Your administrator access — World Watercolor Masters',
+                'text' => implode("\n", [
+                    'Hello {{name}},',
+                    '',
+                    'You have been granted administrator access to the WWM student cabinet.',
+                    '',
+                    'Permissions: {{permissions_list}}',
+                    '',
+                    'Open the admin panel (sign-in may be prefilled):',
+                    '{{login_url}}',
+                    '',
+                    'Manual sign-in: {{base_url}}/login',
+                    'Email: {{email}}',
+                    '{{password_line}}',
+                    '',
+                    'World Watercolor Masters',
+                ]),
+                'html' => self::adminLayoutDraft(
+                    'Administrator access',
+                    implode('', [
+                        self::paragraph('Hello {{name}},'),
+                        self::paragraph(
+                            'You have been granted <strong>administrator access</strong> to the WWM cabinet.'
+                        ),
+                        self::paragraph('<strong>Permissions:</strong> {{permissions_list}}'),
+                        self::button('{{login_url}}', 'Open admin panel'),
+                        self::adminCredentialsBoxDraft(),
+                        self::supportBlock(),
+                    ])
+                ),
+            ],
             default => throw new \InvalidArgumentException('Unknown email template: ' . $id),
         };
     }
@@ -310,6 +342,46 @@ final class EmailTemplateDrafts
         }
 
         return $html;
+    }
+
+    private static function adminLayoutDraft(string $titleHtml, string $bodyHtml): string
+    {
+        $plainTitle = strip_tags(str_replace('<br>', ' ', $titleHtml));
+
+        return '<!DOCTYPE html>'
+            . '<html lang="en"><head><meta charset="UTF-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>' . $plainTitle . '</title>'
+            . wwm_email_font_link_tag()
+            . wwm_email_head_styles()
+            . '</head>'
+            . '<body style="margin:0;padding:0;background:#faf6f0;font-family:Arial,Helvetica,sans-serif;color:#0a0a0a;">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf6f0;">'
+            . '<tr><td align="center" style="padding:32px 16px;">'
+            . '<table role="presentation" class="wrapper" width="600" cellpadding="0" cellspacing="0" border="0" '
+            . 'style="width:600px;max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(10,10,10,0.08);">'
+            . self::logoRowDraft()
+            . '<tr><td class="pad" style="padding:8px 40px 20px;background:#ffffff;">'
+            . '<h1 class="email-title" style="' . wwm_email_title_inline_style() . '">'
+            . $titleHtml . '</h1>'
+            . '</td></tr>'
+            . '<tr><td class="pad" style="padding:0 40px 24px;background:#ffffff;">' . $bodyHtml . '</td></tr>'
+            . self::footerRow()
+            . '</table></td></tr></table></body></html>';
+    }
+
+    private static function adminCredentialsBoxDraft(): string
+    {
+        return '<!-- credentials:start -->'
+            . '<div style="margin-top:8px;padding:20px 24px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
+            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;text-transform:uppercase;'
+            . 'letter-spacing:0.04em;">Sign-in details</p>'
+            . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
+            . '<strong>Email:</strong> {{email}}</p>'
+            . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">{{password_line}}</p>'
+            . '<p style="margin:14px 0 0;font-size:14px;line-height:1.5;color:#6e6e6e;">'
+            . 'Forgot your password? <a href="{{forgot_url}}" style="color:#b81e16;text-decoration:underline;">Reset it here</a>.</p>'
+            . '</div><!-- credentials:end -->';
     }
 
     private static function layoutDraft(string $titleHtml, string $bodyHtml): string

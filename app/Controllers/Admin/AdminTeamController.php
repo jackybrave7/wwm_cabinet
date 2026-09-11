@@ -6,6 +6,7 @@ namespace Wwm\Controllers\Admin;
 use Wwm\Auth\Session;
 use Wwm\Models\User;
 use Wwm\Services\AdminAccess;
+use Wwm\Services\AdminInviteMail;
 
 final class AdminTeamController
 {
@@ -78,6 +79,7 @@ final class AdminTeamController
             wwm_redirect('/admin/admins?error=protected');
         }
 
+        $plainForEmail = null;
         if ($existing === null) {
             if (strlen($password) < 8) {
                 $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
@@ -86,6 +88,7 @@ final class AdminTeamController
                 $this->renderFormError(null, 'Set a password (min. 8 characters) for a new account.');
                 return;
             }
+            $plainForEmail = $password;
             $userId = User::create($pdo, $email, $password, $name);
         } else {
             $userId = (int)$existing['id'];
@@ -98,10 +101,12 @@ final class AdminTeamController
                     return;
                 }
                 User::updatePassword($pdo, $userId, $password);
+                $plainForEmail = $password;
             }
         }
 
         User::setAdminPermissions($pdo, $userId, $permissions);
+        AdminInviteMail::send($pdo, $userId, $permissions, $plainForEmail);
         wwm_log('admin granted user_id=' . $userId . ' email=' . $email);
         wwm_redirect('/admin/admins?created=1');
     }
@@ -144,6 +149,7 @@ final class AdminTeamController
             wwm_redirect('/admin/admins?error=protected');
         }
 
+        $wasAdmin = AdminAccess::hasAdminPanelAccess($target);
         $name = trim((string)($_POST['name'] ?? ''));
         $password = (string)($_POST['password'] ?? '');
         $permissions = $this->permissionsFromPost();
@@ -165,6 +171,10 @@ final class AdminTeamController
         }
 
         User::setAdminPermissions($pdo, $id, $permissions);
+        $plainForEmail = $password !== '' ? $password : null;
+        if (!$wasAdmin || $plainForEmail !== null) {
+            AdminInviteMail::send($pdo, $id, $permissions, $plainForEmail);
+        }
         wwm_log('admin permissions updated user_id=' . $id);
         wwm_redirect('/admin/admins?updated=1');
     }
