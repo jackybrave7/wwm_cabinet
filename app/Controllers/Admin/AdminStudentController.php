@@ -9,6 +9,7 @@ use Wwm\Models\EmailMessage;
 use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
+use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 use Wwm\Services\AvoContactName;
@@ -24,8 +25,8 @@ final class AdminStudentController
     {
         $userId = Session::requireAdmin();
         $user = User::findById(wwm_pdo(), $userId);
-        $search = isset($_GET['q']) ? trim((string)$_GET['q']) : null;
-        $search = $search === '' ? null : $search;
+        $listFilter = AdminStudentListFilter::fromRequest();
+        $search = $listFilter->search !== '' ? $listFilter->search : null;
         $page = max(1, (int)($_GET['page'] ?? 1));
         $pdo = wwm_pdo();
         $catalog = new CourseCatalog();
@@ -38,7 +39,7 @@ final class AdminStudentController
             $publishedCourses[] = $course;
         }
 
-        $pagination = User::paginate($pdo, $search, $page, self::STUDENTS_PER_PAGE);
+        $pagination = User::paginateFiltered($pdo, $listFilter, $page, self::STUDENTS_PER_PAGE);
         $accessByUser = Access::groupedByUser($pdo);
         $openCountsByUser = LessonOpen::openCountsGrouped($pdo);
         $lastActivityByUser = LessonOpen::lastActivityGrouped($pdo);
@@ -96,7 +97,9 @@ final class AdminStudentController
             'user' => $user,
             'adminNav' => 'students',
             'students' => $students,
-            'search' => $search ?? '',
+            'search' => $listFilter->search,
+            'listFilter' => $listFilter,
+            'filterCourses' => $publishedCourses,
             'totalStudents' => $totalStudents,
             'page' => $page,
             'totalPages' => $totalPages,

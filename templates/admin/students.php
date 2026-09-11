@@ -1,5 +1,10 @@
 <?php
+use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\StudentAttribution;
+
+$listFilter = $listFilter ?? AdminStudentListFilter::fromRequest();
+$filterCourses = is_array($filterCourses ?? null) ? $filterCourses : [];
+$filterQuery = $listFilter->queryParams();
 
 $formatDate = static function (?string $iso): string {
     if ($iso === null || $iso === '') {
@@ -24,8 +29,13 @@ $formatDateTime = static function (?string $iso): string {
   <div class="top-actions">
     <form class="admin-toolbar" method="get" action="/admin/students">
       <input type="search" name="q" class="admin-search" placeholder="Search by name or email…" value="<?= wwm_escape($search ?? '') ?>" aria-label="Search students">
+      <?php foreach ($filterQuery as $key => $value): ?>
+        <?php if ($key === 'q') { continue; } ?>
+        <input type="hidden" name="<?= wwm_escape($key) ?>" value="<?= wwm_escape($value) ?>">
+      <?php endforeach; ?>
       <button type="submit" class="btn btn-ghost btn-sm">Search</button>
     </form>
+    <a href="/admin/students?<?= wwm_escape(http_build_query(array_merge($filterQuery, ['filters' => '1']))) ?>" class="btn btn-ghost btn-sm<?= $listFilter->isActive() ? ' is-active-filter' : '' ?>">Filter<?= $listFilter->isActive() ? ' · on' : '' ?></a>
     <?php if (!empty($avo_enabled)): ?>
       <form method="post" action="/admin/students/avo-sync-names" class="inline-form" onsubmit="return confirm('Update student names from AVO for all <?= (int)($totalStudents ?? 0) ?> students? This may take a minute.');">
         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
@@ -49,10 +59,97 @@ $formatDateTime = static function (?string $iso): string {
 
 <div class="admin-stats">
   <div class="admin-stat-card">
-    <span class="admin-stat-label">Total students</span>
+    <span class="admin-stat-label"><?= $listFilter->isActive() ? 'Matching students' : 'Total students' ?></span>
     <strong class="admin-stat-value"><?= (int)$totalStudents ?></strong>
   </div>
 </div>
+
+<details class="admin-card admin-expander admin-filter-panel" id="student-filters"<?= ($listFilter->isActive() || (string)($_GET['filters'] ?? '') === '1') ? ' open' : '' ?>>
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Filter students</h2>
+      <span class="field-hint">Access, course, registration, activity, location, UTM</span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
+    <form method="get" action="/admin/students" class="admin-filter-form">
+      <input type="hidden" name="filters" value="1">
+      <input type="hidden" name="q" value="<?= wwm_escape($search ?? '') ?>">
+      <div class="admin-filter-grid">
+        <label class="field">
+          <span>Access</span>
+          <select name="access">
+            <?php foreach (AdminStudentListFilter::ACCESS_OPTIONS as $value => $label): ?>
+              <option value="<?= wwm_escape($value) ?>"<?= $listFilter->access === $value ? ' selected' : '' ?>><?= wwm_escape($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="field">
+          <span>Course</span>
+          <select name="course">
+            <option value="">Any course</option>
+            <?php foreach ($filterCourses as $course): ?>
+              <?php $slug = (string)($course['slug'] ?? ''); ?>
+              <option value="<?= wwm_escape($slug) ?>"<?= $listFilter->courseSlug === $slug ? ' selected' : '' ?>><?= wwm_escape((string)($course['title'] ?? $slug)) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="field">
+          <span>Course access type</span>
+          <select name="course_access">
+            <option value="any"<?= ($listFilter->courseAccess === '' || $listFilter->courseAccess === 'any') ? ' selected' : '' ?>>Any grant</option>
+            <option value="paid"<?= $listFilter->courseAccess === 'paid' ? ' selected' : '' ?>>Paid (active)</option>
+            <option value="demo"<?= $listFilter->courseAccess === 'demo' ? ' selected' : '' ?>>Demo (active)</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Registered from</span>
+          <input type="date" name="registered_from" value="<?= wwm_escape($listFilter->registeredFrom) ?>">
+        </label>
+        <label class="field">
+          <span>Registered to</span>
+          <input type="date" name="registered_to" value="<?= wwm_escape($listFilter->registeredTo) ?>">
+        </label>
+        <label class="field">
+          <span>Lesson activity</span>
+          <select name="activity">
+            <?php foreach (AdminStudentListFilter::ACTIVITY_OPTIONS as $value => $label): ?>
+              <option value="<?= wwm_escape($value) ?>"<?= $listFilter->activity === $value ? ' selected' : '' ?>><?= wwm_escape($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label class="field">
+          <span>Country</span>
+          <input type="text" name="country" value="<?= wwm_escape($listFilter->country) ?>" placeholder="e.g. Germany" autocomplete="off">
+        </label>
+        <label class="field field-checkbox">
+          <span>UTM</span>
+          <label class="checkbox-inline">
+            <input type="checkbox" name="has_utm" value="1"<?= $listFilter->hasUtm === '1' ? ' checked' : '' ?>>
+            Has any UTM data
+          </label>
+        </label>
+        <label class="field">
+          <span>UTM source</span>
+          <input type="text" name="utm_source" value="<?= wwm_escape($listFilter->utmSource) ?>" placeholder="contains…" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>UTM medium</span>
+          <input type="text" name="utm_medium" value="<?= wwm_escape($listFilter->utmMedium) ?>" placeholder="contains…" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>UTM campaign</span>
+          <input type="text" name="utm_campaign" value="<?= wwm_escape($listFilter->utmCampaign) ?>" placeholder="contains…" autocomplete="off">
+        </label>
+      </div>
+      <div class="admin-filter-actions">
+        <button type="submit" class="btn btn-primary btn-sm">Apply filters</button>
+        <a href="/admin/students" class="btn btn-ghost btn-sm">Clear all</a>
+      </div>
+    </form>
+  </div>
+</details>
 
 <div class="admin-card">
   <table class="admin-table">
@@ -111,10 +208,7 @@ $formatDateTime = static function (?string $iso): string {
   <?php if (($totalPages ?? 1) > 1): ?>
     <?php
       $currentPage = (int)($page ?? 1);
-      $query = [];
-      if (($search ?? '') !== '') {
-          $query['q'] = $search;
-      }
+      $query = $listFilter->queryParams();
       $pageUrl = static function (int $p) use ($query): string {
           $query['page'] = $p;
           return '/admin/students?' . http_build_query($query);

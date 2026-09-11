@@ -228,32 +228,38 @@ final class User
      */
     public static function paginate(PDO $pdo, ?string $search, int $page, int $perPage): array
     {
+        $filter = new \Wwm\Services\AdminStudentListFilter(search: trim((string)($search ?? '')));
+
+        return self::paginateFiltered($pdo, $filter, $page, $perPage);
+    }
+
+    /**
+     * @return array{rows: list<array<string, mixed>>, total: int}
+     */
+    public static function paginateFiltered(
+        PDO $pdo,
+        \Wwm\Services\AdminStudentListFilter $filter,
+        int $page,
+        int $perPage
+    ): array {
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
         $offset = ($page - 1) * $perPage;
 
-        if ($search !== null && trim($search) !== '') {
-            $q = '%' . trim($search) . '%';
-            $countStmt = $pdo->prepare(
-                'SELECT COUNT(*) FROM users WHERE email LIKE ? OR name LIKE ?'
-            );
-            $countStmt->execute([$q, $q]);
-            $total = (int)$countStmt->fetchColumn();
+        $built = $filter->sqlWhere();
+        $where = $built['where'];
+        $params = $built['params'];
 
-            $stmt = $pdo->prepare(
-                'SELECT * FROM users WHERE email LIKE ? OR name LIKE ? ORDER BY created_at DESC LIMIT '
-                . $perPage . ' OFFSET ' . $offset
-            );
-            $stmt->execute([$q, $q]);
-            return ['rows' => $stmt->fetchAll() ?: [], 'total' => $total];
-        }
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM users u WHERE ' . $where);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
 
-        $total = (int)($pdo->query('SELECT COUNT(*) FROM users')?->fetchColumn() ?: 0);
-        $stmt = $pdo->query(
-            'SELECT * FROM users ORDER BY created_at DESC LIMIT ' . $perPage . ' OFFSET ' . $offset
-        );
+        $sql = 'SELECT u.* FROM users u WHERE ' . $where . ' ORDER BY u.created_at DESC LIMIT '
+            . $perPage . ' OFFSET ' . $offset;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
 
-        return ['rows' => $stmt ? ($stmt->fetchAll() ?: []) : [], 'total' => $total];
+        return ['rows' => $stmt->fetchAll() ?: [], 'total' => $total];
     }
 
     public static function delete(PDO $pdo, int $userId): void
