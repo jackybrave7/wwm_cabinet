@@ -15,7 +15,7 @@ final class AdminMailController
 {
     public function index(): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         $mail = wwm_config()['mail'] ?? [];
         $webhooks = wwm_config()['webhooks'] ?? [];
@@ -36,7 +36,7 @@ final class AdminMailController
 
     public function edit(string $id): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         $meta = EmailTemplateCatalog::find($id);
         if ($meta === null) {
@@ -82,7 +82,7 @@ final class AdminMailController
 
     public function update(string $id): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         $id = trim($id);
         if ($id === '') {
@@ -155,7 +155,7 @@ final class AdminMailController
 
     public function reset(string $id): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             http_response_code(400);
@@ -175,7 +175,7 @@ final class AdminMailController
 
     public function preview(string $id): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         $meta = EmailTemplateCatalog::find($id);
         if ($meta === null) {
@@ -204,7 +204,7 @@ final class AdminMailController
 
     public function test(): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         $to = trim((string)($_GET['to'] ?? ''));
         if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {

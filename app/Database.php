@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 15;
+    public const SCHEMA_VERSION = 16;
 
     public static function connect(string $path): PDO
     {
@@ -82,6 +82,13 @@ CREATE TABLE IF NOT EXISTS processed_events (
 SQL);
 
         self::ensureColumn($pdo, 'users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
+        self::ensureColumn($pdo, 'users', 'admin_super', 'INTEGER NOT NULL DEFAULT 0');
+        self::ensureColumn($pdo, 'users', 'admin_students', 'INTEGER NOT NULL DEFAULT 0');
+        self::ensureColumn($pdo, 'users', 'admin_courses', 'INTEGER NOT NULL DEFAULT 0');
+        $pdo->exec(
+            'UPDATE users SET admin_students = 1, admin_courses = 1
+             WHERE is_admin = 1 AND admin_super = 0 AND admin_students = 0 AND admin_courses = 0'
+        );
         self::ensureColumn($pdo, 'users', 'signup_ip', 'TEXT');
         self::ensureColumn($pdo, 'users', 'signup_country', 'TEXT');
         self::ensureColumn($pdo, 'users', 'signup_city', 'TEXT');

@@ -23,7 +23,7 @@ final class AdminStudentController
 
     public function index(): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminStudents();
         $user = User::findById(wwm_pdo(), $userId);
         $listFilter = AdminStudentListFilter::fromRequest();
         $search = $listFilter->search !== '' ? $listFilter->search : null;
@@ -136,7 +136,7 @@ final class AdminStudentController
 
     public function createForm(): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminStudents();
         $user = User::findById(wwm_pdo(), $userId);
 
         wwm_render_admin('student-create', [
@@ -152,7 +152,7 @@ final class AdminStudentController
 
     public function store(): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students/new?error=csrf');
@@ -187,7 +187,7 @@ final class AdminStudentController
 
     public function show(int $id): void
     {
-        $adminId = Session::requireAdmin();
+        $adminId = Session::requireAdminStudents();
         $admin = User::findById(wwm_pdo(), $adminId);
         $pdo = wwm_pdo();
         $student = User::findById($pdo, $id);
@@ -327,7 +327,7 @@ final class AdminStudentController
 
     public function grantAccess(int $id): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students/' . $id . '?error=csrf');
@@ -366,7 +366,7 @@ final class AdminStudentController
 
     public function revokeAccess(int $id): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students/' . $id . '?error=csrf');
@@ -393,7 +393,7 @@ final class AdminStudentController
 
     public function destroy(int $id): void
     {
-        $adminId = Session::requireAdmin();
+        $adminId = Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students/' . $id . '?error=csrf');
@@ -449,7 +449,7 @@ final class AdminStudentController
 
     public function syncAllNamesFromAvo(): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students?error=csrf');
@@ -484,7 +484,7 @@ final class AdminStudentController
 
     public function syncAllUtmFromAvo(): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students?error=csrf');
@@ -517,7 +517,7 @@ final class AdminStudentController
 
     public function resyncAvo(int $id): void
     {
-        Session::requireAdmin();
+        Session::requireAdminStudents();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/students/' . $id . '?error=csrf');
@@ -546,7 +546,7 @@ final class AdminStudentController
 
     private function renderCreateForm(string $error): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminStudents();
         $user = User::findById(wwm_pdo(), $userId);
 
         wwm_render_admin('student-create', [

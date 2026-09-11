@@ -180,30 +180,64 @@ final class User
 
     public static function isAdmin(array $user, ?array $config = null): bool
     {
-        if (!empty($user['is_admin'])) {
-            return true;
-        }
-        $config ??= wwm_config();
-        $emails = $config['admin_emails'] ?? [];
-        if (is_string($emails)) {
-            $emails = array_filter(array_map('trim', preg_split('/[,;]+/', $emails) ?: []));
-        }
-        if (!is_array($emails) || $emails === []) {
-            return false;
-        }
-        $email = strtolower(trim((string)($user['email'] ?? '')));
-        foreach ($emails as $adminEmail) {
-            if ($email === strtolower(trim((string)$adminEmail))) {
-                return true;
-            }
-        }
-        return false;
+        return \Wwm\Services\AdminAccess::hasAdminPanelAccess($user, $config);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function listDelegatedAdmins(PDO $pdo): array
+    {
+        $stmt = $pdo->query(
+            'SELECT * FROM users WHERE is_admin = 1 OR admin_super = 1 OR admin_students = 1 OR admin_courses = 1
+             ORDER BY email COLLATE NOCASE'
+        );
+
+        return $stmt ? ($stmt->fetchAll() ?: []) : [];
+    }
+
+    /**
+     * @param array{super?: bool, students?: bool, courses?: bool} $permissions
+     */
+    public static function setAdminPermissions(PDO $pdo, int $userId, array $permissions): void
+    {
+        $super = !empty($permissions['super']);
+        $students = $super || !empty($permissions['students']);
+        $courses = $super || !empty($permissions['courses']);
+        $isAdmin = $super || $students || $courses;
+
+        $stmt = $pdo->prepare(
+            'UPDATE users SET is_admin = ?, admin_super = ?, admin_students = ?, admin_courses = ? WHERE id = ?'
+        );
+        $stmt->execute([
+            $isAdmin ? 1 : 0,
+            $super ? 1 : 0,
+            $students ? 1 : 0,
+            $courses ? 1 : 0,
+            $userId,
+        ]);
+    }
+
+    public static function revokeAdmin(PDO $pdo, int $userId): void
+    {
+        $stmt = $pdo->prepare(
+            'UPDATE users SET is_admin = 0, admin_super = 0, admin_students = 0, admin_courses = 0 WHERE id = ?'
+        );
+        $stmt->execute([$userId]);
     }
 
     public static function setAdmin(PDO $pdo, int $userId, bool $isAdmin): void
     {
-        $stmt = $pdo->prepare('UPDATE users SET is_admin = ? WHERE id = ?');
-        $stmt->execute([$isAdmin ? 1 : 0, $userId]);
+        if ($isAdmin) {
+            self::setAdminPermissions($pdo, $userId, [
+                'super' => false,
+                'students' => true,
+                'courses' => true,
+            ]);
+            return;
+        }
+
+        self::revokeAdmin($pdo, $userId);
     }
 
     /**

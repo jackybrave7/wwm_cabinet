@@ -67,4 +67,53 @@ final class Session
 
         return $userId;
     }
+
+    public static function requireAdminStudents(): int
+    {
+        return self::requireAdminCapability(
+            static fn (array $user): bool => \Wwm\Services\AdminAccess::canManageStudents($user),
+            'You do not have permission to manage students.'
+        );
+    }
+
+    public static function requireAdminCourses(): int
+    {
+        return self::requireAdminCapability(
+            static fn (array $user): bool => \Wwm\Services\AdminAccess::canManageCourses($user),
+            'You do not have permission to edit courses.'
+        );
+    }
+
+    public static function requireSuperAdmin(): int
+    {
+        return self::requireAdminCapability(
+            static fn (array $user): bool => \Wwm\Services\AdminAccess::canManageAdmins($user),
+            'Super administrator access required.'
+        );
+    }
+
+    /**
+     * @param callable(array<string, mixed>): bool $check
+     */
+    private static function requireAdminCapability(callable $check, string $message): int
+    {
+        $userId = self::requireLogin();
+        $user = \Wwm\Models\User::findById(wwm_pdo(), $userId);
+        if ($user === null || !\Wwm\Services\AdminAccess::hasAdminPanelAccess($user) || !$check($user)) {
+            http_response_code(403);
+            wwm_render('error', [
+                'pageTitle' => 'Forbidden',
+                'user' => $user,
+                'code' => 403,
+                'message' => $message,
+            ]);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        return $userId;
+    }
 }

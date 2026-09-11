@@ -9,6 +9,10 @@ use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminMailController;
 use Wwm\Controllers\Admin\AdminSettingsController;
 use Wwm\Controllers\Admin\AdminStudentController;
+use Wwm\Controllers\Admin\AdminTeamController;
+use Wwm\Auth\Session;
+use Wwm\Models\User;
+use Wwm\Services\AdminAccess;
 use Wwm\Controllers\Api\AvoUtmDebugController;
 use Wwm\Controllers\Api\DemoWebhookController;
 use Wwm\Controllers\Api\EngagementController;
@@ -112,7 +116,12 @@ final class Router
             return;
         }
 
-        if ($method === 'GET' && ($path === '/admin' || $path === '/admin/courses')) {
+        if ($method === 'GET' && $path === '/admin') {
+            $userId = Session::requireAdmin();
+            $user = User::findById(wwm_pdo(), $userId);
+            wwm_redirect(AdminAccess::defaultAdminPath(is_array($user) ? $user : []));
+        }
+        if ($method === 'GET' && $path === '/admin/courses') {
             (new AdminCourseController())->index();
             return;
         }
@@ -194,6 +203,31 @@ final class Router
         }
         if ($method === 'POST' && $path === '/admin/students/avo-sync-utm') {
             (new AdminStudentController())->syncAllUtmFromAvo();
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/admin/admins') {
+            (new AdminTeamController())->index();
+            return;
+        }
+        if ($method === 'GET' && $path === '/admin/admins/new') {
+            (new AdminTeamController())->createForm();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/admins') {
+            (new AdminTeamController())->store();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/admins/(\d+)$#', $path, $m)) {
+            (new AdminTeamController())->edit((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/admins/(\d+)$#', $path, $m)) {
+            (new AdminTeamController())->update((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/admins/(\d+)/revoke$#', $path, $m)) {
+            (new AdminTeamController())->revoke((int)$m[1]);
             return;
         }
 

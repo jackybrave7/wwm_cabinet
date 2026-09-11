@@ -11,7 +11,7 @@ final class AdminSettingsController
 {
     public function index(): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireSuperAdmin();
         $pdo = wwm_pdo();
         $user = User::findById($pdo, $userId);
 
@@ -34,7 +34,7 @@ final class AdminSettingsController
 
     public function update(): void
     {
-        Session::requireAdmin();
+        Session::requireSuperAdmin();
 
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/settings?error=csrf');

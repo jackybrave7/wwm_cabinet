@@ -14,7 +14,7 @@ final class AdminCourseController
 {
     public function index(): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminCourses();
         $user = User::findById(wwm_pdo(), $userId);
         $catalog = new CourseCatalog();
         $stats = new AdminStats(wwm_pdo());
@@ -46,7 +46,7 @@ final class AdminCourseController
 
     public function edit(string $slug): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminCourses();
         $user = User::findById(wwm_pdo(), $userId);
         $catalog = new CourseCatalog();
         $course = $catalog->getAdmin($slug);
@@ -74,7 +74,7 @@ final class AdminCourseController
 
     public function update(string $slug): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
         }
@@ -136,7 +136,7 @@ final class AdminCourseController
 
     public function createForm(): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminCourses();
         $user = User::findById(wwm_pdo(), $userId);
 
         wwm_render_admin('course-create', [
@@ -152,7 +152,7 @@ final class AdminCourseController
 
     public function store(): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/new?error=csrf');
         }
@@ -213,7 +213,7 @@ final class AdminCourseController
 
     public function storeSection(string $slug): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
         }
@@ -242,7 +242,7 @@ final class AdminCourseController
 
     public function destroySection(string $slug, int $sectionIndex): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
         }

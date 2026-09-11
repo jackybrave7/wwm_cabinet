@@ -712,6 +712,32 @@ body.admin-body {
   color: var(--accent);
 }
 
+.admin-perm-fieldset {
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-perm-fieldset legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+.admin-perm-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.admin-perm-option input {
+  margin-top: 3px;
+}
+
 .inline-form {
   display: inline;
 }

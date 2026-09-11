@@ -12,7 +12,7 @@ final class AdminLessonController
 {
     public function edit(string $slug, int $num): void
     {
-        $userId = Session::requireAdmin();
+        $userId = Session::requireAdminCourses();
         $user = User::findById(wwm_pdo(), $userId);
         $catalog = new CourseCatalog();
         $course = $catalog->getAdmin($slug);
@@ -44,7 +44,7 @@ final class AdminLessonController
 
     public function update(string $slug, int $num): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?error=csrf');
         }
@@ -121,7 +121,7 @@ final class AdminLessonController
 
     public function store(string $slug): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '?error=csrf');
         }
@@ -156,7 +156,7 @@ final class AdminLessonController
 
     public function destroy(string $slug, int $num): void
     {
-        Session::requireAdmin();
+        Session::requireAdminCourses();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             wwm_redirect('/admin/courses/' . rawurlencode($slug) . '/lessons/' . $num . '?error=csrf');
         }
