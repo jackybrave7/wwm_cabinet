@@ -21,6 +21,8 @@ $signupLocation = StudentAttribution::signupLocationLabel($student);
 $channel = StudentAttribution::channelLabel($student);
 $channelDetail = StudentAttribution::channelDetail($student);
 $utmFields = StudentAttribution::utmFields($student);
+$courseBlocksList = is_array($course_blocks ?? null) ? $course_blocks : [];
+$progressCourseCount = count($courseBlocksList);
 ?>
 <div class="admin-topbar">
   <div>
@@ -67,8 +69,17 @@ $utmFields = StudentAttribution::utmFields($student);
   </div>
 </div>
 
-<div class="admin-card" style="margin-bottom:24px">
-  <h2>UTM attribution</h2>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>UTM attribution</h2>
+      <?php if ($utmFields !== []): ?>
+        <span class="field-hint"><?= count($utmFields) ?> field<?= count($utmFields) === 1 ? '' : 's' ?></span>
+      <?php endif; ?>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <?php if ($utmFields !== []): ?>
     <table class="admin-table admin-table-compact">
       <tbody>
@@ -83,11 +94,18 @@ $utmFields = StudentAttribution::utmFields($student);
   <?php else: ?>
     <p class="field-hint">No UTM data yet. Use Resync below or wait for the next AVO webhook with advertising fields.</p>
   <?php endif; ?>
-</div>
+  </div>
+</details>
 
 <?php if (!empty($avo_enabled)): ?>
-<div class="admin-card" style="margin-bottom:24px">
-  <h2>AVO sync</h2>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>AVO sync</h2>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <p class="field-hint" style="margin-bottom:12px">
     Contact ID: <?= $avo_contact_id !== null ? (int)$avo_contact_id : 'not found' ?>
     · logged in: <?= !empty($avo_logged_in_tagged) ? 'local ✓' : 'local —' ?>
@@ -99,12 +117,20 @@ $utmFields = StudentAttribution::utmFields($student);
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <button type="submit" class="btn btn-ghost btn-sm">Resync AVO tags &amp; UTM</button>
   </form>
-</div>
+  </div>
+</details>
 <?php endif; ?>
 
 <?php $emailMessages = is_array($email_messages ?? null) ? $email_messages : []; ?>
-<div class="admin-card">
-  <h2>Emails</h2>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Emails</h2>
+      <span class="field-hint"><?= $emailMessages === [] ? 'No messages yet' : count($emailMessages) . ' message' . (count($emailMessages) === 1 ? '' : 's') ?></span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <?php if ($emailMessages === []): ?>
     <p class="field-hint">No cabinet emails logged for this student yet.</p>
   <?php else: ?>
@@ -170,10 +196,18 @@ $utmFields = StudentAttribution::utmFields($student);
     </table>
     <p class="field-hint" style="margin-top:12px">Open tracking uses a pixel and may be blocked by some mail clients. Link clicks are more reliable.</p>
   <?php endif; ?>
-</div>
+  </div>
+</details>
 
-<div class="admin-card">
-  <h2>Course access</h2>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Course access</h2>
+      <span class="field-hint"><?= count($accessCourses) ?> course<?= count($accessCourses) === 1 ? '' : 's' ?></span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <table class="admin-table admin-table-compact access-table">
     <thead>
       <tr>
@@ -240,7 +274,8 @@ $utmFields = StudentAttribution::utmFields($student);
       <?php endforeach; ?>
     </tbody>
   </table>
-</div>
+  </div>
+</details>
 
 <script>
 document.querySelectorAll('.access-grant-form').forEach((form) => {
@@ -262,7 +297,27 @@ document.querySelectorAll('.access-grant-form').forEach((form) => {
 });
 </script>
 
-<?php foreach ($course_blocks as $block): ?>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Course progress</h2>
+      <span class="field-hint">
+        <?php if ($progressCourseCount === 0): ?>
+          No courses with progress yet
+        <?php else: ?>
+          <?= $progressCourseCount ?> course<?= $progressCourseCount === 1 ? '' : 's' ?>
+          · <?= (int)$total_opened ?> / <?= (int)$total_lessons ?> lessons opened
+        <?php endif; ?>
+      </span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
+  <?php if ($courseBlocksList === []): ?>
+    <p class="field-hint">This student has no active course access yet. Use the table above to grant demo or full access.</p>
+  <?php else: ?>
+    <div class="admin-expander-group">
+    <?php foreach ($courseBlocksList as $block): ?>
   <?php
     $c = $block['course'];
     $slug = (string)($c['slug'] ?? '');
@@ -270,17 +325,21 @@ document.querySelectorAll('.access-grant-form').forEach((form) => {
     $total = (int)$block['total'];
     $coursePct = $total > 0 ? min(100, (int)round($opened / $total * 100)) : 0;
   ?>
-  <div class="admin-card">
-    <div class="student-course-head">
-      <div>
-        <h2 style="margin:0"><?= wwm_escape((string)($c['title'] ?? $slug)) ?></h2>
-        <span class="field-hint"><?= wwm_escape($slug) ?> · <?= wwm_escape((string)$block['access']) ?></span>
+  <details class="admin-expander admin-expander--nested admin-expander--course">
+    <summary class="admin-expander-summary">
+      <div class="student-course-head">
+        <div>
+          <h2 style="margin:0;font-family:'Fraunces',Georgia,serif;font-size:1.25rem"><?= wwm_escape((string)($c['title'] ?? $slug)) ?></h2>
+          <span class="field-hint"><?= wwm_escape($slug) ?> · <?= wwm_escape((string)$block['access']) ?></span>
+        </div>
+        <div class="progress-cell" style="min-width:200px">
+          <span class="progress-label"><?= $opened ?> / <?= $total ?> lessons</span>
+          <div class="progress-bar"><span class="progress-bar-fill" style="width:<?= $coursePct ?>%"></span></div>
+        </div>
       </div>
-      <div class="progress-cell" style="min-width:200px">
-        <span class="progress-label"><?= $opened ?> / <?= $total ?> lessons</span>
-        <div class="progress-bar"><span class="progress-bar-fill" style="width:<?= $coursePct ?>%"></span></div>
-      </div>
-    </div>
+      <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+    </summary>
+    <div class="admin-expander-body">
     <table class="admin-table admin-table-compact">
       <thead>
         <tr>
@@ -309,20 +368,27 @@ document.querySelectorAll('.access-grant-form').forEach((form) => {
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
+  </details>
+    <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
   </div>
-<?php endforeach; ?>
+</details>
 
-<?php if ($course_blocks === []): ?>
-  <div class="admin-card">
-    <p class="field-hint">This student has no active course access yet. Use the table above to grant demo or full access.</p>
-  </div>
-<?php endif; ?>
-
-<div class="admin-card admin-danger-zone">
-  <h2>Danger zone</h2>
+<details class="admin-card admin-expander admin-danger-zone">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Danger zone</h2>
+      <span class="field-hint">Delete student permanently</span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <p class="field-hint">Permanently delete this student and all their access records. This cannot be undone.</p>
   <form method="post" action="/admin/students/<?= $id ?>/delete" class="inline-form" onsubmit="return confirm('Delete this student permanently?');">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <button type="submit" class="btn btn-danger btn-sm">Delete student</button>
   </form>
-</div>
+  </div>
+</details>

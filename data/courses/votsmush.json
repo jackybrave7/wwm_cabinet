@@ -33,11 +33,6 @@
                 9,
                 10
             ]
-        },
-        {
-            "lessons": [
-                11
-            ]
         }
     ],
     "lessons": [
@@ -138,13 +133,6 @@
                 "embed_url": "https://kinescope.io/embed/a5Le5WL8hNztSEBry3fVPL"
             },
             "duration": "25:28"
-        },
-        {
-            "num": 11,
-            "title": "Your opinion is important to us!",
-            "demo": false,
-            "materials": [],
-            "kind": "feedback"
         }
     ]
 }

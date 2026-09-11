@@ -56,8 +56,7 @@
                 32,
                 33,
                 34,
-                35,
-                36
+                35
             ]
         }
     ],
@@ -434,13 +433,6 @@
                 "embed_url": "https://kinescope.io/embed/gsmXSa47NMFnGQGmUEAH1z"
             },
             "duration": "4:44"
-        },
-        {
-            "num": 36,
-            "title": "Your opinion is important to us!",
-            "demo": false,
-            "materials": [],
-            "kind": "feedback"
         }
     ]
 }

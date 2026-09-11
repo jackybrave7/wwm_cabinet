@@ -493,7 +493,119 @@ body.admin-body {
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+.admin-expander.admin-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-expander > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  user-select: none;
+}
+
+.admin-expander > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-expander > summary::marker {
+  content: '';
+}
+
+.admin-expander-summary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-expander-summary-text h2 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.25rem;
+}
+
+.admin-expander-chevron {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--mute);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: transform 0.2s ease, color 0.15s ease;
+}
+
+.admin-expander[open] > summary .admin-expander-chevron {
+  transform: rotate(180deg);
+  color: var(--ink);
+}
+
+.admin-expander > summary:hover .admin-expander-chevron {
+  color: var(--ink);
+}
+
+.admin-expander-body {
+  padding: 0 24px 22px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-expander-body > :first-child {
+  margin-top: 16px;
+}
+
+.admin-expander--course > summary .student-course-head {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+}
+
+.admin-expander--course .admin-expander-body .admin-table {
+  margin-top: 0;
+}
+
+.admin-expander--course > summary {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+.admin-expander-group {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-expander--nested {
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.admin-expander--nested > summary {
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.admin-expander--nested .admin-expander-body {
+  padding: 0 16px 16px;
+  background: #fff;
+}
+
+.admin-expander--nested .admin-expander-chevron {
+  width: 26px;
+  height: 26px;
+  font-size: 0.65rem;
 }
 
 .access-grant-form {

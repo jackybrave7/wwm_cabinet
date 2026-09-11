@@ -55,11 +55,6 @@
                 36,
                 37
             ]
-        },
-        {
-            "lessons": [
-                38
-            ]
         }
     ],
     "lessons": [
@@ -461,13 +456,6 @@
                 "embed_url": "https://kinescope.io/embed/7Ms8FYfQj7QcedmFXKN2D4"
             },
             "duration": "11:26"
-        },
-        {
-            "num": 38,
-            "title": "Feedback",
-            "demo": false,
-            "materials": [],
-            "kind": "feedback"
         }
     ]
 }
