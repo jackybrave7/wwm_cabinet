@@ -1,22 +1,280 @@
 {
     "slug": "angus",
-    "title": "Angus McEwan — Watercolor Textures",
+    "title": "Angus McEwan's video course 'Watercolor Textures'",
     "subtitle": "Photorealistic textures in watercolor and mixed media",
     "buy_url": "https://worldwatercolormasters.art/angus-mcewan",
+    "cover_image": "https://static.tildacdn.com/tild6334-6537-4365-a166-386138326565/__-_eng.jpg",
     "avo_goods_id": 201,
     "demo_hours": 48,
     "paid_email": true,
     "status": "published",
+    "sections": [
+        {
+            "title": "Lesson 1. Watercolor textures",
+            "lessons": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21
+            ]
+        },
+        {
+            "lessons": [
+                22
+            ]
+        }
+    ],
     "lessons": [
         {
             "num": 1,
-            "title": "Watercolor textures",
+            "title": "Description of the work. Structure, color, stages",
             "demo": true,
+            "materials": [],
             "video": {
                 "provider": "kinescope",
-                "embed_url": "https://kinescope.io/embed/REPLACE_WITH_REAL_ID"
+                "embed_url": "https://kinescope.io/embed/2bjNkchtP75uLYCgcbTpaU"
             },
-            "materials": []
+            "duration": "5:35"
+        },
+        {
+            "num": 2,
+            "title": "Overview of materials",
+            "demo": true,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/meedTVUvFV4LBXmncoKY4h"
+            },
+            "duration": "8:08"
+        },
+        {
+            "num": 3,
+            "title": "List of materials and photo reference",
+            "demo": true,
+            "materials": [],
+            "html_body": "<div class=\"materials-sheet\">\r\n<p class=\"materials-intro\">Materials Angus McEwan uses for the door painting in this course. Lesson 2 shows his working setup in the studio.</p>\r\n<ol class=\"materials-items\">\r\n<li><strong>Paper.</strong> Watercolor paper taped to a board. Angus works on a vertical surface so washes can run; keep paper towels along the bottom edge of the board.</li>\r\n<li><strong>Paints.</strong> Angus typically paints with Daniel Smith watercolors. His core palette:\r\n<ul>\r\n<li>Van Dyke Brown</li>\r\n<li>Burnt Umber</li>\r\n<li>Prussian Blue</li>\r\n<li>Cobalt Blue</li>\r\n<li>Manganese Blue Hue</li>\r\n<li>Lavender</li>\r\n<li>Cobalt Teal Blue</li>\r\n<li>Indian Yellow</li>\r\n<li>Organic Vermillion</li>\r\n<li>Quinacridone Burnt Orange</li>\r\n<li>Chinese White</li>\r\n</ul>\r\n</li>\r\n<li><strong>Gold acrylic</strong> for the bolts.</li>\r\n<li><strong>Watercolor crayons</strong> (Caran d’Ache Neocolor II or similar) for texture and light.</li>\r\n<li><strong>Brushes.</strong> A range of rounds, including a small pointed brush for the final details.</li>\r\n<li><strong>Sponge</strong> to build surface texture.</li>\r\n<li><strong>Cardboard / card</strong> to print shapes (the numbers on the door).</li>\r\n<li><strong>Pencil</strong> for the preparatory drawing and to restore lines after washes.</li>\r\n<li><strong>Spray bottle with water</strong> to smooth and move the texture layers.</li>\r\n<li><strong>Paper tape, paper towels,</strong> and a water can.</li>\r\n</ol>\r\n<div class=\"reference-panel\">\r\n<h3>Photo reference</h3>\r\n<p>The door Angus paints in this lesson — rusted bolts, flaking blue paint, and the number 06.</p>\r\n<div class=\"reference-media\"><img src=\"/assets/courses/angus/door-reference.jpg\" alt=\"Reference: blue door with rusted bolts\"></div>\r\n<a class=\"reference-download\" href=\"/assets/courses/angus/door-reference.jpg\" download=\"angus-mcewan_door.jpg\">Download reference image</a>\r\n</div>\r\n</div>"
+        },
+        {
+            "num": 4,
+            "title": "Preparatory drawing",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/6oYTjrV1SoJEcDoZBU3aD2"
+            },
+            "duration": "2:24"
+        },
+        {
+            "num": 5,
+            "title": "Draw the bolts. Gold acrylic. We specify the figure",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/9Y7xtZRVcceBkbfofx6uT2"
+            },
+            "duration": "2:08"
+        },
+        {
+            "num": 6,
+            "title": "Preparing the background fill",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/8uUWryEAX3Rtqhim2uBx1Q"
+            },
+            "duration": "1:52"
+        },
+        {
+            "num": 7,
+            "title": "Create the first texture layer",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/pbgpTdLrRSpCj6qo2xYRkB"
+            },
+            "duration": "3:57"
+        },
+        {
+            "num": 8,
+            "title": "Smoothing the texture with water",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/b95MbQC61F3yfHrznG8qDF"
+            },
+            "duration": "2:00"
+        },
+        {
+            "num": 9,
+            "title": "Creating the next texture layer",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/f8ppx4RvYkYu6PJR1cGRRP"
+            },
+            "duration": "2:52"
+        },
+        {
+            "num": 10,
+            "title": "Applying water for smoothing again",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/64eizHnSYrkeFGkuBxW2xa"
+            },
+            "duration": "0:49"
+        },
+        {
+            "num": 11,
+            "title": "Opening the bolts",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/q9xumStvAseeLSTYbGDPux"
+            },
+            "duration": "2:19"
+        },
+        {
+            "num": 12,
+            "title": "Continue working on textures",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/3rzooaWw1d5imwSdn7DuUa"
+            },
+            "duration": "3:32"
+        },
+        {
+            "num": 13,
+            "title": "Restoring the pencil drawing. Create a picture of cracks",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/sy6Bb1kTixFsjGvW7RX9CM"
+            },
+            "duration": "3:47"
+        },
+        {
+            "num": 14,
+            "title": "Adding light tones",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/aCdXQxrFhXcZs6PbCUdG7Q"
+            },
+            "duration": "3:15"
+        },
+        {
+            "num": 15,
+            "title": "Introducing darker tones, complicate the texture",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/q5h1RDw4rY1Uzp5j5PW2Q9"
+            },
+            "duration": "1:38"
+        },
+        {
+            "num": 16,
+            "title": "Highlighting the general background again",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/jvgd6vrt6PGpWrimKLgu12"
+            },
+            "duration": "2:03"
+        },
+        {
+            "num": 17,
+            "title": "Creating a texture with a sponge",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/n478w3xGfQ3SWRBGcMn1Qy"
+            },
+            "duration": "1:32"
+        },
+        {
+            "num": 18,
+            "title": "Creating the silhouettes of numbers",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/jheEtrZTbH728LFcNZs6rm"
+            },
+            "duration": "9:42"
+        },
+        {
+            "num": 19,
+            "title": "Using watercolor crayon to create textures and light",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/tVkWAmtEaPrdMz7K3Tm45L"
+            },
+            "duration": "2:19"
+        },
+        {
+            "num": 20,
+            "title": "Returning to the watercolor. Complicating the color of the door",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/roPU6J3siKw8G5ksweSkTt"
+            },
+            "duration": "2:03"
+        },
+        {
+            "num": 21,
+            "title": "Working on the small details",
+            "demo": false,
+            "materials": [],
+            "video": {
+                "provider": "kinescope",
+                "embed_url": "https://kinescope.io/embed/hCp7LDAWcoCmVMosALjqZ4"
+            },
+            "duration": "27:59"
+        },
+        {
+            "num": 22,
+            "title": "Your opinion is important to us!",
+            "demo": false,
+            "materials": [],
+            "kind": "feedback"
         }
     ]
 }
