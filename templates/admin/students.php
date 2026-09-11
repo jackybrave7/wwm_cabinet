@@ -161,12 +161,11 @@ $formatDateTime = static function (?string $iso): string {
         <th>Access</th>
         <th>Progress</th>
         <th>Last activity</th>
-        <th></th>
       </tr>
     </thead>
     <tbody>
       <?php if ($students === []): ?>
-        <tr><td colspan="7" style="color:var(--mute)">No students found.</td></tr>
+        <tr><td colspan="6" style="color:var(--mute)">No students found.</td></tr>
       <?php endif; ?>
       <?php foreach ($students as $row): ?>
         <?php
@@ -181,7 +180,11 @@ $formatDateTime = static function (?string $iso): string {
         ?>
         <tr>
           <td>
-            <strong><?= wwm_escape((string)($u['name'] ?: $u['email'])) ?></strong><br>
+            <?php
+              $displayName = (string)($u['name'] ?: $u['email']);
+              $profileUrl = '/admin/students/' . $id;
+            ?>
+            <a href="<?= wwm_escape($profileUrl) ?>" class="admin-student-link"><strong><?= wwm_escape($displayName) ?></strong></a><br>
             <span style="color:var(--mute);font-size:0.85rem"><?= wwm_escape((string)$u['email']) ?></span>
           </td>
           <td class="admin-meta-cell"><?= wwm_escape($location) ?></td>
@@ -199,7 +202,6 @@ $formatDateTime = static function (?string $iso): string {
             <?php endif; ?>
           </td>
           <td><?= wwm_escape($formatDate($row['last_activity'])) ?></td>
-          <td><a href="/admin/students/<?= $id ?>" class="btn btn-ghost btn-sm">View</a></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
