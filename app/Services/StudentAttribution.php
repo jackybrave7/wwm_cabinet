@@ -267,6 +267,16 @@ final class StudentAttribution
             return 'disabled';
         }
 
+        $contactId = (int)($user['avo_contact_id'] ?? 0);
+        if ($contactId <= 0) {
+            $found = $client->findContactIdByEmail((string)$user['email']);
+            if ($found !== null && $found > 0) {
+                $contactId = $found;
+                User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $contactId]);
+                $user = User::findById($pdo, $userId) ?? $user;
+            }
+        }
+
         $before = self::utmFields($user);
         $utm = AvoAdvertisingSnapshot::utmFromUser($user);
         $resolved = (new AvoUtmResolver($client))->resolve(self::avoPayloadForUser($pdo, $user));
@@ -276,20 +286,12 @@ final class StudentAttribution
             wwm_log(sprintf(
                 'avo utm backfill empty for user %d contact %s email %s last_error=%s',
                 $userId,
-                (int)($user['avo_contact_id'] ?? 0) > 0 ? (string)$user['avo_contact_id'] : 'n/a',
+                $contactId > 0 ? (string)$contactId : 'n/a',
                 (string)$user['email'],
                 $client->lastError() ?? 'none'
             ));
 
             return 'empty';
-        }
-
-        $contactId = (int)($user['avo_contact_id'] ?? 0);
-        if ($contactId <= 0) {
-            $found = $client->findContactIdByEmail((string)$user['email']);
-            if ($found !== null && $found > 0) {
-                User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $found]);
-            }
         }
 
         self::recordForUser($pdo, $userId, false, $utm, false);

@@ -475,6 +475,7 @@ final class AvoClient
             'contacts',
             'accounts',
             'contactnewsletterlinks',
+            'contactnewsletterlink',
             'advertisingchannelstatistics',
             'advertisingchannelcontactstatistics',
             'contactadvertisingchannelpage',

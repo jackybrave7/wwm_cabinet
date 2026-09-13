@@ -51,7 +51,9 @@ final class DemoWebhookController
                 $avoContactId > 0 ? $avoContactId : null,
                 $timeline['ordered']
             );
-            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), (int)$result['user_id'], $payload);
+            $userId = (int)$result['user_id'];
+            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), $userId, $payload);
+            StudentAttribution::backfillUtmStatus(wwm_pdo(), $userId);
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
         } catch (\RuntimeException $e) {

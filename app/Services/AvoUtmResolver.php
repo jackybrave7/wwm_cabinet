@@ -14,6 +14,7 @@ final class AvoUtmResolver
     /** @var list<string> */
     private const CONTACT_LINK_RESOURCES = [
         'contactnewsletterlinks',
+        'contactnewsletterlink',
         'contactadvertisingchannelpage',
         'advertisingchannelcontactstatistics',
         'advertisingchannelcontact',
@@ -59,11 +60,13 @@ final class AvoUtmResolver
         }
 
         if ($contactId > 0) {
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactLinks($contactId));
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactRecord($contactId));
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromContactLinks($contactId, $email));
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromAccountsByContact($contactId));
         }
 
         if ($email !== '' && !$this->hasCoreUtm($utm)) {
+            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromNewsletterLinksByEmail($email));
             $utm = StudentAttribution::mergeUtm($utm, $this->utmFromStatisticsByEmail($email));
         }
 
@@ -161,26 +164,104 @@ final class AvoUtmResolver
     /**
      * @return array<string, string>
      */
-    private function utmFromContactLinks(int $contactId): array
+    private function utmFromContactRecord(int $contactId): array
     {
-        $utm = [];
+        $contact = $this->client->findContactById($contactId);
+        if ($contact === null) {
+            return [];
+        }
+
+        return $this->utmFromRow($contact);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function utmFromContactLinks(int $contactId, string $email = ''): array
+    {
+        $best = [];
 
         foreach (self::CONTACT_LINK_RESOURCES as $resource) {
-            $rows = $this->client->searchRows($resource, [
+            $rows = $this->client->searchAllPages($resource, [
                 'id_contact' => (string)$contactId,
-            ], ['pagesize' => 5]);
-            if ($rows === []) {
-                continue;
+            ], 25, 40000);
+            $best = $this->mergeBestUtmFromRows($best, $rows);
+            if ($this->hasCoreUtm($best)) {
+                return $best;
             }
+        }
 
-            $row = $this->pickOldestRow($rows);
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
-            if ($this->hasCoreUtm($utm)) {
+        if ($email !== '' && !$this->hasCoreUtm($best)) {
+            $best = StudentAttribution::mergeUtm($best, $this->utmFromNewsletterLinksByEmail($email));
+        }
+
+        return $best;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function utmFromNewsletterLinksByEmail(string $email): array
+    {
+        $email = strtolower(trim($email));
+        if ($email === '') {
+            return [];
+        }
+
+        $best = [];
+        foreach (['contactnewsletterlinks', 'contactnewsletterlink'] as $resource) {
+            $rows = $this->client->searchAllPages($resource, ['email' => $email], 25, 40000);
+            $best = $this->mergeBestUtmFromRows($best, $rows);
+            if ($this->hasCoreUtm($best)) {
                 break;
             }
         }
 
-        return $utm;
+        return $best;
+    }
+
+    /**
+     * @param array<string, string> $current
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, string>
+     */
+    private function mergeBestUtmFromRows(array $current, array $rows): array
+    {
+        if ($rows === []) {
+            return $current;
+        }
+
+        $best = $current;
+        $bestScore = $this->utmScore($current);
+
+        foreach ($rows as $row) {
+            $candidate = $this->utmFromRow($row);
+            $score = $this->utmScore($candidate);
+            if ($score > $bestScore) {
+                $best = $candidate;
+                $bestScore = $score;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * @param array<string, string> $utm
+     */
+    private function utmScore(array $utm): int
+    {
+        $score = 0;
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+            if (trim((string)($utm[$key] ?? '')) !== '') {
+                $score++;
+            }
+        }
+        if ($this->hasCoreUtm($utm)) {
+            $score += 10;
+        }
+
+        return $score;
     }
 
     /**
@@ -262,6 +343,7 @@ final class AvoUtmResolver
      */
     private function utmFromRow(array $row): array
     {
+        $row = $this->normalizeRow($row);
         $utm = StudentAttribution::utmFromAvoPayload($row);
         $utm = $this->applyFieldAliases($utm, $row);
 
@@ -271,6 +353,19 @@ final class AvoUtmResolver
         }
 
         return $utm;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function normalizeRow(array $row): array
+    {
+        if (isset($row['item']) && is_array($row['item'])) {
+            return $row['item'];
+        }
+
+        return $row;
     }
 
     /**

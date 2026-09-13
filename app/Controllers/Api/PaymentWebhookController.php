@@ -10,6 +10,7 @@ use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
 use Wwm\Services\PaidAccess;
+use Wwm\Services\StudentAttribution;
 
 final class PaymentWebhookController
 {
@@ -59,7 +60,9 @@ final class PaymentWebhookController
                 $timeline['ordered'],
                 $timeline['paid']
             );
-            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), (int)$result['user_id'], $payload);
+            $userId = (int)$result['user_id'];
+            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), $userId, $payload);
+            StudentAttribution::backfillUtmStatus(wwm_pdo(), $userId);
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
         } catch (\RuntimeException $e) {
