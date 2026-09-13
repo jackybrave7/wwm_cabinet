@@ -31,7 +31,8 @@ final class DemoAccess
         string $source = 'avo',
         ?string $sourceRef = null,
         array $utm = [],
-        ?int $avoContactId = null
+        ?int $avoContactId = null,
+        ?string $avoOrderedAt = null
     ): array {
         $email = strtolower(trim($email));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -89,7 +90,20 @@ final class DemoAccess
         $demoGranted = false;
 
         if (!$state['demo_active']) {
-            Access::grant($pdo, $userId, $courseSlug, 'demo', $expiresAt, $source, $sourceRef);
+            Access::grant(
+                $pdo,
+                $userId,
+                $courseSlug,
+                'demo',
+                $expiresAt,
+                $source,
+                $sourceRef,
+                $avoOrderedAt,
+                null
+            );
+            if ($avoOrderedAt !== null && $avoOrderedAt !== '') {
+                User::mergeAvoFirstOrderAt($pdo, $userId, $avoOrderedAt);
+            }
             $demoGranted = true;
             wwm_log(sprintf(
                 'demo granted user_id=%d course=%s expires=%s source=%s',

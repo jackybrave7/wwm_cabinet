@@ -149,20 +149,34 @@ final class Access
         string $accessType,
         ?string $expiresAt,
         string $source,
-        ?string $sourceRef = null
+        ?string $sourceRef = null,
+        ?string $avoOrderedAt = null,
+        ?string $avoPaidAt = null
     ): void {
         if (!in_array($accessType, ['demo', 'paid'], true)) {
             throw new \InvalidArgumentException('Invalid access type');
         }
 
         $stmt = $pdo->prepare(
-            'INSERT INTO access (user_id, course_slug, access_type, granted_at, expires_at, source, source_ref)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO access (user_id, course_slug, access_type, granted_at, expires_at, source, source_ref, avo_ordered_at, avo_paid_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(user_id, course_slug, access_type) DO UPDATE SET
                granted_at = excluded.granted_at,
                expires_at = excluded.expires_at,
                source = excluded.source,
-               source_ref = excluded.source_ref'
+               source_ref = excluded.source_ref,
+               avo_ordered_at = CASE
+                 WHEN excluded.avo_ordered_at IS NULL OR excluded.avo_ordered_at = \'\' THEN access.avo_ordered_at
+                 WHEN access.avo_ordered_at IS NULL OR access.avo_ordered_at = \'\' THEN excluded.avo_ordered_at
+                 WHEN excluded.avo_ordered_at < access.avo_ordered_at THEN excluded.avo_ordered_at
+                 ELSE access.avo_ordered_at
+               END,
+               avo_paid_at = CASE
+                 WHEN excluded.avo_paid_at IS NULL OR excluded.avo_paid_at = \'\' THEN access.avo_paid_at
+                 WHEN access.avo_paid_at IS NULL OR access.avo_paid_at = \'\' THEN excluded.avo_paid_at
+                 WHEN excluded.avo_paid_at < access.avo_paid_at THEN excluded.avo_paid_at
+                 ELSE access.avo_paid_at
+               END'
         );
         $stmt->execute([
             $userId,
@@ -172,6 +186,8 @@ final class Access
             $expiresAt,
             $source,
             $sourceRef,
+            $avoOrderedAt,
+            $accessType === 'paid' ? $avoPaidAt : null,
         ]);
     }
 

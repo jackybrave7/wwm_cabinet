@@ -15,6 +15,7 @@ use Wwm\Services\CourseWriter;
 use Wwm\Services\AvoContactName;
 use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\AvoClient;
+use Wwm\Services\AvoContactTimeline;
 use Wwm\Services\StudentAttribution;
 
 final class AdminStudentController
@@ -421,12 +422,28 @@ final class AdminStudentController
 
     /**
      * @param array<string, mixed>|null $grant
-     * @return array{active: bool, label: string, expires_at: ?string}
+     * @return array{
+     *   active: bool,
+     *   label: string,
+     *   expires_at: ?string,
+     *   granted_at: ?string,
+     *   source: ?string,
+     *   avo_ordered_at: ?string,
+     *   avo_paid_at: ?string
+     * }
      */
     private function grantView(?array $grant): array
     {
         if ($grant === null) {
-            return ['active' => false, 'label' => 'None', 'expires_at' => null];
+            return [
+                'active' => false,
+                'label' => 'None',
+                'expires_at' => null,
+                'granted_at' => null,
+                'source' => null,
+                'avo_ordered_at' => null,
+                'avo_paid_at' => null,
+            ];
         }
 
         $expiresAt = isset($grant['expires_at']) && is_string($grant['expires_at']) && $grant['expires_at'] !== ''
@@ -444,7 +461,29 @@ final class AdminStudentController
             $label = 'Inactive';
         }
 
-        return ['active' => $active, 'label' => $label, 'expires_at' => $expiresAt];
+        $avoOrdered = isset($grant['avo_ordered_at']) && is_string($grant['avo_ordered_at']) && $grant['avo_ordered_at'] !== ''
+            ? $grant['avo_ordered_at']
+            : null;
+        $avoPaid = isset($grant['avo_paid_at']) && is_string($grant['avo_paid_at']) && $grant['avo_paid_at'] !== ''
+            ? $grant['avo_paid_at']
+            : null;
+
+        $grantedAt = isset($grant['granted_at']) && is_string($grant['granted_at']) && $grant['granted_at'] !== ''
+            ? $grant['granted_at']
+            : null;
+        $source = isset($grant['source']) && is_string($grant['source']) && $grant['source'] !== ''
+            ? $grant['source']
+            : null;
+
+        return [
+            'active' => $active,
+            'label' => $label,
+            'expires_at' => $expiresAt,
+            'granted_at' => $grantedAt,
+            'source' => $source,
+            'avo_ordered_at' => $avoOrdered,
+            'avo_paid_at' => $avoPaid,
+        ];
     }
 
     public function syncAllNamesFromAvo(): void
@@ -530,9 +569,32 @@ final class AdminStudentController
             return;
         }
 
+        $pdo = wwm_pdo();
         AvoEngagementSync::resync($id);
-        $nameSynced = AvoContactName::backfillFromAvo(wwm_pdo(), $id);
-        StudentAttribution::backfillUtmStatus(wwm_pdo(), $id);
+        $nameSynced = AvoContactName::backfillFromAvo($pdo, $id);
+        StudentAttribution::backfillUtmStatus($pdo, $id);
+
+        $client = new AvoClient();
+        if ($client->isEnabled()) {
+            $refreshedForAvo = User::findById($pdo, $id);
+            if ($refreshedForAvo !== null) {
+                $contactId = (int)($refreshedForAvo['avo_contact_id'] ?? 0);
+                if ($contactId <= 0) {
+                    $found = $client->findContactIdByEmail((string)$refreshedForAvo['email']);
+                    if ($found !== null && $found > 0) {
+                        $contactId = $found;
+                        User::setAvoFlags($pdo, $id, ['avo_contact_id' => $contactId]);
+                    }
+                }
+                if ($contactId > 0) {
+                    $contact = $client->findContactById($contactId);
+                    $registered = AvoContactTimeline::registeredAtIso($contact);
+                    if ($registered !== null) {
+                        User::mergeAvoContactRegisteredAt($pdo, $id, $registered);
+                    }
+                }
+            }
+        }
         $refreshed = User::findById(wwm_pdo(), $id);
         $utmSynced = $refreshed !== null && StudentAttribution::utmFields($refreshed) !== [];
         $created = match (true) {

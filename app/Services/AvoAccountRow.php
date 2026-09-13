@@ -29,6 +29,41 @@ final class AvoAccountRow
 
     /**
      * @param array<string, mixed> $row
+     * @return array{ordered: ?string, paid: ?string}
+     */
+    public static function accessTimelineIso(array $row, bool $forPaidGrant): array
+    {
+        $orderTs = self::orderTimestamp($row);
+        $ordered = $orderTs > 0 ? gmdate('c', $orderTs) : null;
+
+        if (!$forPaidGrant) {
+            return ['ordered' => $ordered, 'paid' => null];
+        }
+
+        $paidTs = 0;
+        foreach (['date_transition', 'confirmed_date', 'datetime_notify'] as $key) {
+            $value = trim((string)($row[$key] ?? ''));
+            if ($value === '' || str_starts_with($value, '0000-00-00')) {
+                continue;
+            }
+            $ts = strtotime($value);
+            if ($ts !== false) {
+                $paidTs = $ts;
+                break;
+            }
+        }
+        if ($paidTs <= 0) {
+            $paidTs = $orderTs;
+        }
+
+        return [
+            'ordered' => $ordered,
+            'paid' => $paidTs > 0 ? gmdate('c', $paidTs) : null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
      */
     public static function isPaid(array $row): bool
     {

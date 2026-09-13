@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 16;
+    public const SCHEMA_VERSION = 17;
 
     public static function connect(string $path): PDO
     {
@@ -104,6 +104,10 @@ SQL);
         self::ensureColumn($pdo, 'users', 'avo_logged_in_tagged', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'users', 'avo_demo_opened_tagged', 'INTEGER NOT NULL DEFAULT 0');
         self::ensureColumn($pdo, 'users', 'avo_ad_snapshot', 'TEXT');
+        self::ensureColumn($pdo, 'users', 'avo_contact_registered_at', 'TEXT');
+        self::ensureColumn($pdo, 'users', 'avo_first_order_at', 'TEXT');
+        self::ensureColumn($pdo, 'access', 'avo_ordered_at', 'TEXT');
+        self::ensureColumn($pdo, 'access', 'avo_paid_at', 'TEXT');
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS lesson_opens (

@@ -116,7 +116,7 @@ final class AvoLegacyImport
             echo PHP_EOL;
         }
 
-        /** @var array<string, array{name: string, contact_id: int, utm: array<string, string>, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
+        /** @var array<string, array{name: string, contact_id: int, first_order_ts: int, utm: array<string, string>, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
         $byEmail = [];
 
         $stats['goods_scanned'] = count($scanGoodsIds);
@@ -170,10 +170,17 @@ final class AvoLegacyImport
                     $byEmail[$email] = [
                         'name' => $name,
                         'contact_id' => $contactId,
+                        'first_order_ts' => $orderTs,
                         'utm' => $utm,
                         'courses' => [],
                     ];
                 } else {
+                    if ($orderTs > 0) {
+                        $first = (int)$byEmail[$email]['first_order_ts'];
+                        if ($first <= 0 || $orderTs < $first) {
+                            $byEmail[$email]['first_order_ts'] = $orderTs;
+                        }
+                    }
                     if ($name !== '') {
                         $byEmail[$email]['name'] = $name;
                     }
@@ -279,6 +286,11 @@ final class AvoLegacyImport
 
             StudentAttribution::recordForUser($pdo, $userId, $created, $bundle['utm'], false);
 
+            $firstOrderTs = (int)($bundle['first_order_ts'] ?? 0);
+            if ($firstOrderTs > 0) {
+                User::mergeAvoFirstOrderAt($pdo, $userId, gmdate('c', $firstOrderTs));
+            }
+
             foreach ($bundle['courses'] as $courseSlug => $grant) {
                 $hasPaidRow = self::userHasPaidGrant($pdo, $userId, $courseSlug);
 
@@ -296,6 +308,7 @@ final class AvoLegacyImport
                         $stats['access_unchanged']++;
                         continue;
                     }
+                    $orderIso = (int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null;
                     Access::grant(
                         $pdo,
                         $userId,
@@ -303,7 +316,9 @@ final class AvoLegacyImport
                         'paid',
                         null,
                         self::SOURCE,
-                        $grant['account_id'] > 0 ? (string)$grant['account_id'] : null
+                        $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
+                        $orderIso,
+                        $orderIso
                     );
                     $stats['paid_grants']++;
                     continue;
@@ -326,6 +341,7 @@ final class AvoLegacyImport
                     continue;
                 }
 
+                $orderIso = (int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null;
                 Access::grant(
                     $pdo,
                     $userId,
@@ -333,7 +349,9 @@ final class AvoLegacyImport
                     'demo',
                     $expiresAt,
                     self::SOURCE,
-                    $grant['account_id'] > 0 ? (string)$grant['account_id'] : null
+                    $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
+                    $orderIso,
+                    null
                 );
                 $stats['demo_grants']++;
             }

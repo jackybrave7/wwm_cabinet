@@ -8,6 +8,29 @@ $formatDate = static function (?string $iso): string {
     $ts = strtotime($iso);
     return $ts ? date('M j, Y H:i', $ts) : '—';
 };
+$accessAvoLines = static function (array $view, bool $paidColumn) use ($formatDate): array {
+    if (($view['label'] ?? 'None') === 'None') {
+        return [];
+    }
+    $lines = [];
+    if ($paidColumn && !empty($view['avo_paid_at'])) {
+        $lines[] = 'Paid in AVO: ' . $formatDate((string)$view['avo_paid_at']);
+    }
+    if (!empty($view['avo_ordered_at'])) {
+        $ordered = (string)$view['avo_ordered_at'];
+        $paid = (string)($view['avo_paid_at'] ?? '');
+        if (!$paidColumn || $paid === '' || $ordered !== $paid) {
+            $lines[] = ($paidColumn ? 'Order in AVO: ' : 'Ordered in AVO: ') . $formatDate($ordered);
+        }
+    }
+    if ($lines === [] && !empty($view['granted_at'])) {
+        $lines[] = 'Granted in cabinet: ' . $formatDate((string)$view['granted_at']);
+    }
+
+    return $lines;
+};
+$avoRegisteredAt = trim((string)($student['avo_contact_registered_at'] ?? ''));
+$avoFirstOrderAt = trim((string)($student['avo_first_order_at'] ?? ''));
 $id = (int)($student['id'] ?? 0);
 $pct = $total_lessons > 0 ? min(100, (int)round($total_opened / $total_lessons * 100)) : 0;
 $badgeClass = $access_label === 'Paid' ? 'badge-paid' : ($access_label === 'Demo' ? 'badge-demo' : 'badge-draft');
@@ -106,6 +129,13 @@ $progressCourseCount = count($courseBlocksList);
     <span class="admin-expander-chevron" aria-hidden="true">▼</span>
   </summary>
   <div class="admin-expander-body">
+  <p class="field-hint" style="margin-bottom:8px">
+    <strong>Registered in AVO:</strong>
+    <?= $avoRegisteredAt !== '' ? wwm_escape($formatDate($avoRegisteredAt)) : '—' ?>
+    <?php if ($avoRegisteredAt === '' && $avoFirstOrderAt !== ''): ?>
+      <span class="field-hint"> (contact date unknown · first order <?= wwm_escape($formatDate($avoFirstOrderAt)) ?>)</span>
+    <?php endif; ?>
+  </p>
   <p class="field-hint" style="margin-bottom:12px">
     Contact ID: <?= $avo_contact_id !== null ? (int)$avo_contact_id : 'not found' ?>
     · logged in: <?= !empty($avo_logged_in_tagged) ? 'local ✓' : 'local —' ?>
@@ -113,6 +143,9 @@ $progressCourseCount = count($courseBlocksList);
     · demo opened: <?= !empty($avo_demo_opened_tagged) ? 'local ✓' : 'local —' ?>
     <?= $avo_has_demo_opened_tag === true ? '· AVO ✓' : ($avo_has_demo_opened_tag === false ? '· AVO —' : '') ?>
   </p>
+  <?php if ($avoRegisteredAt === ''): ?>
+    <p class="field-hint" style="margin-bottom:12px">Use Resync to pull registration date from AVO. Re-run CSV import to backfill order and payment dates for legacy students.</p>
+  <?php endif; ?>
   <form method="post" action="/admin/students/<?= $id ?>/avo-sync" class="inline-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <button type="submit" class="btn btn-ghost btn-sm">Resync AVO tags &amp; UTM</button>
@@ -233,6 +266,9 @@ $progressCourseCount = count($courseBlocksList);
           </td>
           <td>
             <span class="badge <?= $demo['active'] ? 'badge-demo' : 'badge-draft' ?>"><?= wwm_escape((string)$demo['label']) ?></span>
+            <?php foreach ($accessAvoLines($demo, false) as $avoLine): ?>
+              <br><span class="field-hint"><?= wwm_escape($avoLine) ?></span>
+            <?php endforeach; ?>
             <?php if ($demo['active']): ?>
               <form method="post" action="/admin/students/<?= $id ?>/access/revoke" class="inline-form">
                 <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
@@ -244,6 +280,9 @@ $progressCourseCount = count($courseBlocksList);
           </td>
           <td>
             <span class="badge <?= $paid['active'] ? 'badge-paid' : 'badge-draft' ?>"><?= wwm_escape((string)$paid['label']) ?></span>
+            <?php foreach ($accessAvoLines($paid, true) as $avoLine): ?>
+              <br><span class="field-hint"><?= wwm_escape($avoLine) ?></span>
+            <?php endforeach; ?>
             <?php if ($paid['active']): ?>
               <form method="post" action="/admin/students/<?= $id ?>/access/revoke" class="inline-form">
                 <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">

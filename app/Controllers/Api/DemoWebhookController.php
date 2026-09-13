@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Api;
 
+use Wwm\Services\AvoAccountRow;
 use Wwm\Services\AvoContactName;
 use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
@@ -39,6 +40,7 @@ final class DemoWebhookController
         }
 
         try {
+            $timeline = AvoAccountRow::accessTimelineIso($payload, false);
             $result = (new DemoAccess())->grant(
                 $email,
                 $name,
@@ -46,7 +48,8 @@ final class DemoWebhookController
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
                 $this->resolveUtmSafely($payload),
-                $avoContactId > 0 ? $avoContactId : null
+                $avoContactId > 0 ? $avoContactId : null,
+                $timeline['ordered']
             );
             AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), (int)$result['user_id'], $payload);
         } catch (\InvalidArgumentException $e) {

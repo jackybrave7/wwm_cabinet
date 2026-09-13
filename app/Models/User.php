@@ -296,6 +296,41 @@ final class User
         return ['rows' => $stmt->fetchAll() ?: [], 'total' => $total];
     }
 
+    public static function mergeAvoContactRegisteredAt(PDO $pdo, int $userId, string $iso): void
+    {
+        self::mergeEarliestIsoColumn($pdo, $userId, 'avo_contact_registered_at', $iso);
+    }
+
+    public static function mergeAvoFirstOrderAt(PDO $pdo, int $userId, string $iso): void
+    {
+        self::mergeEarliestIsoColumn($pdo, $userId, 'avo_first_order_at', $iso);
+    }
+
+    private static function mergeEarliestIsoColumn(PDO $pdo, int $userId, string $column, string $iso): void
+    {
+        $iso = trim($iso);
+        if ($iso === '') {
+            return;
+        }
+
+        $allowed = ['avo_contact_registered_at', 'avo_first_order_at'];
+        if (!in_array($column, $allowed, true)) {
+            throw new \InvalidArgumentException('Invalid column');
+        }
+
+        $stmt = $pdo->prepare('SELECT ' . $column . ' FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $current = $stmt->fetchColumn();
+        $current = is_string($current) ? trim($current) : '';
+
+        if ($current !== '' && $current <= $iso) {
+            return;
+        }
+
+        $update = $pdo->prepare('UPDATE users SET ' . $column . ' = ? WHERE id = ?');
+        $update->execute([$iso, $userId]);
+    }
+
     public static function delete(PDO $pdo, int $userId): void
     {
         $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');

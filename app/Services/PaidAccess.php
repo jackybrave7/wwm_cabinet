@@ -30,7 +30,9 @@ final class PaidAccess
         ?string $sourceRef = null,
         array $utm = [],
         ?int $avoContactId = null,
-        ?bool $sendEmail = null
+        ?bool $sendEmail = null,
+        ?string $avoOrderedAt = null,
+        ?string $avoPaidAt = null
     ): array {
         $email = strtolower(trim($email));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -80,7 +82,20 @@ final class PaidAccess
             ];
         }
 
-        Access::grant($pdo, $userId, $courseSlug, 'paid', null, $source, $sourceRef);
+        Access::grant(
+            $pdo,
+            $userId,
+            $courseSlug,
+            'paid',
+            null,
+            $source,
+            $sourceRef,
+            $avoOrderedAt,
+            $avoPaidAt
+        );
+        if ($avoOrderedAt !== null && $avoOrderedAt !== '') {
+            User::mergeAvoFirstOrderAt($pdo, $userId, $avoOrderedAt);
+        }
         wwm_log(sprintf(
             'paid granted user_id=%d course=%s source=%s ref=%s',
             $userId,

@@ -57,7 +57,7 @@ final class CsvLegacyImport
         $resolver = new AvoGoodsCourseResolver();
         $catalog = new CourseCatalog();
 
-        /** @var array<string, array{name: string, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
+        /** @var array<string, array{name: string, first_order_ts: int, courses: array<string, array{type: string, account_id: int, order_ts: int, paid_ts: int}>}> */
         $byEmail = [];
 
         foreach (BlSchoolAccountsCsv::rows($path) as $row) {
@@ -94,13 +94,22 @@ final class CsvLegacyImport
 
             $stats['rows_in_window']++;
 
+            $paidTs = (int)($row['paid_ts'] ?? 0);
+
             if (!isset($byEmail[$email])) {
                 $byEmail[$email] = [
                     'name' => $row['name'],
+                    'first_order_ts' => $orderTs,
                     'courses' => [],
                 ];
             } elseif ($row['name'] !== '') {
                 $byEmail[$email]['name'] = $row['name'];
+            }
+            if ($orderTs > 0) {
+                $first = (int)$byEmail[$email]['first_order_ts'];
+                if ($first <= 0 || $orderTs < $first) {
+                    $byEmail[$email]['first_order_ts'] = $orderTs;
+                }
             }
 
             $existing = $byEmail[$email]['courses'][$slug] ?? null;
@@ -109,6 +118,7 @@ final class CsvLegacyImport
                     'type' => $accessType,
                     'account_id' => $row['account_id'],
                     'order_ts' => $orderTs,
+                    'paid_ts' => $accessType === 'paid' ? ($paidTs > 0 ? $paidTs : $orderTs) : 0,
                 ];
                 continue;
             }
@@ -120,6 +130,7 @@ final class CsvLegacyImport
                     'type' => 'paid',
                     'account_id' => $row['account_id'],
                     'order_ts' => $orderTs,
+                    'paid_ts' => $paidTs > 0 ? $paidTs : $orderTs,
                 ];
                 continue;
             }
@@ -128,6 +139,7 @@ final class CsvLegacyImport
                     'type' => 'demo',
                     'account_id' => $row['account_id'],
                     'order_ts' => $orderTs,
+                    'paid_ts' => 0,
                 ];
             }
         }
@@ -177,6 +189,11 @@ final class CsvLegacyImport
             $userId = (int)$user['id'];
             StudentAttribution::recordForUser($pdo, $userId, $created, [], false);
 
+            $firstOrderTs = (int)($bundle['first_order_ts'] ?? 0);
+            if ($firstOrderTs > 0) {
+                User::mergeAvoFirstOrderAt($pdo, $userId, gmdate('c', $firstOrderTs));
+            }
+
             foreach ($bundle['courses'] as $courseSlug => $grant) {
                 if (self::userHasPaidGrant($pdo, $userId, $courseSlug) && $grant['type'] === 'demo') {
                     $stats['access_unchanged']++;
@@ -191,7 +208,9 @@ final class CsvLegacyImport
                         'paid',
                         null,
                         self::SOURCE,
-                        $grant['account_id'] > 0 ? (string)$grant['account_id'] : null
+                        $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
+                        self::avoOrderedIso($grant),
+                        self::avoPaidIso($grant)
                     );
                     $stats['paid_grants']++;
                     continue;
@@ -211,13 +230,38 @@ final class CsvLegacyImport
                     'demo',
                     $expiresAt,
                     self::SOURCE,
-                    $grant['account_id'] > 0 ? (string)$grant['account_id'] : null
+                    $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
+                    self::avoOrderedIso($grant),
+                    null
                 );
                 $stats['demo_grants']++;
             }
         }
 
         return $stats;
+    }
+
+    /**
+     * @param array{order_ts: int, paid_ts?: int} $grant
+     */
+    private static function avoOrderedIso(array $grant): ?string
+    {
+        $ts = (int)($grant['order_ts'] ?? 0);
+
+        return $ts > 0 ? gmdate('c', $ts) : null;
+    }
+
+    /**
+     * @param array{order_ts: int, paid_ts?: int, type?: string} $grant
+     */
+    private static function avoPaidIso(array $grant): ?string
+    {
+        $paidTs = (int)($grant['paid_ts'] ?? 0);
+        if ($paidTs <= 0) {
+            $paidTs = (int)($grant['order_ts'] ?? 0);
+        }
+
+        return $paidTs > 0 ? gmdate('c', $paidTs) : null;
     }
 
     /**
@@ -251,6 +295,7 @@ final class BlSchoolAccountsCsv
      *   status: string,
      *   sum: float,
      *   order_ts: int,
+     *   paid_ts: int,
      *   account_id: int
      * }>
      */
@@ -292,6 +337,8 @@ final class BlSchoolAccountsCsv
             $sum = self::parseMoney(self::col($cols, $index, 'Сумма'));
             $dateStr = self::col($cols, $index, 'Дата заказа');
             $orderTs = self::parseDate($dateStr);
+            $paidDateStr = self::col($cols, $index, 'Дата оплаты');
+            $paidTs = self::parseDate($paidDateStr);
             $accountId = (int)preg_replace('/\D/', '', self::col($cols, $index, 'ID (код счета)'));
 
             yield [
@@ -302,6 +349,7 @@ final class BlSchoolAccountsCsv
                 'status' => $status,
                 'sum' => $sum,
                 'order_ts' => $orderTs,
+                'paid_ts' => $paidTs,
                 'account_id' => $accountId,
             ];
         }
