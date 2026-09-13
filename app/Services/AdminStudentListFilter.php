@@ -158,12 +158,13 @@ final class AdminStudentListFilter
             }
         }
 
+        $registeredAt = \Wwm\Models\User::sqlRegisteredAtExpression();
         if ($this->registeredFrom !== '') {
-            $parts[] = 'u.created_at >= ?';
+            $parts[] = $registeredAt . ' >= ?';
             $params[] = $this->registeredFrom . 'T00:00:00+00:00';
         }
         if ($this->registeredTo !== '') {
-            $parts[] = 'u.created_at <= ?';
+            $parts[] = $registeredAt . ' <= ?';
             $params[] = $this->registeredTo . 'T23:59:59+00:00';
         }
 

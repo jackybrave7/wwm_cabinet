@@ -51,7 +51,7 @@ $progressCourseCount = count($courseBlocksList);
   <div>
     <p class="badge badge-admin">Student profile</p>
     <h1 class="page-title page-title-sm"><?= wwm_escape((string)($student['name'] ?: $student['email'])) ?></h1>
-    <p class="field-hint"><?= wwm_escape((string)$student['email']) ?> · joined <?= wwm_escape($formatDate((string)($student['created_at'] ?? ''))) ?></p>
+    <p class="field-hint"><?= wwm_escape((string)$student['email']) ?> · registered (AVO) <?= wwm_escape($formatDate(\Wwm\Models\User::registeredAtForDisplay($student))) ?><?php if (trim((string)($student['created_at'] ?? '')) !== ''): ?> · cabinet <?= wwm_escape($formatDate((string)$student['created_at'])) ?><?php endif; ?></p>
   </div>
   <a href="/admin/students" class="btn btn-ghost">← All students</a>
 </div>
