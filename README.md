@@ -188,7 +188,8 @@ curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&n
 | `data/courses/*.json` | Контент курсов |
 | `prototype/` | HTML-макеты студента и админки |
 | `scripts/migrate.php` | Схема БД |
-| `scripts/import-students-from-avo.php` | Разовый импорт студентов и доступов из AVO (`--dry-run` / `--apply`, cutoff `--before=2026-08-15`) |
+| `scripts/import-students-from-avo.php` | Разовый импорт студентов и доступов из AVO API (`--dry-run` / `--apply`) |
+| `scripts/import-students-from-csv.php` | Импорт из CSV bl-school (строки счетов с колонкой «Товар») — предпочтительно для legacy |
 | `app/Services/DemoAccess.php` | Выдача demo-доступа (user + access) |
 | `scripts/bl-school/avo-demo-cabinet.php` | Опциональный прокси (не нужен при прямом URL в AVO) |
 | `app/Services/AvoSalesLinks.php` | Маппинг `id_goods` → slug и URL вебхуков AVO |

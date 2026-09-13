@@ -27,6 +27,11 @@ final class AvoGoodsCourseResolver
         $this->explicitMap = self::buildExplicitMap();
     }
 
+    public function slugForProductName(string $productName): ?string
+    {
+        return self::matchProductNameToSlug($productName);
+    }
+
     public function slugForGoods(int $goodsId): ?string
     {
         if ($goodsId <= 0) {
