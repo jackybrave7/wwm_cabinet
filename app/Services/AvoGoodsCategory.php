@@ -24,7 +24,7 @@ final class AvoGoodsCategory
     public function listCategories(AvoClient $client, int $pauseMicros = 0): array
     {
         $out = [];
-        foreach (['goodscategories', 'goods_categories', 'categories'] as $resource) {
+        foreach (['goodscategories', 'goods_categories', 'goodscategory', 'goods_category', 'categories'] as $resource) {
             $rows = $client->searchAllPages($resource, [], 100, $pauseMicros);
             if ($rows === []) {
                 continue;
