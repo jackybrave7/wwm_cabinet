@@ -66,7 +66,6 @@ final class AvoLegacyImport
         }
 
         $catalog = new CourseCatalog();
-        $resolver = new AvoUtmResolver($client);
 
         /** @var array<string, array{name: string, contact_id: int, utm: array<string, string>, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
         $byEmail = [];
@@ -113,7 +112,8 @@ final class AvoLegacyImport
                 $name = AvoContactName::resolveFromPayload($row);
                 $contactId = AvoAccountRow::contactId($row);
                 $accountId = AvoAccountRow::accountId($row);
-                $utm = $resolver->resolve($row);
+                // UTM only from the order row — no extra AVO API (avoids 404 noise and slow import).
+                $utm = StudentAttribution::utmFromAvoPayload($row);
 
                 if (!isset($byEmail[$email])) {
                     $byEmail[$email] = [
