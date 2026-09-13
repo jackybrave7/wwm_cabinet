@@ -185,7 +185,7 @@ final class StudentAttribution
     private static function locationFromFields(string $city, string $country): string
     {
         if ($city !== '' && $country !== '') {
-            return $city . ', ' . $country;
+            return $country . ', ' . $city;
         }
         if ($country !== '') {
             return $country;
