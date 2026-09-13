@@ -187,6 +187,61 @@ final class AvoClient
         return $rows;
     }
 
+    /**
+     * Walk AVO REST list pages (param page + pagesize, max 25 per request).
+     *
+     * @param array<string, scalar> $search
+     * @return list<array<string, mixed>>
+     */
+    public function searchAllPages(string $resource, array $search = [], int $pageSize = 25, int $pauseMicros = 80000): array
+    {
+        if (!$this->isEnabled()) {
+            return [];
+        }
+
+        $pageSize = max(1, min(25, $pageSize));
+        $all = [];
+        $seen = [];
+        $page = 1;
+
+        while ($page <= 5000) {
+            $batch = $this->searchRows($resource, $search, [
+                'pagesize' => $pageSize,
+                'page' => $page,
+            ]);
+            if ($batch === []) {
+                break;
+            }
+
+            $newInBatch = 0;
+            foreach ($batch as $row) {
+                $id = (int)($row['id_account'] ?? $row['id'] ?? 0);
+                $key = $id > 0 ? 'a' . $id : 'h' . md5(json_encode($row));
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $all[] = $row;
+                $newInBatch++;
+            }
+
+            if ($newInBatch === 0) {
+                break;
+            }
+
+            if (count($batch) < $pageSize) {
+                break;
+            }
+
+            $page++;
+            if ($pauseMicros > 0) {
+                usleep($pauseMicros);
+            }
+        }
+
+        return $all;
+    }
+
     public function assignTag(int $contactId, int $tagId): bool
     {
         if ($contactId <= 0 || $tagId <= 0) {

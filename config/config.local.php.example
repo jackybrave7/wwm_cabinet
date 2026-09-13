@@ -1,0 +1,21 @@
+<?php
+/**
+ * Локальные секреты (не в git). Скопируйте в config.local.php и заполните.
+ *
+ *   copy config\config.local.php.example config\config.local.php
+ *
+ * Импорт из AVO:
+ *   .\.tools\php\php.exe scripts\import-students-from-avo.php --dry-run
+ */
+return [
+    'avo' => [
+        'enabled' => true,
+        'shop_id' => 'bl-school',
+        'api_key_get' => 'PASTE_AVO_GET_KEY',
+        'api_key_set' => 'PASTE_AVO_SET_KEY',
+        'tags' => [
+            'logged_in' => 0,
+            'demo_opened' => 0,
+        ],
+    ],
+];

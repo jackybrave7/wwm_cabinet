@@ -117,6 +117,63 @@ curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name
 .\.tools\php\php.exe scripts\test-demo-webhook.php test@example.com elke-en
 ```
 
+### Payment webhook (оплата → paid access + письмо с robot@)
+
+Для международных курсов WWM кабинет выдаёт **paid**-доступ и отправляет письмо с `robot@worldwatercolormasters.art` (DKIM Spaceweb), если у курса включён `paid_email`.
+
+**Вариант A — вебхук на товаре в AVO** (отдельный БП не нужен):
+
+1. **Продажи → Товары** → нужный товар (см. таблицу slug → id_goods ниже)
+2. Вкладка **«Дополнительно»** → поле URL для оповещений
+3. Указать (токен — в query, AVO его сохранит). Один и тот же endpoint для всех товаров; `id_goods` в URL — запасной ключ, если тело POST его не содержит:
+
+```
+https://my.worldwatercolormasters.art/api/payment?token=ВАШ_PAYMENT_СЕКРЕТ&id_goods=188
+```
+
+После оплаты AVO шлёт **POST** с `email`, `name`, `id_goods`, `id_contact`, `id_account` (сериализованный массив — кабинет это понимает). Кабинет сам находит курс по `id_goods` из JSON курса (`avo_goods_id`).
+
+То же для каждого товара из таблицы ниже, либо один общий вебхук **Настройки → Вебхуки → Счета** (но он срабатывает и при создании счёта — надёжнее на уровне товара).
+
+4. Вкладка **«Email-оповещения»** — отключить или упростить письмо «после оплаты» для курсов, у которых в кабинете включён `paid_email` (письмо шлёт кабинет с `robot@`).
+
+**Вариант B — через bl-school** (если не хотите трогать товары в AVO):
+
+1. Залить `scripts/bl-school/avo-payment-cabinet.php` → `bl-school.com/public/api/avo-payment-cabinet.php`
+2. В конце `tilda-avo-webhook.php` (после `echo 'ok'`) для нужных id_goods:
+
+```php
+// fire-and-forget: paid access + email from robot@
+@file_get_contents('https://bl-school.com/api/avo-payment-cabinet.php?' . http_build_query([
+    'token' => 'ВАШ_PAYMENT_СЕКРЕТ',
+    'email' => $email,
+    'name' => $name,
+    'id_goods' => $idGoods,
+    'id_contact' => $idContact,
+    'source_ref' => $orderId,
+]));
+```
+
+**Secrets / config.php:**
+
+- `WWM_WEBHOOKS_ENABLED=true`
+- `WWM_WEBHOOK_PAYMENT_TOKEN` — отдельный секрет (не demo!)
+- `paid_email_slugs` — запасной список; приоритет у поля `paid_email` в JSON курса
+
+Для RU-курсов оставьте письмо в AVO с `administrator@bl-school.com`. В AVO для EN-воронок отключите дублирующее письмо «доступ к курсу».
+
+**Проверка:**
+
+```bash
+curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&name=Test&id_goods=188&token=ВАШ_PAYMENT_СЕКРЕТ"
+```
+
+**Локальный тест:**
+
+```powershell
+.\.tools\php\php.exe scripts\test-payment-webhook.php test@example.com elke-en "Test User"
+```
+
 ### AVO
 
 Ссылки в письмах: `https://my.worldwatercolormasters.art/login`
@@ -131,9 +188,14 @@ curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name
 | `data/courses/*.json` | Контент курсов |
 | `prototype/` | HTML-макеты студента и админки |
 | `scripts/migrate.php` | Схема БД |
+| `scripts/import-students-from-avo.php` | Разовый импорт студентов и доступов из AVO (`--dry-run` / `--apply`, cutoff `--before=2026-08-15`) |
 | `app/Services/DemoAccess.php` | Выдача demo-доступа (user + access) |
 | `scripts/bl-school/avo-demo-cabinet.php` | Опциональный прокси (не нужен при прямом URL в AVO) |
+| `app/Services/AvoSalesLinks.php` | Маппинг `id_goods` → slug и URL вебхуков AVO |
+| `scripts/print-avo-webhooks.php` | Печать URL для вставки в товары AVO |
+| `scripts/bl-school/avo-payment-cabinet.php` | Прокси оплаты bl-school → cabinet |
 | `scripts/test-demo-webhook.php` | Локальный тест demo без HTTP |
+| `scripts/test-payment-webhook.php` | Локальный тест paid без HTTP |
 
 ## Админка (локально)
 
@@ -168,6 +230,8 @@ curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name
 | nono | 329 |
 | elke-en | 188 |
 | elke-de | 191 |
+
+Готовые URL для вставки в AVO: в админке курса или `php scripts/print-avo-webhooks.php`.
 
 ## Дорожная карта
 

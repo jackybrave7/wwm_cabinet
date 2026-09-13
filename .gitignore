@@ -1,8 +1,11 @@
 # WWM Cabinet — не коммитить секреты
 config/config.php
+config/config.local.php
 data/wwm.sqlite
 data/wwm.sqlite-*
 data/cabinet.log
 data/mail.log
+data/kinescope-tree.json
+data/kinescope-*-temp.json
 .tools/
 .tools-release.json

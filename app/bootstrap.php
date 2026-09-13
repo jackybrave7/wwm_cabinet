@@ -18,6 +18,14 @@ if (!is_readable($configPath)) {
 /** @var array<string, mixed> $config */
 $config = require $configPath;
 
+$localConfigPath = WWM_ROOT . '/config/config.local.php';
+if (is_readable($localConfigPath)) {
+    $localConfig = require $localConfigPath;
+    if (is_array($localConfig)) {
+        $config = array_replace_recursive($config, $localConfig);
+    }
+}
+
 date_default_timezone_set((string)($config['timezone'] ?? 'UTC'));
 
 $dataDir = WWM_ROOT . '/data';
