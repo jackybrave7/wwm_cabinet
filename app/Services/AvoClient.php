@@ -7,6 +7,9 @@ final class AvoClient
 {
     private ?string $lastError = null;
 
+    /** @var array<string, true> */
+    private static array $missingResources = [];
+
     /** @var array<string, mixed> */
     private array $cfg;
 
@@ -155,9 +158,18 @@ final class AvoClient
      * @param array<string, scalar> $param
      * @return list<array<string, mixed>>
      */
+    public function isResourceMissing(string $resource): bool
+    {
+        return isset(self::$missingResources[$resource]);
+    }
+
     public function searchRows(string $resource, array $search = [], array $param = []): array
     {
         if (!$this->isEnabled()) {
+            return [];
+        }
+
+        if (isset(self::$missingResources[$resource])) {
             return [];
         }
 
@@ -171,6 +183,10 @@ final class AvoClient
             'param' => $param,
         ], null, 'get');
         if ($response === null) {
+            if ($this->lastError === 'http_404') {
+                self::$missingResources[$resource] = true;
+            }
+
             return [];
         }
 
@@ -204,7 +220,9 @@ final class AvoClient
         $seen = [];
         $page = 1;
 
-        while ($page <= 5000) {
+        $maxPages = 5000;
+
+        while ($page <= $maxPages) {
             $batch = $this->searchRows($resource, $search, [
                 'pagesize' => $pageSize,
                 'currentpage' => $page,
@@ -298,8 +316,13 @@ final class AvoClient
      * @param array<string, mixed> $query
      * @return array<string, mixed>|list<mixed>|null
      */
-    private function request(string $method, string $resource, array $query, ?string $xmlBody, string $keyType): ?array
-    {
+    private function request(
+        string $method,
+        string $resource,
+        array $query,
+        ?string $xmlBody,
+        string $keyType
+    ): ?array {
         $this->lastError = null;
         $shop = trim((string)($this->cfg['shop_id'] ?? ''));
         $key = $keyType === 'set'
@@ -418,7 +441,10 @@ final class AvoClient
 
             if ($status >= 400) {
                 $this->lastError = 'http_' . $status;
-                wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+                if ($status !== 404) {
+                    wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+                }
+
                 return null;
             }
 
@@ -453,7 +479,10 @@ final class AvoClient
 
         if ($status >= 400) {
             $this->lastError = 'http_' . $status;
-            wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+            if ($status !== 404) {
+                wwm_log('avo api http ' . $status . ' ' . $method . ' ' . $url . ' body=' . mb_substr($response, 0, 300));
+            }
+
             return null;
         }
 

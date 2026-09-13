@@ -12,14 +12,13 @@ namespace Wwm\Services;
 final class AvoUtmResolver
 {
     /** @var list<string> */
+    /** Resources that may hold per-contact UTM transitions (bl-school supports a subset). */
     private const CONTACT_LINK_RESOURCES = [
         'contactnewsletterlinks',
-        'contactnewsletterlink',
         'contactadvertisingchannelpage',
-        'advertisingchannelcontactstatistics',
-        'advertisingchannelcontact',
-        'advertisingchannelstatistics',
     ];
+
+    private const LINK_SEARCH_MAX_PAGES = 5;
 
     private AvoClient $client;
 
@@ -78,20 +77,18 @@ final class AvoUtmResolver
      */
     private function utmFromStatisticsByEmail(string $email): array
     {
-        $utm = [];
-        foreach (['advertisingchannelstatistics', 'advertisingchannelcontactstatistics'] as $resource) {
-            $rows = $this->client->searchRows($resource, ['email' => $email], ['pagesize' => 5]);
-            if ($rows === []) {
-                continue;
-            }
-            $row = $this->pickOldestRow($rows);
-            $utm = StudentAttribution::mergeUtm($utm, $this->utmFromRow($row));
-            if ($this->hasCoreUtm($utm)) {
-                break;
-            }
+        if ($this->client->isResourceMissing('advertisingchannelstatistics')) {
+            return [];
         }
 
-        return $utm;
+        $rows = $this->client->searchRows('advertisingchannelstatistics', ['email' => $email], ['pagesize' => 5]);
+        if ($rows === []) {
+            return [];
+        }
+
+        $row = $this->pickOldestRow($rows);
+
+        return $this->utmFromRow($row);
     }
 
     /**
@@ -182,9 +179,7 @@ final class AvoUtmResolver
         $best = [];
 
         foreach (self::CONTACT_LINK_RESOURCES as $resource) {
-            $rows = $this->client->searchAllPages($resource, [
-                'id_contact' => (string)$contactId,
-            ], 25, 40000);
+            $rows = $this->searchScopedLinkRows($resource, ['id_contact' => (string)$contactId], $contactId, $email);
             $best = $this->mergeBestUtmFromRows($best, $rows);
             if ($this->hasCoreUtm($best)) {
                 return $best;
@@ -208,16 +203,82 @@ final class AvoUtmResolver
             return [];
         }
 
-        $best = [];
-        foreach (['contactnewsletterlinks', 'contactnewsletterlink'] as $resource) {
-            $rows = $this->client->searchAllPages($resource, ['email' => $email], 25, 40000);
-            $best = $this->mergeBestUtmFromRows($best, $rows);
-            if ($this->hasCoreUtm($best)) {
+        $rows = $this->searchScopedLinkRows(
+            'contactnewsletterlinks',
+            ['email' => $email],
+            0,
+            $email
+        );
+
+        return $this->mergeBestUtmFromRows([], $rows);
+    }
+
+    /**
+     * @param array<string, string> $search
+     * @return list<array<string, mixed>>
+     */
+    private function searchScopedLinkRows(string $resource, array $search, int $contactId, string $email): array
+    {
+        if ($this->client->isResourceMissing($resource)) {
+            return [];
+        }
+
+        $email = strtolower(trim($email));
+        $matched = [];
+
+        for ($page = 1; $page <= self::LINK_SEARCH_MAX_PAGES; $page++) {
+            $batch = $this->client->searchRows($resource, $search, [
+                'pagesize' => 25,
+                'currentpage' => $page,
+            ]);
+            if ($batch === []) {
+                break;
+            }
+
+            $hits = [];
+            foreach ($batch as $row) {
+                if ($this->rowMatchesContactScope($row, $contactId, $email)) {
+                    $hits[] = $row;
+                }
+            }
+
+            if ($hits === [] && $page === 1) {
+                // AVO often ignores search filters and returns the whole table — never paginate that.
+                break;
+            }
+
+            foreach ($hits as $row) {
+                $matched[] = $row;
+            }
+
+            if (count($batch) < 25) {
+                break;
+            }
+
+            if ($this->hasCoreUtm($this->mergeBestUtmFromRows([], $matched))) {
                 break;
             }
         }
 
-        return $best;
+        return $matched;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function rowMatchesContactScope(array $row, int $contactId, string $email): bool
+    {
+        if ($contactId > 0 && (int)($row['id_contact'] ?? 0) === $contactId) {
+            return true;
+        }
+
+        if ($email !== '') {
+            $rowEmail = strtolower(trim((string)($row['email'] ?? '')));
+
+            return $rowEmail !== '' && $rowEmail === $email;
+        }
+
+        return false;
     }
 
     /**
