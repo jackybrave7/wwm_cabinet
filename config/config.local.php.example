@@ -17,5 +17,6 @@ return [
             'logged_in' => 0,
             'demo_opened' => 0,
         ],
+        'import_goods_category_id' => 0,
     ],
 ];

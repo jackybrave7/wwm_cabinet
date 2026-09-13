@@ -47,6 +47,9 @@ final class AvoLegacyImport
             'demo_grants' => 0,
             'access_unchanged' => 0,
             'skipped_admin' => 0,
+            'import_category_id' => 0,
+            'category_goods_ids' => 0,
+            'orders_unmapped_goods' => 0,
         ];
 
         $client = new AvoClient();
@@ -66,14 +69,41 @@ final class AvoLegacyImport
         }
 
         $catalog = new CourseCatalog();
+        $categoryHelper = new AvoGoodsCategory();
+        $categoryId = (int)($options['import_goods_category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            $categoryId = AvoGoodsCategory::importCategoryId();
+        }
+        $stats['import_category_id'] = $categoryId;
+
+        $extraGoodsIds = $categoryId > 0
+            ? $categoryHelper->goodsIdsInCategory($client, $categoryId, $pauseMicros)
+            : [];
+        $stats['category_goods_ids'] = count($extraGoodsIds);
+
+        /** @var list<int> */
+        $scanGoodsIds = array_values(array_unique(array_merge(array_keys($goodsMap), $extraGoodsIds)));
+
+        if (PHP_SAPI === 'cli') {
+            echo 'Goods to scan: ' . count($scanGoodsIds);
+            if ($categoryId > 0) {
+                echo ' (AVO category id ' . $categoryId . ', ' . count($extraGoodsIds) . ' in category)';
+            }
+            echo PHP_EOL;
+        }
 
         /** @var array<string, array{name: string, contact_id: int, utm: array<string, string>, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
         $byEmail = [];
 
-        foreach ($goodsMap as $goodsId => $courseSlug) {
+        /** @var array<int, true> */
+        $seenAccounts = [];
+
+        foreach ($scanGoodsIds as $goodsId) {
             $stats['goods_scanned']++;
+            $courseSlug = $goodsMap[$goodsId] ?? '';
             if (PHP_SAPI === 'cli') {
-                echo 'AVO id_goods ' . $goodsId . ' (' . $courseSlug . ')…' . PHP_EOL;
+                $label = $courseSlug !== '' ? $courseSlug : 'no cabinet slug';
+                echo 'AVO id_goods ' . $goodsId . ' (' . $label . ')…' . PHP_EOL;
                 if (function_exists('flush')) {
                     flush();
                 }
@@ -85,6 +115,14 @@ final class AvoLegacyImport
             $stats['orders_fetched'] += count($rows);
 
             foreach ($rows as $row) {
+                $accountId = AvoAccountRow::accountId($row);
+                if ($accountId > 0 && isset($seenAccounts[$accountId])) {
+                    continue;
+                }
+                if ($accountId > 0) {
+                    $seenAccounts[$accountId] = true;
+                }
+
                 $orderTs = AvoAccountRow::orderTimestamp($row);
                 if ($orderTs <= 0 || $orderTs >= $beforeTs) {
                     $stats['orders_skipped_date']++;
@@ -98,20 +136,15 @@ final class AvoLegacyImport
                 }
 
                 $goodsIds = AvoAccountRow::goodsIds($row, $goodsMap);
-                if ($goodsIds === [] && isset($goodsMap[$goodsId])) {
+                if ($goodsIds === []) {
                     // AVO often omits id_goods in list rows when search[id_goods] was used.
                     $goodsIds = [$goodsId];
-                }
-                if ($goodsIds === []) {
-                    $stats['orders_skipped_goods']++;
-                    continue;
                 }
 
                 $stats['orders_in_window']++;
                 $isPaid = AvoAccountRow::isPaid($row);
                 $name = AvoContactName::resolveFromPayload($row);
                 $contactId = AvoAccountRow::contactId($row);
-                $accountId = AvoAccountRow::accountId($row);
                 // UTM only from the order row — no extra AVO API (avoids 404 noise and slow import).
                 $utm = StudentAttribution::utmFromAvoPayload($row);
 
@@ -135,6 +168,7 @@ final class AvoLegacyImport
                 foreach ($goodsIds as $idGoods) {
                     $slug = $goodsMap[$idGoods] ?? '';
                     if ($slug === '') {
+                        $stats['orders_unmapped_goods']++;
                         continue;
                     }
                     $type = $isPaid ? 'paid' : 'demo';
@@ -165,6 +199,9 @@ final class AvoLegacyImport
                             'order_ts' => $orderTs,
                         ];
                     }
+                }
+                if ($byEmail[$email]['courses'] === []) {
+                    unset($byEmail[$email]);
                 }
             }
         }

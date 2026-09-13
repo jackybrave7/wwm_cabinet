@@ -10,6 +10,7 @@
  *   WWM_MAIL_ENABLED            (true/false)
  *   WWM_WEBHOOKS_ENABLED        (true/false)
  *   WWM_AVO_ENABLED, WWM_AVO_SHOP_ID, WWM_AVO_API_KEY_GET, WWM_AVO_API_KEY_SET
+ *   WWM_AVO_IMPORT_GOODS_CATEGORY_ID  (legacy import — WWM product category in AVO)
  *   WWM_DEMO_DEFAULT_PASSWORD     (shared demo login password; required on prod if using prefilled login links)
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -58,6 +59,7 @@ const webhooksEnabled = envBool('WWM_WEBHOOKS_ENABLED', false);
 const avoEnabled = envBool('WWM_AVO_ENABLED', false);
 const avoTagLoggedIn = Number(env('WWM_AVO_TAG_LOGGED_IN', '0')) || 0;
 const avoTagDemoOpened = Number(env('WWM_AVO_TAG_DEMO_OPENED', '0')) || 0;
+const avoImportCategoryId = Number(env('WWM_AVO_IMPORT_GOODS_CATEGORY_ID', '0')) || 0;
 
 const config = `<?php
 /**
@@ -121,6 +123,7 @@ return [
             'logged_in' => ${avoTagLoggedIn},
             'demo_opened' => ${avoTagDemoOpened},
         ],
+        'import_goods_category_id' => ${avoImportCategoryId},
     ],
 
     'admin_emails' => ${phpAdminEmails(env('WWM_ADMIN_EMAILS', 'eaalferov@yandex.ru'))},

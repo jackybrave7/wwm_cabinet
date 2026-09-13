@@ -24,10 +24,14 @@ return [
         188 => 'elke-en',
         191 => 'elke-de',
         193 => 'alvaro',
+        199 => 'la-fe',
+        201 => 'angus',
+        321 => 'votsmush',
+        329 => 'nono',
     ],
 
     // Paid webhook: send access email from robot@ for these slugs (international WWM).
-    'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro'],
+    'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro', 'angus', 'la-fe', 'votsmush', 'nono'],
 
     // AVO API: assign contact tags on login / demo lesson open (for autofunnel conditions)
     'avo' => [
@@ -39,6 +43,8 @@ return [
             'logged_in' => 0,     // id_contact_tag for wwm_logged_in
             'demo_opened' => 0,   // id_contact_tag for wwm_demo_opened
         ],
+        // Legacy import: all id_goods in this AVO category (see scripts/list-avo-import-category.php)
+        'import_goods_category_id' => 0,
     ],
 
     'demo_hours' => 48,
@@ -53,7 +59,7 @@ return [
     // Show “Email me a sign-in link” on /login (requires working SMTP).
     'magic_link_login' => false,
 
-    // Admin access: is_admin flag in DB and/or email allowlist
+    // Super admins (full access + manage other admins). Also grants admin if is_admin is unset in DB.
     'admin_emails' => ['demo@wwm.test'],
 
     // Transactional email (password reset, demo access, magic links).
