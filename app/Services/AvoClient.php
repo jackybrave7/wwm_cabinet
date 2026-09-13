@@ -193,13 +193,13 @@ final class AvoClient
      * @param array<string, scalar> $search
      * @return list<array<string, mixed>>
      */
-    public function searchAllPages(string $resource, array $search = [], int $pageSize = 25, int $pauseMicros = 80000): array
+    public function searchAllPages(string $resource, array $search = [], int $pageSize = 100, int $pauseMicros = 80000): array
     {
         if (!$this->isEnabled()) {
             return [];
         }
 
-        $pageSize = max(1, min(25, $pageSize));
+        $pageSize = max(1, min(100, $pageSize));
         $all = [];
         $seen = [];
         $page = 1;
@@ -348,6 +348,9 @@ final class AvoClient
 
         $decoded = json_decode($body, true);
         if (!is_array($decoded)) {
+            if ($this->isAvoEmptyListBody($body)) {
+                return [];
+            }
             $this->lastError = 'invalid_json_response';
             wwm_log('avo api invalid json (' . $resource . '): ' . mb_substr($body, 0, 500));
             return null;
@@ -364,11 +367,16 @@ final class AvoClient
             }
         }
 
-        if ($this->isList($decoded) && count($decoded) > 25) {
-            $decoded = array_slice($decoded, 0, 25);
-        }
-
         return $decoded;
+    }
+
+    private function isAvoEmptyListBody(string $body): bool
+    {
+        $snippet = mb_strtolower(mb_substr($body, 0, 800));
+
+        return str_contains($snippet, 'no items where found')
+            || str_contains($snippet, 'не найден')
+            || str_contains($snippet, 'ничего не найдено');
     }
 
     /**

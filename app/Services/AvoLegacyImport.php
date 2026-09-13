@@ -78,7 +78,7 @@ final class AvoLegacyImport
                     flush();
                 }
             }
-            $rows = $client->searchAllPages('accounts', ['id_goods' => (string)$goodsId], 25, $pauseMicros);
+            $rows = $client->searchAllPages('accounts', ['id_goods' => (string)$goodsId], 100, $pauseMicros);
             if (PHP_SAPI === 'cli') {
                 echo '  orders fetched: ' . count($rows) . PHP_EOL;
             }
