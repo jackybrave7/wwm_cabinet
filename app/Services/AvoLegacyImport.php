@@ -50,6 +50,7 @@ final class AvoLegacyImport
             'import_category_id' => 0,
             'category_goods_ids' => 0,
             'orders_unmapped_goods' => 0,
+            'orders_fetch_mode' => '',
         ];
 
         $client = new AvoClient();
@@ -109,34 +110,28 @@ final class AvoLegacyImport
         /** @var array<string, array{name: string, contact_id: int, utm: array<string, string>, courses: array<string, array{type: string, account_id: int, order_ts: int}>}> */
         $byEmail = [];
 
+        $stats['goods_scanned'] = count($scanGoodsIds);
+
         /** @var array<int, true> */
-        $seenAccounts = [];
+        $allowedGoods = array_fill_keys($scanGoodsIds, true);
 
-        foreach ($scanGoodsIds as $goodsId) {
-            $stats['goods_scanned']++;
-            $courseSlug = $importGoodsMap[$goodsId] ?? '';
-            if (PHP_SAPI === 'cli') {
-                $label = $courseSlug !== '' ? $courseSlug : 'no cabinet slug';
-                echo 'AVO id_goods ' . $goodsId . ' (' . $label . ')…' . PHP_EOL;
-                if (function_exists('flush')) {
-                    flush();
-                }
-            }
-            $rows = $client->searchAllPages('accounts', ['id_goods' => (string)$goodsId], 100, $pauseMicros);
-            if (PHP_SAPI === 'cli') {
-                echo '  orders fetched: ' . count($rows) . PHP_EOL;
-            }
-            $stats['orders_fetched'] += count($rows);
+        $fetchMode = '';
+        $rows = AvoLegacyOrderFetch::collect(
+            $client,
+            $categoryId,
+            $scanGoodsIds,
+            array_keys($baseGoodsMap),
+            $pauseMicros,
+            $fetchMode
+        );
+        $stats['orders_fetch_mode'] = $fetchMode;
+        $stats['orders_fetched'] = count($rows);
 
-            foreach ($rows as $row) {
-                $accountId = AvoAccountRow::accountId($row);
-                if ($accountId > 0 && isset($seenAccounts[$accountId])) {
-                    continue;
-                }
-                if ($accountId > 0) {
-                    $seenAccounts[$accountId] = true;
-                }
+        if (PHP_SAPI === 'cli') {
+            echo 'Orders loaded: ' . count($rows) . ' (mode: ' . ($fetchMode !== '' ? $fetchMode : '?') . ')' . PHP_EOL;
+        }
 
+        foreach ($rows as $row) {
                 $orderTs = AvoAccountRow::orderTimestamp($row);
                 if ($orderTs <= 0 || $orderTs >= $beforeTs) {
                     $stats['orders_skipped_date']++;
@@ -149,12 +144,12 @@ final class AvoLegacyImport
                     continue;
                 }
 
-                $goodsIds = AvoAccountRow::goodsIds($row, $importGoodsMap);
+                $goodsIds = AvoAccountRow::matchingGoodsIds($row, $allowedGoods);
                 if ($goodsIds === []) {
-                    // AVO often omits id_goods in list rows when search[id_goods] was used.
-                    $goodsIds = [$goodsId];
+                    continue;
                 }
 
+                $accountId = AvoAccountRow::accountId($row);
                 $stats['orders_in_window']++;
                 $isPaid = AvoAccountRow::isPaid($row);
                 $name = AvoContactName::resolveFromPayload($row);
@@ -217,7 +212,6 @@ final class AvoLegacyImport
                 if ($byEmail[$email]['courses'] === []) {
                     unset($byEmail[$email]);
                 }
-            }
         }
 
         $stats['students_touched'] = count($byEmail);

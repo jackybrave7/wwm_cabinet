@@ -85,6 +85,41 @@ final class AvoAccountRow
     }
 
     /**
+     * @param array<int, true> $allowedGoodsIds
+     * @return list<int>
+     */
+    public static function matchingGoodsIds(array $row, array $allowedGoodsIds): array
+    {
+        $ids = [];
+        $top = (int)($row['id_goods'] ?? 0);
+        if ($top > 0 && isset($allowedGoodsIds[$top])) {
+            $ids[$top] = $top;
+        }
+
+        $lines = $row['lines']
+            ?? $row['accountlines']
+            ?? $row['account_lines']
+            ?? $row['accountline']
+            ?? $row['goods']
+            ?? null;
+        if (!is_array($lines)) {
+            return array_values($ids);
+        }
+
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $idGoods = (int)($line['id_goods'] ?? 0);
+            if ($idGoods > 0 && isset($allowedGoodsIds[$idGoods])) {
+                $ids[$idGoods] = $idGoods;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /**
      * @param array<string, mixed> $row
      */
     public static function email(array $row): string
