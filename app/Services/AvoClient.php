@@ -207,7 +207,7 @@ final class AvoClient
         while ($page <= 5000) {
             $batch = $this->searchRows($resource, $search, [
                 'pagesize' => $pageSize,
-                'page' => $page,
+                'currentpage' => $page,
             ]);
             if ($batch === []) {
                 break;
