@@ -99,6 +99,10 @@ final class AvoLegacyImport
                 }
 
                 $goodsIds = AvoAccountRow::goodsIds($row, $goodsMap);
+                if ($goodsIds === [] && isset($goodsMap[$goodsId])) {
+                    // AVO often omits id_goods in list rows when search[id_goods] was used.
+                    $goodsIds = [$goodsId];
+                }
                 if ($goodsIds === []) {
                     $stats['orders_skipped_goods']++;
                     continue;

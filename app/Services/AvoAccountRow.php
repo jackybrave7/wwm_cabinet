@@ -61,7 +61,12 @@ final class AvoAccountRow
             $ids[$top] = $top;
         }
 
-        $lines = $row['lines'] ?? $row['accountlines'] ?? $row['account_lines'] ?? null;
+        $lines = $row['lines']
+            ?? $row['accountlines']
+            ?? $row['account_lines']
+            ?? $row['accountline']
+            ?? $row['goods']
+            ?? null;
         if (!is_array($lines)) {
             return array_values($ids);
         }
