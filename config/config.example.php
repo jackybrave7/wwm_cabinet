@@ -30,6 +30,11 @@ return [
         329 => 'nono',
     ],
 
+    // Legacy per-lesson AVO products → full course slug (any paid lesson grants whole course).
+    'avo_lesson_goods_to_course' => [
+        // 123 => 'alvaro',
+    ],
+
     // Paid webhook: send access email from robot@ for these slugs (international WWM).
     'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro', 'angus', 'la-fe', 'votsmush', 'nono'],
 

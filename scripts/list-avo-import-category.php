@@ -39,10 +39,16 @@ echo "Add to config: 'import_goods_category_id' => {$matchId} under 'avo'.\n\n";
 
 $goodsIds = $helper->goodsIdsInCategory($client, $matchId);
 echo 'Goods in category: ' . count($goodsIds) . PHP_EOL;
-$map = Wwm\Services\AvoSalesLinks::goodsMap();
+$names = $helper->goodsNamesInCategory($client, $matchId);
+$resolver = new Wwm\Services\AvoGoodsCourseResolver($names);
 foreach ($goodsIds as $gid) {
-    $slug = $map[$gid] ?? '— not in cabinet map —';
-    echo "  id_goods {$gid} → {$slug}\n";
+    $slug = $resolver->slugForGoods($gid) ?? '— no course match —';
+    $title = $names[$gid] ?? '';
+    echo "  id_goods {$gid} → {$slug}";
+    if ($title !== '') {
+        echo ' — ' . $title;
+    }
+    echo PHP_EOL;
 }
 
 exit(0);

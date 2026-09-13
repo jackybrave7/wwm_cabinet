@@ -43,8 +43,7 @@ final class AvoSalesLinks
             return null;
         }
 
-        $map = self::goodsMap();
-        return isset($map[$goodsId]) ? (string)$map[$goodsId] : null;
+        return (new AvoGoodsCourseResolver())->slugForGoods($goodsId);
     }
 
     public static function shouldSendPaidEmail(string $courseSlug, ?array $course = null): bool

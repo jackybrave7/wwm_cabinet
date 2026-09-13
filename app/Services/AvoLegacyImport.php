@@ -63,8 +63,8 @@ final class AvoLegacyImport
             throw new \InvalidArgumentException('before_ts required');
         }
 
-        $goodsMap = AvoSalesLinks::goodsMap();
-        if ($goodsMap === []) {
+        $baseGoodsMap = AvoSalesLinks::goodsMap();
+        if ($baseGoodsMap === []) {
             throw new \RuntimeException('No id_goods → course mapping');
         }
 
@@ -76,13 +76,27 @@ final class AvoLegacyImport
         }
         $stats['import_category_id'] = $categoryId;
 
+        $productNames = $categoryId > 0
+            ? $categoryHelper->goodsNamesInCategory($client, $categoryId, $pauseMicros)
+            : [];
+        $resolver = new AvoGoodsCourseResolver($productNames);
+
         $extraGoodsIds = $categoryId > 0
             ? $categoryHelper->goodsIdsInCategory($client, $categoryId, $pauseMicros)
             : [];
         $stats['category_goods_ids'] = count($extraGoodsIds);
 
         /** @var list<int> */
-        $scanGoodsIds = array_values(array_unique(array_merge(array_keys($goodsMap), $extraGoodsIds)));
+        $scanGoodsIds = array_values(array_unique(array_merge(array_keys($baseGoodsMap), $extraGoodsIds, array_keys($productNames))));
+
+        /** @var array<int, string> */
+        $importGoodsMap = [];
+        foreach ($scanGoodsIds as $gid) {
+            $slug = $resolver->slugForGoods($gid);
+            if ($slug !== null && $slug !== '') {
+                $importGoodsMap[$gid] = $slug;
+            }
+        }
 
         if (PHP_SAPI === 'cli') {
             echo 'Goods to scan: ' . count($scanGoodsIds);
@@ -100,7 +114,7 @@ final class AvoLegacyImport
 
         foreach ($scanGoodsIds as $goodsId) {
             $stats['goods_scanned']++;
-            $courseSlug = $goodsMap[$goodsId] ?? '';
+            $courseSlug = $importGoodsMap[$goodsId] ?? '';
             if (PHP_SAPI === 'cli') {
                 $label = $courseSlug !== '' ? $courseSlug : 'no cabinet slug';
                 echo 'AVO id_goods ' . $goodsId . ' (' . $label . ')…' . PHP_EOL;
@@ -135,7 +149,7 @@ final class AvoLegacyImport
                     continue;
                 }
 
-                $goodsIds = AvoAccountRow::goodsIds($row, $goodsMap);
+                $goodsIds = AvoAccountRow::goodsIds($row, $importGoodsMap);
                 if ($goodsIds === []) {
                     // AVO often omits id_goods in list rows when search[id_goods] was used.
                     $goodsIds = [$goodsId];
@@ -166,7 +180,7 @@ final class AvoLegacyImport
                 }
 
                 foreach ($goodsIds as $idGoods) {
-                    $slug = $goodsMap[$idGoods] ?? '';
+                    $slug = $resolver->slugForGoods($idGoods) ?? '';
                     if ($slug === '') {
                         $stats['orders_unmapped_goods']++;
                         continue;

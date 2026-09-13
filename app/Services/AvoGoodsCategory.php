@@ -77,6 +77,39 @@ final class AvoGoodsCategory
     }
 
     /**
+     * @return array<int, string> id_goods => product name
+     */
+    public function goodsNamesInCategory(AvoClient $client, int $categoryId, int $pauseMicros = 0): array
+    {
+        if ($categoryId <= 0) {
+            return [];
+        }
+
+        $names = [];
+        $searchKeys = ['id_goods_category', 'goods_category', 'id_category'];
+        foreach (['goods', 'good'] as $resource) {
+            foreach ($searchKeys as $searchKey) {
+                $rows = $client->searchAllPages($resource, [$searchKey => (string)$categoryId], 100, $pauseMicros);
+                if ($rows === []) {
+                    continue;
+                }
+                foreach ($rows as $row) {
+                    $gid = (int)($row['id_goods'] ?? $row['id'] ?? 0);
+                    $title = trim((string)($row['name'] ?? $row['goods'] ?? $row['title'] ?? ''));
+                    if ($gid > 0 && $title !== '') {
+                        $names[$gid] = $title;
+                    }
+                }
+                if ($names !== []) {
+                    break 2;
+                }
+            }
+        }
+
+        return $names;
+    }
+
+    /**
      * @param list<array{id: int, name: string}> $categories
      */
     public static function findCategoryIdByName(array $categories, string $needle): int
