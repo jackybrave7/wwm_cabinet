@@ -20,6 +20,21 @@ $formatDateTime = static function (?string $iso): string {
     $ts = strtotime($iso);
     return $ts ? date('M j, Y H:i', $ts) : '—';
 };
+$sortHref = static function (string $column) use ($listFilter, $filterQuery): string {
+    $query = $filterQuery;
+    $query['sort'] = $column;
+    $query['dir'] = $listFilter->sortDirForLink($column);
+    unset($query['page']);
+
+    return '/admin/students?' . http_build_query($query);
+};
+$sortIndicator = static function (string $column) use ($listFilter): string {
+    if (!$listFilter->isSortedBy($column)) {
+        return '';
+    }
+
+    return $listFilter->dir === 'asc' ? ' ↑' : ' ↓';
+};
 ?>
 <div class="admin-topbar">
   <div>
@@ -76,6 +91,8 @@ $formatDateTime = static function (?string $iso): string {
     <form method="get" action="/admin/students" class="admin-filter-form">
       <input type="hidden" name="filters" value="1">
       <input type="hidden" name="q" value="<?= wwm_escape($search ?? '') ?>">
+      <input type="hidden" name="sort" value="<?= wwm_escape($listFilter->sort) ?>">
+      <input type="hidden" name="dir" value="<?= wwm_escape($listFilter->dir) ?>">
       <div class="admin-filter-grid">
         <label class="field">
           <span>Access</span>
@@ -156,11 +173,11 @@ $formatDateTime = static function (?string $iso): string {
     <thead>
       <tr>
         <th>Student</th>
-        <th>Location</th>
-        <th>Registered</th>
-        <th>Access</th>
-        <th>Progress</th>
-        <th>Last activity</th>
+        <th class="admin-sort-th"><a href="<?= wwm_escape($sortHref('location')) ?>">Location<?= $sortIndicator('location') ?></a></th>
+        <th class="admin-sort-th"><a href="<?= wwm_escape($sortHref('registered')) ?>">Registered<?= $sortIndicator('registered') ?></a></th>
+        <th class="admin-sort-th"><a href="<?= wwm_escape($sortHref('access')) ?>">Access<?= $sortIndicator('access') ?></a></th>
+        <th class="admin-sort-th"><a href="<?= wwm_escape($sortHref('progress')) ?>">Progress<?= $sortIndicator('progress') ?></a></th>
+        <th class="admin-sort-th"><a href="<?= wwm_escape($sortHref('activity')) ?>">Last activity<?= $sortIndicator('activity') ?></a></th>
       </tr>
     </thead>
     <tbody>

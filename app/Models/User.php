@@ -288,7 +288,7 @@ final class User
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
 
-        $sql = 'SELECT u.* FROM users u WHERE ' . $where . ' ORDER BY u.created_at DESC LIMIT '
+        $sql = 'SELECT u.* FROM users u WHERE ' . $where . ' ' . $filter->sqlOrderBy() . ' LIMIT '
             . $perPage . ' OFFSET ' . $offset;
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);

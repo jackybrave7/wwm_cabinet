@@ -21,6 +21,14 @@ final class AdminStudentListFilter
         'never' => 'Never opened a lesson',
     ];
 
+    public const SORT_COLUMNS = [
+        'registered',
+        'location',
+        'access',
+        'progress',
+        'activity',
+    ];
+
     public function __construct(
         public readonly string $search = '',
         public readonly string $access = '',
@@ -34,6 +42,8 @@ final class AdminStudentListFilter
         public readonly string $utmMedium = '',
         public readonly string $utmCampaign = '',
         public readonly string $hasUtm = '',
+        public readonly string $sort = 'registered',
+        public readonly string $dir = 'desc',
     ) {
     }
 
@@ -52,7 +62,29 @@ final class AdminStudentListFilter
             utmMedium: trim((string)($_GET['utm_medium'] ?? '')),
             utmCampaign: trim((string)($_GET['utm_campaign'] ?? '')),
             hasUtm: (string)($_GET['has_utm'] ?? '') === '1' ? '1' : '',
+            sort: self::normalizeKey((string)($_GET['sort'] ?? 'registered'), self::SORT_COLUMNS) ?: 'registered',
+            dir: self::normalizeKey((string)($_GET['dir'] ?? 'desc'), ['asc', 'desc']) ?: 'desc',
         );
+    }
+
+    public function sortDirForLink(string $column): string
+    {
+        if (!in_array($column, self::SORT_COLUMNS, true)) {
+            return 'desc';
+        }
+        if ($this->sort === $column) {
+            return $this->dir === 'asc' ? 'desc' : 'asc';
+        }
+
+        return match ($column) {
+            'location' => 'asc',
+            default => 'desc',
+        };
+    }
+
+    public function isSortedBy(string $column): bool
+    {
+        return $this->sort === $column;
     }
 
     public function isActive(): bool
@@ -110,6 +142,12 @@ final class AdminStudentListFilter
         }
         if ($this->hasUtm === '1') {
             $params['has_utm'] = '1';
+        }
+        if ($this->sort !== 'registered') {
+            $params['sort'] = $this->sort;
+        }
+        if ($this->dir !== 'desc' || $this->sort !== 'registered') {
+            $params['dir'] = $this->dir;
         }
 
         return $params;
@@ -209,6 +247,46 @@ final class AdminStudentListFilter
         $where = $parts === [] ? '1=1' : implode(' AND ', $parts);
 
         return ['where' => $where, 'params' => $params];
+    }
+
+    public function sqlOrderBy(): string
+    {
+        $dir = $this->dir === 'asc' ? 'ASC' : 'DESC';
+        $tie = $this->dir === 'asc' ? 'ASC' : 'DESC';
+
+        return match ($this->sort) {
+            'location' => 'ORDER BY LOWER(' . self::sqlLocationSortKey() . ') ' . $dir . ', u.id ' . $tie,
+            'access' => 'ORDER BY ' . self::sqlAccessRank() . ' ' . $dir . ', u.created_at DESC, u.id DESC',
+            'progress' => 'ORDER BY ' . self::sqlProgressCount() . ' ' . $dir . ', u.id ' . $tie,
+            'activity' => 'ORDER BY ' . self::sqlLastActivity() . ' ' . $dir . ', u.id ' . $tie,
+            default => 'ORDER BY u.created_at ' . $dir . ', u.id ' . $tie,
+        };
+    }
+
+    private static function sqlLocationSortKey(): string
+    {
+        return "COALESCE(NULLIF(TRIM(u.signup_country), ''), NULLIF(TRIM(u.last_country), ''), "
+            . "NULLIF(TRIM(u.signup_city), ''), NULLIF(TRIM(u.last_city), ''), '')";
+    }
+
+    private static function sqlAccessRank(): string
+    {
+        $paid = self::sqlActivePaidExists();
+        $demo = self::sqlActiveDemoExists();
+
+        return 'CASE WHEN ' . $paid . ' THEN 3 WHEN ' . $demo . ' THEN 2'
+            . ' WHEN EXISTS (SELECT 1 FROM access a WHERE a.user_id = u.id AND a.access_type = \'demo\') THEN 1'
+            . ' ELSE 0 END';
+    }
+
+    private static function sqlProgressCount(): string
+    {
+        return '(SELECT COUNT(*) FROM lesson_opens lo WHERE lo.user_id = u.id)';
+    }
+
+    private static function sqlLastActivity(): string
+    {
+        return '(SELECT MAX(lo.last_opened_at) FROM lesson_opens lo WHERE lo.user_id = u.id)';
     }
 
     private static function sqlActivePaidExists(): string
