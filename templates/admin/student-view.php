@@ -51,7 +51,7 @@ $progressCourseCount = count($courseBlocksList);
   <div>
     <p class="badge badge-admin">Student profile</p>
     <h1 class="page-title page-title-sm"><?= wwm_escape((string)($student['name'] ?: $student['email'])) ?></h1>
-    <p class="field-hint"><?= wwm_escape((string)$student['email']) ?> · registered (AVO) <?= wwm_escape($formatDate(\Wwm\Models\User::registeredAtForDisplay($student))) ?><?php if (trim((string)($student['created_at'] ?? '')) !== ''): ?> · cabinet <?= wwm_escape($formatDate((string)$student['created_at'])) ?><?php endif; ?></p>
+    <p class="field-hint"><?= wwm_escape((string)$student['email']) ?> · joined <?= wwm_escape($formatDate((string)($student['created_at'] ?? ''))) ?></p>
   </div>
   <a href="/admin/students" class="btn btn-ghost">← All students</a>
 </div>
@@ -132,10 +132,12 @@ $progressCourseCount = count($courseBlocksList);
   <p class="field-hint" style="margin-bottom:8px">
     <strong>Registered in AVO:</strong>
     <?= $avoRegisteredAt !== '' ? wwm_escape($formatDate($avoRegisteredAt)) : '—' ?>
-    <?php if ($avoRegisteredAt === '' && $avoFirstOrderAt !== ''): ?>
-      <span class="field-hint"> (contact date unknown · first order <?= wwm_escape($formatDate($avoFirstOrderAt)) ?>)</span>
-    <?php endif; ?>
   </p>
+  <?php if ($avoFirstOrderAt !== ''): ?>
+  <p class="field-hint" style="margin-bottom:8px">
+    <strong>First order in AVO:</strong> <?= wwm_escape($formatDate($avoFirstOrderAt)) ?>
+  </p>
+  <?php endif; ?>
   <p class="field-hint" style="margin-bottom:12px">
     Contact ID: <?= $avo_contact_id !== null ? (int)$avo_contact_id : 'not found' ?>
     · logged in: <?= !empty($avo_logged_in_tagged) ? 'local ✓' : 'local —' ?>

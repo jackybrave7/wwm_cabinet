@@ -1,5 +1,4 @@
 <?php
-use Wwm\Models\User;
 use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\StudentAttribution;
 
@@ -158,7 +157,7 @@ $formatDateTime = static function (?string $iso): string {
       <tr>
         <th>Student</th>
         <th>Location</th>
-        <th>Registered <span class="field-hint" style="font-weight:400">AVO</span></th>
+        <th>Registered</th>
         <th>Access</th>
         <th>Progress</th>
         <th>Last activity</th>
@@ -189,7 +188,7 @@ $formatDateTime = static function (?string $iso): string {
             <span style="color:var(--mute);font-size:0.85rem"><?= wwm_escape((string)$u['email']) ?></span>
           </td>
           <td class="admin-meta-cell"><?= wwm_escape($location) ?></td>
-          <td class="admin-meta-cell"><?= wwm_escape($formatDateTime(User::registeredAtForDisplay($u))) ?></td>
+          <td class="admin-meta-cell"><?= wwm_escape($formatDateTime((string)($u['created_at'] ?? ''))) ?></td>
           <td><span class="badge <?= $badgeClass ?>" style="margin:0"><?= wwm_escape($label) ?></span></td>
           <td class="progress-cell">
             <span class="progress-label"><?= $opened ?> / <?= $total ?></span>

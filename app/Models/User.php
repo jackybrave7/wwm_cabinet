@@ -296,30 +296,6 @@ final class User
         return ['rows' => $stmt->fetchAll() ?: [], 'total' => $total];
     }
 
-    /**
-     * Date shown in admin as "Registered": AVO contact, else first AVO order, else cabinet signup.
-     *
-     * @param array<string, mixed> $user
-     */
-    public static function registeredAtForDisplay(array $user): string
-    {
-        $avo = trim((string)($user['avo_contact_registered_at'] ?? ''));
-        if ($avo !== '') {
-            return $avo;
-        }
-        $firstOrder = trim((string)($user['avo_first_order_at'] ?? ''));
-        if ($firstOrder !== '') {
-            return $firstOrder;
-        }
-
-        return trim((string)($user['created_at'] ?? ''));
-    }
-
-    public static function sqlRegisteredAtExpression(): string
-    {
-        return "COALESCE(NULLIF(u.avo_contact_registered_at, ''), NULLIF(u.avo_first_order_at, ''), u.created_at)";
-    }
-
     public static function mergeAvoContactRegisteredAt(PDO $pdo, int $userId, string $iso): void
     {
         self::mergeEarliestIsoColumn($pdo, $userId, 'avo_contact_registered_at', $iso);
