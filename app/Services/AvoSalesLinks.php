@@ -69,7 +69,13 @@ final class AvoSalesLinks
      */
     public static function paymentWebhook(?int $goodsId = null): ?array
     {
-        $params = [];
+        $params = array_merge([
+            'email' => '{email}',
+            'name' => '{name}',
+            'id_contact' => '{id_contact}',
+            'id_account' => '{id_account}',
+            'id_goods' => '{id_goods}',
+        ], WebhookAttributionParams::forAvoWebhook());
         if ($goodsId !== null && $goodsId > 0) {
             $params['id_goods'] = (string)$goodsId;
         }
@@ -87,12 +93,13 @@ final class AvoSalesLinks
             return null;
         }
 
-        return self::buildWebhook('/api/demo', 'demo_token', 'WWM_WEBHOOK_DEMO_TOKEN', [
+        return self::buildWebhook('/api/demo', 'demo_token', 'WWM_WEBHOOK_DEMO_TOKEN', array_merge([
             'email' => '{email}',
             'name' => '{name}',
             'course' => $slug,
             'id_contact' => '{id_contact}',
-        ]);
+            'id_goods' => '{id_goods}',
+        ], WebhookAttributionParams::forAvoWebhook()));
     }
 
     /**
