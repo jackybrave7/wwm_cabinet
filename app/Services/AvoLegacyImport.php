@@ -258,7 +258,13 @@ final class AvoLegacyImport
             $created = false;
             if ($user === null) {
                 $plain = Password::generateReadable(12);
-                $userId = User::create($pdo, $email, $plain, (string)$bundle['name']);
+                $userId = User::create(
+                    $pdo,
+                    $email,
+                    $plain,
+                    (string)$bundle['name'],
+                    User::REGISTRATION_AVO_IMPORT
+                );
                 $user = User::findById($pdo, $userId);
                 $created = true;
                 $stats['users_created']++;
@@ -274,6 +280,7 @@ final class AvoLegacyImport
             }
 
             $userId = (int)$user['id'];
+            User::ensureAvoBulkImportSource($pdo, $userId, User::REGISTRATION_AVO_IMPORT);
             $contactId = (int)$bundle['contact_id'];
             if ($contactId > 0) {
                 User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $contactId]);

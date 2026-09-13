@@ -7,6 +7,9 @@ use PDO;
 
 final class User
 {
+    public const REGISTRATION_CSV_IMPORT = 'csv-import';
+    public const REGISTRATION_AVO_IMPORT = 'avo-import';
+
     public static function findByEmail(PDO $pdo, string $email): ?array
     {
         $stmt = $pdo->prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE LIMIT 1');
@@ -23,18 +26,106 @@ final class User
         return $row ?: null;
     }
 
-    public static function create(PDO $pdo, string $email, string $password, string $name = ''): int
-    {
+    public static function create(
+        PDO $pdo,
+        string $email,
+        string $password,
+        string $name = '',
+        string $registrationSource = ''
+    ): int {
+        $registrationSource = self::normalizeRegistrationSource($registrationSource);
         $stmt = $pdo->prepare(
-            'INSERT INTO users (email, password_hash, name, created_at) VALUES (?, ?, ?, ?)'
+            'INSERT INTO users (email, password_hash, name, created_at, registration_source) VALUES (?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             strtolower(trim($email)),
             \Wwm\Auth\Password::hash($password),
             trim($name),
             gmdate('c'),
+            $registrationSource,
         ]);
         return (int)$pdo->lastInsertId();
+    }
+
+    /**
+     * Mark user as legacy AVO import when access came only from bulk import (not cabinet / webhooks).
+     */
+    public static function ensureAvoBulkImportSource(PDO $pdo, int $userId, string $source): void
+    {
+        $source = self::normalizeRegistrationSource($source);
+        if (!in_array($source, [self::REGISTRATION_CSV_IMPORT, self::REGISTRATION_AVO_IMPORT], true)) {
+            return;
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE users SET registration_source = ?
+             WHERE id = ?
+               AND (
+                 registration_source IN (?, ?)
+                 OR (
+                   registration_source = \'\'
+                   AND NOT EXISTS (
+                     SELECT 1 FROM access a
+                     WHERE a.user_id = users.id
+                       AND COALESCE(a.source, \'\') NOT IN (\'csv-import\', \'avo-import\', \'\')
+                   )
+                 )
+               )'
+        );
+        $stmt->execute([
+            $source,
+            $userId,
+            self::REGISTRATION_CSV_IMPORT,
+            self::REGISTRATION_AVO_IMPORT,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    public static function isAvoBulkImport(array $user): bool
+    {
+        $source = (string)($user['registration_source'] ?? '');
+
+        return in_array($source, [self::REGISTRATION_CSV_IMPORT, self::REGISTRATION_AVO_IMPORT], true);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    public static function registeredAtForDisplay(array $user): string
+    {
+        if (!self::isAvoBulkImport($user)) {
+            return trim((string)($user['created_at'] ?? ''));
+        }
+
+        $avo = trim((string)($user['avo_contact_registered_at'] ?? ''));
+        if ($avo !== '') {
+            return $avo;
+        }
+        $firstOrder = trim((string)($user['avo_first_order_at'] ?? ''));
+        if ($firstOrder !== '') {
+            return $firstOrder;
+        }
+
+        return trim((string)($user['created_at'] ?? ''));
+    }
+
+    public static function sqlRegisteredAtExpression(): string
+    {
+        return 'CASE WHEN u.registration_source IN (\'' . self::REGISTRATION_CSV_IMPORT . '\', \''
+            . self::REGISTRATION_AVO_IMPORT . '\') THEN '
+            . 'COALESCE(NULLIF(u.avo_contact_registered_at, \'\'), NULLIF(u.avo_first_order_at, \'\'), u.created_at) '
+            . 'ELSE u.created_at END';
+    }
+
+    private static function normalizeRegistrationSource(string $source): string
+    {
+        $source = trim($source);
+
+        return in_array($source, [self::REGISTRATION_CSV_IMPORT, self::REGISTRATION_AVO_IMPORT], true)
+            ? $source
+            : '';
     }
 
     public static function updatePassword(PDO $pdo, int $userId, string $password): void

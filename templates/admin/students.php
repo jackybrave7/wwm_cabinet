@@ -1,4 +1,5 @@
 <?php
+use Wwm\Models\User;
 use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\StudentAttribution;
 
@@ -205,7 +206,7 @@ $sortIndicator = static function (string $column) use ($listFilter): string {
             <span style="color:var(--mute);font-size:0.85rem"><?= wwm_escape((string)$u['email']) ?></span>
           </td>
           <td class="admin-meta-cell"><?= wwm_escape($location) ?></td>
-          <td class="admin-meta-cell"><?= wwm_escape($formatDateTime((string)($u['created_at'] ?? ''))) ?></td>
+          <td class="admin-meta-cell"><?= wwm_escape($formatDateTime(User::registeredAtForDisplay($u))) ?></td>
           <td><span class="badge <?= $badgeClass ?>" style="margin:0"><?= wwm_escape($label) ?></span></td>
           <td class="progress-cell">
             <span class="progress-label"><?= $opened ?> / <?= $total ?></span>

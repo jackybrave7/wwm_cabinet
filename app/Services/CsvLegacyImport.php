@@ -171,7 +171,13 @@ final class CsvLegacyImport
 
             $created = false;
             if ($user === null) {
-                $userId = User::create($pdo, $email, Password::generateReadable(12), (string)$bundle['name']);
+                $userId = User::create(
+                    $pdo,
+                    $email,
+                    Password::generateReadable(12),
+                    (string)$bundle['name'],
+                    User::REGISTRATION_CSV_IMPORT
+                );
                 $user = User::findById($pdo, $userId);
                 $created = true;
                 $stats['users_created']++;
@@ -187,6 +193,7 @@ final class CsvLegacyImport
             }
 
             $userId = (int)$user['id'];
+            User::ensureAvoBulkImportSource($pdo, $userId, User::REGISTRATION_CSV_IMPORT);
             StudentAttribution::recordForUser($pdo, $userId, $created, [], false);
 
             $firstOrderTs = (int)($bundle['first_order_ts'] ?? 0);

@@ -196,12 +196,13 @@ final class AdminStudentListFilter
             }
         }
 
+        $registeredAt = \Wwm\Models\User::sqlRegisteredAtExpression();
         if ($this->registeredFrom !== '') {
-            $parts[] = 'u.created_at >= ?';
+            $parts[] = $registeredAt . ' >= ?';
             $params[] = $this->registeredFrom . 'T00:00:00+00:00';
         }
         if ($this->registeredTo !== '') {
-            $parts[] = 'u.created_at <= ?';
+            $parts[] = $registeredAt . ' <= ?';
             $params[] = $this->registeredTo . 'T23:59:59+00:00';
         }
 
@@ -259,7 +260,7 @@ final class AdminStudentListFilter
             'access' => 'ORDER BY ' . self::sqlAccessRank() . ' ' . $dir . ', u.created_at DESC, u.id DESC',
             'progress' => 'ORDER BY ' . self::sqlProgressCount() . ' ' . $dir . ', u.id ' . $tie,
             'activity' => 'ORDER BY ' . self::sqlLastActivity() . ' ' . $dir . ', u.id ' . $tie,
-            default => 'ORDER BY u.created_at ' . $dir . ', u.id ' . $tie,
+            default => 'ORDER BY ' . \Wwm\Models\User::sqlRegisteredAtExpression() . ' ' . $dir . ', u.id ' . $tie,
         };
     }
 

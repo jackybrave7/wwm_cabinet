@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 17;
+    public const SCHEMA_VERSION = 18;
 
     public static function connect(string $path): PDO
     {
@@ -108,6 +108,16 @@ SQL);
         self::ensureColumn($pdo, 'users', 'avo_first_order_at', 'TEXT');
         self::ensureColumn($pdo, 'access', 'avo_ordered_at', 'TEXT');
         self::ensureColumn($pdo, 'access', 'avo_paid_at', 'TEXT');
+        self::ensureColumn($pdo, 'users', 'registration_source', 'TEXT NOT NULL DEFAULT \'\'');
+
+        $pdo->exec(
+            'UPDATE users SET registration_source = \'csv-import\' WHERE registration_source = \'\''
+            . ' AND id IN (SELECT DISTINCT user_id FROM access WHERE source = \'csv-import\')'
+        );
+        $pdo->exec(
+            'UPDATE users SET registration_source = \'avo-import\' WHERE registration_source = \'\''
+            . ' AND id IN (SELECT DISTINCT user_id FROM access WHERE source = \'avo-import\')'
+        );
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS lesson_opens (
