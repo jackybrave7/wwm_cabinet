@@ -36,6 +36,9 @@ echo $dryRun ? "DRY RUN (no DB writes)\n" : "APPLY (writing to SQLite)\n";
 echo 'Cutoff: orders before ' . $before->format('Y-m-d H:i T') . ' (' . gmdate('c', $beforeTs) . " UTC)\n";
 echo "Conflict rule: AVO data wins for grants; existing paid access is never removed.\n";
 echo "New users: random password (use /forgot when you announce migration).\n\n";
+if (function_exists('flush')) {
+    flush();
+}
 
 try {
     $stats = (new Wwm\Services\AvoLegacyImport())->run(wwm_pdo(), [

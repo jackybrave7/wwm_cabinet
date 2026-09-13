@@ -77,6 +77,15 @@ final class AvoLegacyImport
         }
         $stats['import_category_id'] = $categoryId;
 
+        if (PHP_SAPI === 'cli') {
+            echo $categoryId > 0
+                ? "Loading AVO category {$categoryId} products (may take 1–2 min)…\n"
+                : "Loading AVO product map…\n";
+            if (function_exists('flush')) {
+                flush();
+            }
+        }
+
         $productNames = $categoryId > 0
             ? $categoryHelper->goodsNamesInCategory($client, $categoryId, $pauseMicros)
             : [];

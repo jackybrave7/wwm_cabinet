@@ -30,6 +30,12 @@ final class AvoLegacyOrderFetch
         }
 
         foreach (self::categorySearchPlans($categoryId) as [$resource, $search]) {
+            if (PHP_SAPI === 'cli') {
+                echo 'Trying AVO ' . $resource . ' category filter…' . PHP_EOL;
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
             $rows = self::dedupeAccounts($client->searchAllPages($resource, $search, 100, $pauseMicros));
             $rows = self::filterRowsByGoods($rows, $allowed);
             if ($rows !== []) {
@@ -57,12 +63,46 @@ final class AvoLegacyOrderFetch
         }
 
         $mode = 'accounts_full_scan';
-        $out = [];
-        foreach ($client->searchAllPages('accounts', [], 100, $pauseMicros) as $row) {
-            if (!self::rowTouchesGoods($row, $allowed)) {
-                continue;
+        if (PHP_SAPI === 'cli') {
+            echo 'Scanning all AVO accounts (can take 10–20 min), matching WWM products…' . PHP_EOL;
+            if (function_exists('flush')) {
+                flush();
             }
-            $out = self::dedupeMerge($out, [$row]);
+        }
+
+        $out = [];
+        $page = 1;
+        $pageSize = 100;
+        while ($page <= 5000) {
+            $batch = $client->searchRows('accounts', [], [
+                'pagesize' => $pageSize,
+                'currentpage' => $page,
+            ]);
+            if ($batch === []) {
+                break;
+            }
+
+            foreach ($batch as $row) {
+                if (self::rowTouchesGoods($row, $allowed)) {
+                    $out = self::dedupeMerge($out, [$row]);
+                }
+            }
+
+            if (PHP_SAPI === 'cli' && ($page === 1 || $page % 10 === 0)) {
+                echo '  accounts page ' . $page . ', WWM orders matched: ' . count($out) . PHP_EOL;
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
+
+            if (count($batch) < $pageSize) {
+                break;
+            }
+
+            $page++;
+            if ($pauseMicros > 0) {
+                usleep($pauseMicros);
+            }
         }
 
         return $out;

@@ -233,6 +233,13 @@ final class AvoClient
                 break;
             }
 
+            if (PHP_SAPI === 'cli' && ($page === 1 || $page % 10 === 0)) {
+                echo '  AVO ' . $resource . ' page ' . $page . ', rows ' . count($all) . PHP_EOL;
+                if (function_exists('flush')) {
+                    flush();
+                }
+            }
+
             $page++;
             if ($pauseMicros > 0) {
                 usleep($pauseMicros);
