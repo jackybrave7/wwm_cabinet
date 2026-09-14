@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 19;
+    public const SCHEMA_VERSION = 20;
 
     public static function connect(string $path): PDO
     {
@@ -169,6 +169,8 @@ CREATE TABLE IF NOT EXISTS broadcast_recipients (
 CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_broadcast ON broadcast_recipients(broadcast_id);
 CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_pending ON broadcast_recipients(broadcast_id, status);
 SQL);
+
+        self::ensureColumn($pdo, 'email_broadcasts', 'audience_filter_json', 'TEXT NOT NULL DEFAULT \'\'');
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS lesson_opens (

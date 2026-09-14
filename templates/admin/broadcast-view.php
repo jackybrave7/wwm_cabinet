@@ -1,4 +1,6 @@
 <?php
+use Wwm\Models\EmailBroadcast;
+
 $b = $broadcast ?? [];
 $id = (int)($b['id'] ?? 0);
 $status = (string)($b['status'] ?? '');
@@ -30,7 +32,7 @@ $canCancel = in_array($status, ['draft', 'scheduled', 'sending'], true);
 <div class="admin-card" style="margin-bottom:16px">
   <dl class="admin-kv">
     <dt>Subject</dt><dd><?= wwm_escape((string)$b['subject']) ?></dd>
-    <dt>Audience</dt><dd><?= wwm_escape((string)$b['audience']) ?></dd>
+    <dt>Audience</dt><dd><?= wwm_escape(EmailBroadcast::audienceLabel($b)) ?></dd>
     <dt>Recipients</dt>
     <dd>
       <?= (int)($b['sent_count'] ?? 0) ?> sent,

@@ -2,6 +2,10 @@
 $b = is_array($broadcast ?? null) ? $broadcast : [];
 $isEdit = !empty($b['id']);
 $audience = (string)($b['audience'] ?? $_POST['audience'] ?? 'all_students');
+$contentMode = (string)($contentMode ?? 'plain');
+$bodyText = (string)($_POST['body_text'] ?? $b['body_text'] ?? '');
+$bodyHtml = (string)($_POST['body_html'] ?? $b['body_html'] ?? '');
+$listFilter = $listFilter ?? \Wwm\Services\AdminStudentListFilter::fromArray([]);
 $scheduledLocal = '';
 if (!empty($b['scheduled_at'])) {
     try {
@@ -12,6 +16,7 @@ if (!empty($b['scheduled_at'])) {
         $scheduledLocal = '';
     }
 }
+$variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
 ?>
 <div class="admin-topbar">
   <div>
@@ -30,14 +35,14 @@ if (!empty($b['scheduled_at'])) {
 
 <div class="admin-card" style="margin-bottom:16px">
   <p class="field-hint" style="margin:0">
-    Placeholders: <code>{{name}}</code>, <code>{{email}}</code>, <code>{{unsubscribe_url}}</code>, <code>{{base_url}}</code>.
-    Plain text is required; HTML is optional. Unsubscribe link and List-Unsubscribe headers are added automatically.
-    Estimated audience: <strong><?= (int)($audienceSize ?? 0) ?></strong> students (excludes admins and suppressed addresses).
+    Unsubscribe link and List-Unsubscribe headers are added automatically.
+    Estimated recipients: <strong id="broadcast-audience-count"><?= (int)($audienceSize ?? 0) ?></strong>
+    <span class="field-hint">(excludes admins and suppressed addresses)</span>
   </p>
 </div>
 
 <div class="admin-card">
-  <form method="post" action="<?= wwm_escape((string)$formAction) ?>" class="form admin-team-form">
+  <form method="post" action="<?= wwm_escape((string)$formAction) ?>" class="form admin-team-form" id="broadcast-editor-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
     <label class="field">
@@ -52,21 +57,74 @@ if (!empty($b['scheduled_at'])) {
 
     <label class="field">
       <span>Audience</span>
-      <select name="audience">
+      <select name="audience" id="broadcast-audience-select">
         <option value="all_students"<?= $audience === 'all_students' ? ' selected' : '' ?>>All student accounts</option>
         <option value="with_access"<?= $audience === 'with_access' ? ' selected' : '' ?>>Students with at least one course access</option>
+        <option value="filtered"<?= $audience === 'filtered' ? ' selected' : '' ?>>Custom student filter</option>
       </select>
     </label>
 
-    <label class="field">
-      <span>Plain-text body</span>
-      <textarea name="body_text" rows="12" required class="admin-textarea"><?= wwm_escape((string)($_POST['body_text'] ?? $b['body_text'] ?? '')) ?></textarea>
-    </label>
+    <?php require __DIR__ . '/partials/broadcast-audience-filter.php'; ?>
 
-    <label class="field">
-      <span>HTML body <span class="field-hint">(optional)</span></span>
-      <textarea name="body_html" rows="14" class="admin-textarea admin-textarea-mono"><?= wwm_escape((string)($_POST['body_html'] ?? $b['body_html'] ?? '')) ?></textarea>
-    </label>
+    <div class="admin-card" style="margin:20px 0;padding:16px">
+      <div class="email-editor-toolbar-row">
+        <h2 style="margin:0">Message</h2>
+        <div class="broadcast-format-toggle" role="group" aria-label="Message format">
+          <label class="broadcast-format-option">
+            <input type="radio" name="content_mode" value="plain"<?= $contentMode === 'plain' ? ' checked' : '' ?> data-broadcast-format>
+            Plain text
+          </label>
+          <label class="broadcast-format-option">
+            <input type="radio" name="content_mode" value="html"<?= $contentMode === 'html' ? ' checked' : '' ?> data-broadcast-format>
+            HTML email
+          </label>
+        </div>
+      </div>
+
+      <div class="email-editor-tabs broadcast-editor-tabs" role="tablist">
+        <button type="button" class="email-editor-tab is-active" data-tab="text">Plain text</button>
+        <button type="button" class="email-editor-tab broadcast-html-only" data-tab="visual" hidden>Visual</button>
+        <button type="button" class="email-editor-tab broadcast-html-only" data-tab="html" hidden>HTML</button>
+        <button type="button" class="email-editor-tab broadcast-html-only" data-tab="preview" hidden>Preview</button>
+      </div>
+
+      <div class="email-editor-panel is-active" data-panel="text">
+        <textarea name="body_text" id="broadcast-text-input" class="email-text-input" rows="14" spellcheck="false"><?= wwm_escape($bodyText) ?></textarea>
+      </div>
+
+      <div class="email-editor-panel" data-panel="visual">
+        <div class="email-visual-toolbar">
+          <button type="button" data-cmd="bold"><strong>B</strong></button>
+          <button type="button" data-cmd="italic"><em>I</em></button>
+          <button type="button" data-cmd="underline"><u>U</u></button>
+          <button type="button" data-cmd="insertUnorderedList">• List</button>
+          <button type="button" data-cmd="createLink">Link</button>
+          <button type="button" data-cmd="formatBlock" data-value="p">P</button>
+        </div>
+        <iframe class="email-visual-frame" id="broadcast-visual-frame" title="Visual editor" height="420"></iframe>
+      </div>
+
+      <div class="email-editor-panel" data-panel="html">
+        <div class="email-html-toolbar">
+          <button type="button" class="btn btn-ghost btn-sm" id="broadcast-html-format">Format HTML</button>
+        </div>
+        <div class="email-html-shell" id="broadcast-html-shell">
+          <pre class="email-html-highlight" id="broadcast-html-highlight" aria-hidden="true"><code></code></pre>
+          <textarea name="body_html" id="broadcast-html-input" class="email-html-input" rows="18" spellcheck="false"><?= wwm_textarea_raw($bodyHtml) ?></textarea>
+        </div>
+      </div>
+
+      <div class="email-editor-panel" data-panel="preview">
+        <iframe class="email-preview-frame" id="broadcast-preview-frame" title="Preview" height="420"></iframe>
+        <pre class="email-preview-text" id="broadcast-preview-text"></pre>
+      </div>
+
+      <div class="email-variable-list" style="margin-top:16px">
+        <?php foreach ($variables as $variable): ?>
+          <button type="button" class="email-variable-chip" data-variable="<?= wwm_escape($variable) ?>"><?= wwm_escape($variable) ?></button>
+        <?php endforeach; ?>
+      </div>
+    </div>
 
     <label class="field">
       <span>Schedule send <span class="field-hint">(local time, optional)</span></span>
@@ -90,3 +148,16 @@ if (!empty($b['scheduled_at'])) {
     </form>
   <?php endif; ?>
 </div>
+
+<script type="application/json" id="broadcast-html-seed"><?= wwm_json_for_script($bodyHtml) ?></script>
+<script>
+window.__broadcastEditor = {
+  contentMode: <?= wwm_json_for_script($contentMode) ?>,
+  previewVars: <?= wwm_json_for_script([
+    'name' => 'Sample Student',
+    'email' => 'student@example.com',
+    'unsubscribe_url' => wwm_base_url() . '/email/unsubscribe?t=sample',
+    'base_url' => wwm_base_url(),
+  ]) ?>
+};
+</script>

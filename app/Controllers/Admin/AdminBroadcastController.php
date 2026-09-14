@@ -6,9 +6,12 @@ namespace Wwm\Controllers\Admin;
 use Wwm\Auth\Session;
 use Wwm\Models\EmailBroadcast;
 use Wwm\Models\User;
+use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\BroadcastAudience;
 use Wwm\Services\BroadcastHtmlSanitizer;
 use Wwm\Services\BroadcastRunner;
+use Wwm\Services\CourseCatalog;
+use Wwm\Services\CourseWriter;
 use Wwm\Services\Mailer;
 
 final class AdminBroadcastController
@@ -32,14 +35,19 @@ final class AdminBroadcastController
         $userId = Session::requireAdminBroadcasts();
         $user = User::findById(wwm_pdo(), $userId);
 
-        wwm_render_admin('broadcast-form', [
-            'title' => 'New broadcast — Admin',
-            'adminNav' => 'broadcasts',
-            'user' => $user,
-            'broadcast' => null,
-            'formAction' => '/admin/broadcasts',
-            'audienceSize' => count(BroadcastAudience::recipientsForAudience(wwm_pdo(), 'all_students')),
-        ]);
+        wwm_render_admin('broadcast-form', $this->formViewVars($user, null, '/admin/broadcasts'));
+    }
+
+    public function audiencePreview(): void
+    {
+        Session::requireAdminBroadcasts();
+        $pdo = wwm_pdo();
+        $audience = EmailBroadcast::normalizeAudience((string)($_GET['audience'] ?? 'all_students'));
+        $filter = AdminStudentListFilter::fromBroadcastSource($_GET);
+        $count = BroadcastAudience::countForBroadcast($pdo, $audience, $filter);
+
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['count' => $count], JSON_UNESCAPED_UNICODE);
     }
 
     public function store(): void
@@ -113,16 +121,13 @@ final class AdminBroadcastController
             wwm_redirect('/admin/broadcasts/' . $id);
         }
 
-        wwm_render_admin('broadcast-form', [
-            'title' => 'Edit broadcast — Admin',
-            'adminNav' => 'broadcasts',
-            'user' => $user,
-            'broadcast' => $broadcast,
-            'formAction' => '/admin/broadcasts/' . $id,
-            'audienceSize' => count(BroadcastAudience::recipientsForAudience(wwm_pdo(), (string)$broadcast['audience'])),
-            'message' => $this->flashMessage(),
-            'error' => (string)($_GET['error'] ?? ''),
-        ]);
+        wwm_render_admin('broadcast-form', array_merge(
+            $this->formViewVars($user, $broadcast, '/admin/broadcasts/' . $id),
+            [
+                'message' => $this->flashMessage(),
+                'error' => (string)($_GET['error'] ?? ''),
+            ]
+        ));
     }
 
     public function update(int $id): void
@@ -159,6 +164,7 @@ final class AdminBroadcastController
             'body_text' => $data['body_text'],
             'body_html' => $data['body_html'],
             'audience' => $data['audience'],
+            'audience_filter_json' => $data['audience_filter_json'],
             'scheduled_at' => $scheduledAt !== '' ? $scheduledAt : null,
         ]);
 
@@ -245,7 +251,7 @@ final class AdminBroadcastController
     }
 
     /**
-     * @return array{title: string, subject: string, body_text: string, body_html: string, audience: string, error: ?string}
+     * @return array{title: string, subject: string, body_text: string, body_html: string, content_mode: string, audience: string, audience_filter_json: string, listFilter: AdminStudentListFilter, error: ?string}
      */
     private function dataFromPost(): array
     {
@@ -254,26 +260,46 @@ final class AdminBroadcastController
         $bodyHtml = BroadcastHtmlSanitizer::sanitize((string)($_POST['body_html'] ?? ''));
         $title = trim((string)($_POST['title'] ?? ''));
         $audience = EmailBroadcast::normalizeAudience((string)($_POST['audience'] ?? 'all_students'));
+        $contentMode = (string)($_POST['content_mode'] ?? 'plain') === 'html' ? 'html' : 'plain';
+        $listFilter = AdminStudentListFilter::fromBroadcastSource($_POST);
+        $filterJson = $audience === 'filtered'
+            ? EmailBroadcast::encodeAudienceFilter($listFilter)
+            : '';
 
-        if ($subject === '' || $bodyText === '') {
-            return [
-                'title' => $title,
-                'subject' => $subject,
-                'body_text' => $bodyText,
-                'body_html' => $bodyHtml,
-                'audience' => $audience,
-                'error' => 'Subject and plain-text body are required.',
-            ];
+        if ($contentMode === 'plain') {
+            $bodyHtml = '';
+        } else {
+            if ($bodyHtml === '' && $bodyText !== '') {
+                $bodyHtml = '<p>' . nl2br(htmlspecialchars($bodyText, ENT_QUOTES, 'UTF-8')) . '</p>';
+            }
+            if ($bodyText === '' && $bodyHtml !== '') {
+                $bodyText = BroadcastHtmlSanitizer::plainTextFromHtml($bodyHtml);
+            }
         }
 
-        return [
+        $base = [
             'title' => $title,
             'subject' => $subject,
             'body_text' => $bodyText,
             'body_html' => $bodyHtml,
+            'content_mode' => $contentMode,
             'audience' => $audience,
+            'audience_filter_json' => $filterJson,
+            'listFilter' => $listFilter,
             'error' => null,
         ];
+
+        if ($subject === '') {
+            return array_merge($base, ['error' => 'Subject is required.']);
+        }
+        if ($contentMode === 'plain' && $bodyText === '') {
+            return array_merge($base, ['error' => 'Message body is required.']);
+        }
+        if ($contentMode === 'html' && $bodyHtml === '') {
+            return array_merge($base, ['error' => 'HTML body is required in HTML mode.']);
+        }
+
+        return $base;
     }
 
     private function scheduledAtFromPost(): ?string
@@ -333,16 +359,74 @@ final class AdminBroadcastController
         $merged['body_text'] = $data['body_text'];
         $merged['body_html'] = $data['body_html'];
         $merged['audience'] = $data['audience'];
+        $merged['audience_filter_json'] = $data['audience_filter_json'];
 
-        wwm_render_admin('broadcast-form', [
-            'title' => 'Broadcast — Admin',
+        wwm_render_admin('broadcast-form', array_merge(
+            $this->formViewVars(
+                $user,
+                $merged,
+                $broadcast === null ? '/admin/broadcasts' : '/admin/broadcasts/' . (int)$broadcast['id'],
+                $data['listFilter'],
+                $data['content_mode']
+            ),
+            ['error' => $error]
+        ));
+    }
+
+    /**
+     * @param array<string, mixed>|null $broadcast
+     * @return array<string, mixed>
+     */
+    private function formViewVars(
+        array $user,
+        ?array $broadcast,
+        string $formAction,
+        ?AdminStudentListFilter $listFilter = null,
+        ?string $contentMode = null,
+    ): array {
+        $pdo = wwm_pdo();
+        if ($listFilter === null) {
+            if (is_array($broadcast) && (string)($broadcast['audience'] ?? '') === 'filtered') {
+                $listFilter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
+            } else {
+                $listFilter = AdminStudentListFilter::fromArray([]);
+            }
+        }
+
+        $audience = EmailBroadcast::normalizeAudience(
+            is_array($broadcast) ? (string)($broadcast['audience'] ?? 'all_students') : 'all_students'
+        );
+        if ($contentMode === null) {
+            $html = trim((string)(is_array($broadcast) ? ($broadcast['body_html'] ?? '') : ''));
+            $contentMode = $html !== '' ? 'html' : 'plain';
+        }
+
+        return [
+            'title' => is_array($broadcast) ? 'Edit broadcast — Admin' : 'New broadcast — Admin',
             'adminNav' => 'broadcasts',
             'user' => $user,
-            'broadcast' => $broadcast === null ? null : $merged,
-            'formAction' => $broadcast === null ? '/admin/broadcasts' : '/admin/broadcasts/' . (int)$broadcast['id'],
-            'audienceSize' => count(BroadcastAudience::recipientsForAudience(wwm_pdo(), $data['audience'])),
-            'error' => $error,
-        ]);
+            'broadcast' => $broadcast,
+            'formAction' => $formAction,
+            'filterCourses' => $this->publishedCourses(),
+            'listFilter' => $listFilter,
+            'contentMode' => $contentMode,
+            'audienceSize' => BroadcastAudience::countForBroadcast($pdo, $audience, $listFilter),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function publishedCourses(): array
+    {
+        $published = [];
+        foreach ((new CourseCatalog())->all() as $course) {
+            if (CourseWriter::isPublished($course)) {
+                $published[] = $course;
+            }
+        }
+
+        return $published;
     }
 
     private function notFound(): void

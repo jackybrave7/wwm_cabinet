@@ -47,6 +47,68 @@ final class AdminStudentListFilter
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            search: trim((string)($data['q'] ?? '')),
+            access: self::normalizeKey((string)($data['access'] ?? ''), array_keys(self::ACCESS_OPTIONS)),
+            courseSlug: trim((string)($data['course'] ?? '')),
+            courseAccess: self::normalizeKey((string)($data['course_access'] ?? ''), ['', 'any', 'paid', 'demo']),
+            registeredFrom: self::normalizeDate((string)($data['registered_from'] ?? '')),
+            registeredTo: self::normalizeDate((string)($data['registered_to'] ?? '')),
+            activity: self::normalizeKey((string)($data['activity'] ?? ''), array_keys(self::ACTIVITY_OPTIONS)),
+            country: trim((string)($data['country'] ?? '')),
+            utmSource: trim((string)($data['utm_source'] ?? '')),
+            utmMedium: trim((string)($data['utm_medium'] ?? '')),
+            utmCampaign: trim((string)($data['utm_campaign'] ?? '')),
+            hasUtm: (string)($data['has_utm'] ?? '') === '1' ? '1' : '',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $source GET/POST fields (supports bf_* broadcast prefix)
+     */
+    public static function fromBroadcastSource(array $source): self
+    {
+        $get = static function (string $key) use ($source): string {
+            $bf = 'bf_' . $key;
+            if (array_key_exists($bf, $source)) {
+                return is_scalar($source[$bf]) ? trim((string)$source[$bf]) : '';
+            }
+            if (array_key_exists($key, $source)) {
+                return is_scalar($source[$key]) ? trim((string)$source[$key]) : '';
+            }
+
+            return '';
+        };
+
+        return new self(
+            search: $get('q'),
+            access: self::normalizeKey($get('access'), array_keys(self::ACCESS_OPTIONS)),
+            courseSlug: $get('course'),
+            courseAccess: self::normalizeKey($get('course_access'), ['', 'any', 'paid', 'demo']),
+            registeredFrom: self::normalizeDate($get('registered_from')),
+            registeredTo: self::normalizeDate($get('registered_to')),
+            activity: self::normalizeKey($get('activity'), array_keys(self::ACTIVITY_OPTIONS)),
+            country: $get('country'),
+            utmSource: $get('utm_source'),
+            utmMedium: $get('utm_medium'),
+            utmCampaign: $get('utm_campaign'),
+            hasUtm: $get('has_utm') === '1' ? '1' : '',
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function toStorageArray(): array
+    {
+        return $this->queryParams();
+    }
+
     public static function fromRequest(): self
     {
         return new self(

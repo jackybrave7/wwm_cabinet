@@ -19,4 +19,20 @@ final class BroadcastHtmlSanitizer
 
         return $html;
     }
+
+    public static function plainTextFromHtml(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        $text = preg_replace('#<(br|/p|/div|/li|/tr)\b[^>]*>#i', "\n", $html) ?? $html;
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace("/[ \t]+\n/", "\n", $text) ?? $text;
+        $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;
+
+        return trim($text);
+    }
 }

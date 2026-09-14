@@ -29,5 +29,13 @@
   <?php if (($adminNav ?? '') === 'emails' && str_contains((string)($_SERVER['REQUEST_URI'] ?? ''), '/edit')): ?>
   <script src="/assets/js/admin-email-editor.js" defer></script>
   <?php endif; ?>
+  <?php
+    $broadcastForm = ($adminNav ?? '') === 'broadcasts'
+      && preg_match('#/admin/broadcasts/(new|\d+/edit)#', (string)($_SERVER['REQUEST_URI'] ?? ''));
+  ?>
+  <?php if ($broadcastForm): ?>
+  <script src="/assets/js/admin-broadcast-editor.js" defer></script>
+  <script src="/assets/js/admin-broadcast-audience.js" defer></script>
+  <?php endif; ?>
 </body>
 </html>

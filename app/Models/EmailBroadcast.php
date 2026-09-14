@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Models;
 
 use PDO;
+use Wwm\Services\AdminStudentListFilter;
 
 final class EmailBroadcast
 {
@@ -34,15 +35,15 @@ final class EmailBroadcast
     }
 
     /**
-     * @param array{title?: string, subject: string, body_text: string, body_html?: string, audience?: string} $data
+     * @param array{title?: string, subject: string, body_text: string, body_html?: string, audience?: string, audience_filter_json?: string} $data
      */
     public static function createDraft(PDO $pdo, array $data, ?int $createdBy): int
     {
         $now = gmdate('c');
         $stmt = $pdo->prepare(
             'INSERT INTO email_broadcasts (
-                title, subject, body_text, body_html, audience, status, created_by, created_at, updated_at
-             ) VALUES (?, ?, ?, ?, ?, \'draft\', ?, ?, ?)'
+                title, subject, body_text, body_html, audience, audience_filter_json, status, created_by, created_at, updated_at
+             ) VALUES (?, ?, ?, ?, ?, ?, \'draft\', ?, ?, ?)'
         );
         $stmt->execute([
             trim((string)($data['title'] ?? '')),
@@ -50,6 +51,7 @@ final class EmailBroadcast
             (string)$data['body_text'],
             (string)($data['body_html'] ?? ''),
             self::normalizeAudience((string)($data['audience'] ?? 'all_students')),
+            (string)($data['audience_filter_json'] ?? ''),
             $createdBy,
             $now,
             $now,
@@ -59,7 +61,7 @@ final class EmailBroadcast
     }
 
     /**
-     * @param array{title?: string, subject?: string, body_text?: string, body_html?: string, audience?: string, scheduled_at?: ?string} $data
+     * @param array{title?: string, subject?: string, body_text?: string, body_html?: string, audience?: string, audience_filter_json?: string, scheduled_at?: ?string} $data
      */
     public static function update(PDO $pdo, int $id, array $data): bool
     {
@@ -71,7 +73,7 @@ final class EmailBroadcast
         $now = gmdate('c');
         $stmt = $pdo->prepare(
             'UPDATE email_broadcasts SET
-                title = ?, subject = ?, body_text = ?, body_html = ?, audience = ?,
+                title = ?, subject = ?, body_text = ?, body_html = ?, audience = ?, audience_filter_json = ?,
                 scheduled_at = ?, updated_at = ?
              WHERE id = ?'
         );
@@ -81,6 +83,7 @@ final class EmailBroadcast
             (string)($data['body_text'] ?? $row['body_text']),
             (string)($data['body_html'] ?? $row['body_html']),
             self::normalizeAudience((string)($data['audience'] ?? $row['audience'])),
+            (string)($data['audience_filter_json'] ?? $row['audience_filter_json'] ?? ''),
             $data['scheduled_at'] ?? $row['scheduled_at'],
             $now,
             $id,
@@ -116,6 +119,40 @@ final class EmailBroadcast
 
     public static function normalizeAudience(string $audience): string
     {
-        return $audience === 'with_access' ? 'with_access' : 'all_students';
+        return match ($audience) {
+            'with_access' => 'with_access',
+            'filtered' => 'filtered',
+            default => 'all_students',
+        };
+    }
+
+    public static function encodeAudienceFilter(AdminStudentListFilter $filter): string
+    {
+        $json = json_encode($filter->toStorageArray(), JSON_UNESCAPED_UNICODE);
+        return is_string($json) ? $json : '';
+    }
+
+    public static function decodeAudienceFilter(string $json): AdminStudentListFilter
+    {
+        if ($json === '') {
+            return AdminStudentListFilter::fromArray([]);
+        }
+        $data = json_decode($json, true);
+
+        return AdminStudentListFilter::fromArray(is_array($data) ? $data : []);
+    }
+
+    public static function audienceLabel(array $broadcast): string
+    {
+        $audience = self::normalizeAudience((string)($broadcast['audience'] ?? 'all_students'));
+        if ($audience === 'with_access') {
+            return 'Students with course access';
+        }
+        if ($audience === 'filtered') {
+            $filter = self::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
+            return $filter->isActive() ? 'Custom student filter' : 'All students (filter empty)';
+        }
+
+        return 'All student accounts';
     }
 }

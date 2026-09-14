@@ -68,8 +68,7 @@ final class BroadcastRunner
             return;
         }
 
-        $audience = (string)($broadcast['audience'] ?? 'all_students');
-        $recipients = BroadcastAudience::recipientsForAudience($pdo, $audience);
+        $recipients = BroadcastAudience::recipientsForBroadcast($pdo, $broadcast);
         $insert = $pdo->prepare(
             'INSERT OR IGNORE INTO broadcast_recipients (broadcast_id, user_id, email, status) VALUES (?, ?, ?, \'pending\')'
         );

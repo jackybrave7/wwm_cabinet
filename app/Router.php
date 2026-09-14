@@ -270,6 +270,10 @@ final class Router
             return;
         }
 
+        if ($method === 'GET' && $path === '/admin/broadcasts/audience-preview') {
+            (new AdminBroadcastController())->audiencePreview();
+            return;
+        }
         if ($method === 'GET' && $path === '/admin/broadcasts') {
             (new AdminBroadcastController())->index();
             return;

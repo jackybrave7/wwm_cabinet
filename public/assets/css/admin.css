@@ -1223,6 +1223,24 @@ body.admin-body {
   color: #fff;
 }
 
+.broadcast-format-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.broadcast-format-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.broadcast-audience-filter {
+  margin: 12px 0 0;
+}
+
 .email-editor-panel {
   display: none;
 }
