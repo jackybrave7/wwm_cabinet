@@ -140,6 +140,71 @@ final class EmailMessage
      *   total_clicks: int
      * }
      */
+    /**
+     * @param list<int> $broadcastIds
+     * @return array<int, array{tracked_sent: int, unique_opens: int, total_opens: int, unique_clickers: int, total_clicks: int}>
+     */
+    public static function broadcastEngagementSummaries(PDO $pdo, array $broadcastIds): array
+    {
+        $broadcastIds = array_values(array_filter(array_map('intval', $broadcastIds), static fn (int $id): bool => $id > 0));
+        if ($broadcastIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($broadcastIds), '?'));
+        $out = [];
+        foreach ($broadcastIds as $id) {
+            $out[$id] = [
+                'tracked_sent' => 0,
+                'unique_opens' => 0,
+                'total_opens' => 0,
+                'unique_clickers' => 0,
+                'total_clicks' => 0,
+            ];
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT broadcast_id,
+                COUNT(*) AS tracked_sent,
+                SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) AS unique_opens,
+                COALESCE(SUM(open_count), 0) AS total_opens
+             FROM email_messages
+             WHERE broadcast_id IN (' . $placeholders . ') AND status = \'sent\'
+             GROUP BY broadcast_id'
+        );
+        $stmt->execute($broadcastIds);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $id = (int)$row['broadcast_id'];
+            if (!isset($out[$id])) {
+                continue;
+            }
+            $out[$id]['tracked_sent'] = (int)$row['tracked_sent'];
+            $out[$id]['unique_opens'] = (int)$row['unique_opens'];
+            $out[$id]['total_opens'] = (int)$row['total_opens'];
+        }
+
+        $clickStmt = $pdo->prepare(
+            'SELECT em.broadcast_id,
+                COALESCE(SUM(el.click_count), 0) AS total_clicks,
+                COUNT(DISTINCT CASE WHEN el.clicked_at IS NOT NULL THEN em.id END) AS unique_clickers
+             FROM email_links el
+             INNER JOIN email_messages em ON em.id = el.message_id
+             WHERE em.broadcast_id IN (' . $placeholders . ') AND em.status = \'sent\'
+             GROUP BY em.broadcast_id'
+        );
+        $clickStmt->execute($broadcastIds);
+        foreach ($clickStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $id = (int)$row['broadcast_id'];
+            if (!isset($out[$id])) {
+                continue;
+            }
+            $out[$id]['unique_clickers'] = (int)$row['unique_clickers'];
+            $out[$id]['total_clicks'] = (int)$row['total_clicks'];
+        }
+
+        return $out;
+    }
+
     public static function broadcastEngagementSummary(PDO $pdo, int $broadcastId): array
     {
         $stmt = $pdo->prepare(

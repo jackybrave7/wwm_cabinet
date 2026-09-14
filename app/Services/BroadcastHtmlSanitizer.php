@@ -16,6 +16,7 @@ final class BroadcastHtmlSanitizer
         $html = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html) ?? $html;
         $html = preg_replace('#\s(on\w+|formaction)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html) ?? $html;
         $html = preg_replace('#(href|src)\s*=\s*("\s*javascript:[^"]*"|\'\s*javascript:[^\']*\'|javascript:[^\s>]+)#i', '', $html) ?? $html;
+        $html = preg_replace('#\ssrc\s*=\s*("|\')data:[^\1]*\1#i', '', $html) ?? $html;
 
         return $html;
     }

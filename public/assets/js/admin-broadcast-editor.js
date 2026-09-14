@@ -14,8 +14,11 @@
   const htmlHighlight = document.getElementById('broadcast-html-highlight');
   const htmlHighlightCode = htmlHighlight ? htmlHighlight.querySelector('code') : null;
   const htmlFormatButton = document.getElementById('broadcast-html-format');
+  const htmlInsertImageButton = document.getElementById('broadcast-html-insert-image');
+  const imageUploadInput = document.getElementById('broadcast-image-upload');
   const formatRadios = form.querySelectorAll('[data-broadcast-format]');
   const htmlOnlyTabs = form.querySelectorAll('.broadcast-html-only');
+  const imageStyle = 'display:block;max-width:100%;height:auto;margin:16px auto;border:0;';
 
   let contentMode = config.contentMode === 'html' ? 'html' : 'plain';
   let activeTab = contentMode === 'html' ? 'visual' : 'text';
@@ -171,6 +174,88 @@
     textarea.focus();
   }
 
+  function promptImageUrl() {
+    const url = window.prompt('Image URL (must start with https://)', 'https://');
+    if (!url || !url.trim()) {
+      return null;
+    }
+    const trimmed = url.trim();
+    if (!/^https:\/\//i.test(trimmed)) {
+      window.alert('Use a full https:// URL so email clients can load the image.');
+      return null;
+    }
+    return trimmed;
+  }
+
+  function promptAltText() {
+    return window.prompt('Alt text (optional)', '') || '';
+  }
+
+  function insertImageInVisual(url, alt) {
+    const doc = visualDocument();
+    if (!doc || !visualFrame) {
+      return;
+    }
+    visualFrame.contentWindow.focus();
+    doc.execCommand('insertImage', false, url);
+    const images = doc.getElementsByTagName('img');
+    const image = images.length ? images[images.length - 1] : null;
+    if (image) {
+      image.setAttribute('alt', alt);
+      image.setAttribute('style', imageStyle);
+    }
+    syncVisualToHtml();
+  }
+
+  function insertImageHtmlSnippet(url, alt) {
+    const safeAlt = String(alt).replace(/"/g, '&quot;');
+    const snippet = '<img src="' + url + '" alt="' + safeAlt + '" style="' + imageStyle + '">';
+    if (htmlInput) {
+      insertAtCursor(htmlInput, snippet);
+      syncHtmlHighlight();
+    }
+  }
+
+  function insertImageUrl(url, alt) {
+    if (activeTab === 'html') {
+      insertImageHtmlSnippet(url, alt);
+      return;
+    }
+    insertImageInVisual(url, alt);
+  }
+
+  async function uploadImageFile(file) {
+    const csrf = form.querySelector('[name="csrf"]');
+    if (!csrf) {
+      return null;
+    }
+    const body = new FormData();
+    body.append('csrf', csrf.value);
+    body.append('image', file);
+    const response = await fetch('/admin/broadcasts/upload-image', {
+      method: 'POST',
+      body,
+      credentials: 'same-origin',
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.url) {
+      window.alert(data.error || 'Image upload failed.');
+      return null;
+    }
+    return data.url;
+  }
+
+  async function handleImageFile(file) {
+    if (!file) {
+      return;
+    }
+    const url = await uploadImageFile(file);
+    if (!url) {
+      return;
+    }
+    insertImageUrl(url, promptAltText());
+  }
+
   formatRadios.forEach((radio) => {
     radio.addEventListener('change', () => {
       if (!radio.checked) {
@@ -200,6 +285,20 @@
         const url = window.prompt('Link URL');
         if (url) {
           doc.execCommand('createLink', false, url);
+        }
+        syncVisualToHtml();
+        return;
+      }
+      if (cmd === 'insertImage') {
+        if (imageUploadInput) {
+          imageUploadInput.click();
+        }
+        return;
+      }
+      if (cmd === 'insertImageUrl') {
+        const imageUrl = promptImageUrl();
+        if (imageUrl) {
+          insertImageInVisual(imageUrl, promptAltText());
         }
         return;
       }
@@ -258,6 +357,22 @@
     htmlFormatButton.addEventListener('click', () => {
       htmlInput.value = htmlInput.value.replace(/>\s*</g, '>\n<');
       syncHtmlHighlight();
+    });
+  }
+
+  if (htmlInsertImageButton) {
+    htmlInsertImageButton.addEventListener('click', () => {
+      if (imageUploadInput) {
+        imageUploadInput.click();
+      }
+    });
+  }
+
+  if (imageUploadInput) {
+    imageUploadInput.addEventListener('change', () => {
+      const file = imageUploadInput.files && imageUploadInput.files[0];
+      imageUploadInput.value = '';
+      handleImageFile(file);
     });
   }
 

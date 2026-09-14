@@ -274,6 +274,10 @@ final class Router
             (new AdminBroadcastController())->audiencePreview();
             return;
         }
+        if ($method === 'POST' && $path === '/admin/broadcasts/upload-image') {
+            (new AdminBroadcastController())->uploadImage();
+            return;
+        }
         if ($method === 'GET' && $path === '/admin/broadcasts') {
             (new AdminBroadcastController())->index();
             return;

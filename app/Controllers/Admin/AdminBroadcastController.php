@@ -10,6 +10,7 @@ use Wwm\Models\User;
 use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\BroadcastAudience;
 use Wwm\Services\BroadcastHtmlSanitizer;
+use Wwm\Services\BroadcastImageUpload;
 use Wwm\Services\BroadcastRunner;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
@@ -22,11 +23,17 @@ final class AdminBroadcastController
         $userId = Session::requireAdminBroadcasts();
         $user = User::findById(wwm_pdo(), $userId);
 
+        $pdo = wwm_pdo();
+        $broadcasts = EmailBroadcast::listRecent($pdo);
+        $ids = array_map(static fn (array $row): int => (int)$row['id'], $broadcasts);
+        $engagementById = EmailMessage::broadcastEngagementSummaries($pdo, $ids);
+
         wwm_render_admin('broadcasts', [
             'title' => 'Broadcasts — Admin',
             'adminNav' => 'broadcasts',
             'user' => $user,
-            'broadcasts' => EmailBroadcast::listRecent(wwm_pdo()),
+            'broadcasts' => $broadcasts,
+            'engagementById' => $engagementById,
             'message' => $this->flashMessage(),
         ]);
     }
@@ -49,6 +56,27 @@ final class AdminBroadcastController
 
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode(['count' => $count], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function uploadImage(): void
+    {
+        Session::requireAdminBroadcasts();
+        header('Content-Type: application/json; charset=UTF-8');
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Session expired. Refresh the page and try again.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $result = BroadcastImageUpload::storeFromUpload($_FILES['image'] ?? []);
+        if (!$result['ok']) {
+            http_response_code(400);
+            echo json_encode(['error' => $result['error']], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        echo json_encode(['url' => $result['url']], JSON_UNESCAPED_UNICODE);
     }
 
     public function store(): void

@@ -156,14 +156,77 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
   </div>
 <?php endif; ?>
 
+<?php
+$previewVars = [
+    '{{name}}' => 'Sample Student',
+    '{{email}}' => 'student@example.com',
+    '{{unsubscribe_url}}' => wwm_base_url() . '/email/unsubscribe?t=preview',
+    '{{base_url}}' => wwm_base_url(),
+];
+$bodyHtmlRaw = trim((string)($b['body_html'] ?? ''));
+$textPreview = str_replace(array_keys($previewVars), array_values($previewVars), (string)$b['body_text']);
+$htmlPreview = $bodyHtmlRaw !== ''
+    ? str_replace(array_keys($previewVars), array_values($previewVars), $bodyHtmlRaw)
+    : '';
+if ($htmlPreview !== '') {
+    $htmlPreview = preg_replace('#\scontenteditable\s*=\s*("true"|"false"|true|false)#i', '', $htmlPreview) ?? $htmlPreview;
+}
+?>
 <div class="admin-card" style="margin-bottom:16px">
-  <h2 class="admin-team-section-title">Plain text</h2>
-  <pre class="admin-pre"><?= wwm_escape((string)$b['body_text']) ?></pre>
-  <?php if (trim((string)($b['body_html'] ?? '')) !== ''): ?>
-    <h2 class="admin-team-section-title" style="margin-top:20px">HTML</h2>
-    <pre class="admin-pre"><?= wwm_escape((string)$b['body_html']) ?></pre>
+  <h2 class="admin-team-section-title">Message</h2>
+  <p class="field-hint" style="margin:-8px 0 16px">Preview with sample placeholders (not the sent copy).</p>
+
+  <?php if ($htmlPreview !== ''): ?>
+    <div class="email-preview-tabs">
+      <button type="button" class="email-preview-tab is-active" data-broadcast-preview-tab="visual">Visual</button>
+      <button type="button" class="email-preview-tab" data-broadcast-preview-tab="text">Plain text</button>
+    </div>
+    <div class="email-preview-panel is-active" data-broadcast-preview-panel="visual">
+      <textarea id="broadcast-view-html-source" hidden readonly><?= wwm_textarea_raw($htmlPreview) ?></textarea>
+      <iframe class="email-preview-frame" title="Broadcast visual preview" id="broadcast-view-html-frame"></iframe>
+    </div>
+    <div class="email-preview-panel" data-broadcast-preview-panel="text">
+      <pre class="email-preview-text"><?= wwm_escape($textPreview) ?></pre>
+    </div>
+    <details class="admin-expander" style="margin-top:16px">
+      <summary class="admin-expander-summary">
+        <span class="admin-expander-summary-text">
+          <span class="field-hint">HTML source</span>
+        </span>
+        <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+      </summary>
+      <div class="admin-expander-body">
+        <pre class="admin-pre"><?= wwm_escape($bodyHtmlRaw) ?></pre>
+      </div>
+    </details>
+  <?php else: ?>
+    <pre class="email-preview-text"><?= wwm_escape($textPreview) ?></pre>
   <?php endif; ?>
 </div>
+
+<?php if ($htmlPreview !== ''): ?>
+<script>
+(function () {
+  const source = document.getElementById('broadcast-view-html-source');
+  const frame = document.getElementById('broadcast-view-html-frame');
+  if (source && frame) {
+    frame.srcdoc = source.value;
+  }
+  document.querySelectorAll('[data-broadcast-preview-tab]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const name = tab.getAttribute('data-broadcast-preview-tab');
+      document.querySelectorAll('[data-broadcast-preview-tab]').forEach((el) => el.classList.remove('is-active'));
+      document.querySelectorAll('[data-broadcast-preview-panel]').forEach((el) => el.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      const panel = document.querySelector('[data-broadcast-preview-panel="' + name + '"]');
+      if (panel) {
+        panel.classList.add('is-active');
+      }
+    });
+  });
+})();
+</script>
+<?php endif; ?>
 
 <?php if ($canCancel && $status !== 'sent'): ?>
   <div class="admin-card">

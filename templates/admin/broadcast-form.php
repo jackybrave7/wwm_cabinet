@@ -99,14 +99,19 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
           <button type="button" data-cmd="underline"><u>U</u></button>
           <button type="button" data-cmd="insertUnorderedList">• List</button>
           <button type="button" data-cmd="createLink">Link</button>
+          <button type="button" data-cmd="insertImage" title="Upload image">Image</button>
+          <button type="button" data-cmd="insertImageUrl" title="Image from URL">Image URL</button>
           <button type="button" data-cmd="formatBlock" data-value="p">P</button>
         </div>
+        <input type="file" id="broadcast-image-upload" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+        <p class="field-hint broadcast-html-only" hidden style="margin:8px 0 0">Images are hosted on the cabinet site (HTTPS). Max 3 MB, JPEG/PNG/GIF/WebP.</p>
         <iframe class="email-visual-frame" id="broadcast-visual-frame" title="Visual editor" height="420"></iframe>
       </div>
 
       <div class="email-editor-panel" data-panel="html">
         <div class="email-html-toolbar">
           <button type="button" class="btn btn-ghost btn-sm" id="broadcast-html-format">Format HTML</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="broadcast-html-insert-image">Insert image</button>
         </div>
         <div class="email-html-shell" id="broadcast-html-shell">
           <pre class="email-html-highlight" id="broadcast-html-highlight" aria-hidden="true"><code></code></pre>
