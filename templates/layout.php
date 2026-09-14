@@ -29,7 +29,7 @@
             <a href="/">My courses</a>
             <a href="/account">Account</a>
             <?php if (\Wwm\Models\User::isAdmin($user)): ?>
-              <a href="/admin/courses">Admin</a>
+              <a href="/admin/dashboard">Admin</a>
             <?php endif; ?>
             <span class="user-email"><?= wwm_escape((string)($user['email'] ?? '')) ?></span>
             <a href="/logout" class="btn btn-ghost">Sign out</a>

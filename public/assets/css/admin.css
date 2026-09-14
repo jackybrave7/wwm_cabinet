@@ -975,6 +975,145 @@ body.admin-body {
   margin-top: 16px;
 }
 
+.admin-student-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.admin-student-profile > .admin-expander.admin-card {
+  margin: 0;
+}
+
+.admin-student-profile .admin-expander-summary-text h2 {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.admin-student-profile .admin-expander-summary-text > .field-hint,
+.admin-student-profile .admin-expander-summary-text > .admin-expander-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.admin-student-profile .admin-expander > summary {
+  padding: 16px 20px;
+}
+
+.admin-student-profile .admin-expander-body {
+  padding: 0 20px 18px;
+}
+
+.admin-table-wrap--profile {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-table-wrap--profile .admin-table {
+  margin: 0;
+  min-width: 720px;
+}
+
+.admin-table--profile th {
+  white-space: nowrap;
+  vertical-align: bottom;
+  padding-top: 14px;
+  padding-bottom: 10px;
+  background: #faf9f7;
+}
+
+.admin-table--profile th:first-child,
+.admin-table--profile td:first-child {
+  padding-left: 16px;
+}
+
+.admin-table--profile th:last-child,
+.admin-table--profile td:last-child {
+  padding-right: 16px;
+}
+
+.admin-table--profile tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table--profile .col-date {
+  white-space: nowrap;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table--profile .col-subject {
+  min-width: 14rem;
+  max-width: 26rem;
+  word-break: normal;
+  overflow-wrap: normal;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.admin-table--profile .col-status {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.admin-table--profile .col-type {
+  white-space: nowrap;
+  font-size: 0.86rem;
+}
+
+.admin-cell-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.admin-cell-muted {
+  font-size: 0.78rem;
+  color: var(--mute);
+  line-height: 1.3;
+}
+
+.admin-profile-footnote {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--mute);
+  line-height: 1.45;
+}
+
+.email-link-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 9rem;
+}
+
+.email-link-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.email-link-chip__label {
+  color: var(--mute);
+}
+
+.email-link-chip.is-clicked .email-link-chip__status {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
 .admin-expander--course > summary .student-course-head {
   flex: 1;
   min-width: 0;

@@ -75,6 +75,7 @@ final class AvoSalesLinks
             'id_contact' => '{id_contact}',
             'id_account' => '{id_account}',
             'id_goods' => '{id_goods}',
+            'sum' => '{sum}',
         ], WebhookAttributionParams::forAvoWebhook());
         if ($goodsId !== null && $goodsId > 0) {
             $params['id_goods'] = (string)$goodsId;

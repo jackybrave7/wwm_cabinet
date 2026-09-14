@@ -103,7 +103,7 @@ final class AdminAccess
             return '/admin/admins';
         }
 
-        return '/admin/courses';
+        return '/admin/dashboard';
     }
 
     /**

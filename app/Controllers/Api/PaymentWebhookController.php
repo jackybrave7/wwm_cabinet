@@ -10,6 +10,7 @@ use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
 use Wwm\Services\PaidAccess;
+use Wwm\Services\PaymentRecorder;
 use Wwm\Services\StudentAttribution;
 
 final class PaymentWebhookController
@@ -46,6 +47,10 @@ final class PaymentWebhookController
             wwm_json_response(400, ['ok' => false, 'error' => 'course_required']);
         }
 
+        if ($sourceRef !== '' && trim((string)($payload['id_account'] ?? '')) === '') {
+            $payload['id_account'] = $sourceRef;
+        }
+
         try {
             $timeline = AvoAccountRow::accessTimelineIso($payload, true);
             $result = (new PaidAccess())->grant(
@@ -61,8 +66,19 @@ final class PaymentWebhookController
                 $timeline['paid']
             );
             $userId = (int)$result['user_id'];
-            AvoAdvertisingSnapshot::captureFromPayload(wwm_pdo(), $userId, $payload);
-            StudentAttribution::backfillUtmStatus(wwm_pdo(), $userId);
+            $pdo = wwm_pdo();
+            AvoAdvertisingSnapshot::captureFromPayload($pdo, $userId, $payload);
+            StudentAttribution::backfillUtmStatus($pdo, $userId);
+            $paymentRecorded = PaymentRecorder::recordFromWebhook(
+                $pdo,
+                $userId,
+                $courseSlug,
+                $source,
+                $payload,
+                $timeline['ordered'],
+                $timeline['paid'],
+                $avoContactId > 0 ? $avoContactId : null
+            );
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
         } catch (\RuntimeException $e) {
@@ -73,7 +89,7 @@ final class PaymentWebhookController
             wwm_json_response(500, ['ok' => false, 'error' => 'grant_failed']);
         }
 
-        wwm_json_response(200, ['ok' => true] + $result);
+        wwm_json_response(200, ['ok' => true, 'payment_recorded' => $paymentRecorded ?? false] + $result);
     }
 
     private function parseSendEmail(mixed $value): ?bool

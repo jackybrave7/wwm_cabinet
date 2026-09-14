@@ -15,7 +15,7 @@
       <p class="field-hint" style="margin-bottom:12px">
         <strong>UTM / marketing:</strong> include <code>utm_*</code> and <code>advertising_channel_*</code> macros in the webhook
         (in the URL or POST body). The cabinet saves them on the student profile — no slow AVO API backfill needed.
-        Always pass <code>{id_contact}</code> and <code>{id_account}</code> (paid) when AVO offers them.
+        Always pass <code>{id_contact}</code>, <code>{id_account}</code>, and <code>{sum}</code> (paid) when AVO offers them.
       </p>
     <?php endif; ?>
     <pre class="email-webhook-sample" id="email-webhook-url"><?= wwm_escape($webhook['url']) ?></pre>

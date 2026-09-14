@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 21;
+    public const SCHEMA_VERSION = 22;
 
     public static function connect(string $path): PDO
     {
@@ -266,6 +266,32 @@ CREATE TABLE IF NOT EXISTS site_settings (
   setting_value TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  avo_account_id TEXT NOT NULL,
+  course_slug TEXT NOT NULL,
+  id_goods INTEGER,
+  amount REAL,
+  currency TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL DEFAULT 'avo',
+  ordered_at TEXT,
+  paid_at TEXT,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  utm_term TEXT,
+  utm_content TEXT,
+  ad_snapshot TEXT,
+  avo_contact_id INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(avo_account_id, course_slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_paid_at ON payments(paid_at);
 SQL);
 
         self::migrateEmailTemplatesLogo($pdo);

@@ -92,6 +92,8 @@ $progressCourseCount = count($courseBlocksList);
   </div>
 </div>
 
+<div class="admin-student-profile">
+
 <details class="admin-card admin-expander">
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
@@ -156,7 +158,61 @@ $progressCourseCount = count($courseBlocksList);
 </details>
 <?php endif; ?>
 
-<?php $emailMessages = is_array($email_messages ?? null) ? $email_messages : []; ?>
+<?php
+$payments = is_array($payments ?? null) ? $payments : [];
+$emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
+?>
+<details class="admin-card admin-expander">
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Payments</h2>
+      <span class="field-hint"><?= $payments === [] ? 'No payments logged yet' : count($payments) . ' payment' . (count($payments) === 1 ? '' : 's') ?></span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
+  <?php if ($payments === []): ?>
+    <p class="field-hint">Paid orders from the AVO payment webhook appear here (amount, order id, UTM at purchase).</p>
+  <?php else: ?>
+    <div class="admin-table-wrap admin-table-wrap--profile">
+      <table class="admin-table admin-table-compact admin-table--profile">
+        <thead>
+          <tr>
+            <th class="col-date">Paid</th>
+            <th>Course</th>
+            <th class="col-status">Amount</th>
+            <th>AVO order</th>
+            <th>UTM / campaign</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($payments as $pay): ?>
+            <?php
+              $paidAt = (string)($pay['paid_at'] ?? $pay['ordered_at'] ?? $pay['created_at'] ?? '');
+              $utmParts = array_filter([
+                  trim((string)($pay['utm_source'] ?? '')),
+                  trim((string)($pay['utm_medium'] ?? '')),
+                  trim((string)($pay['utm_campaign'] ?? '')),
+              ]);
+            ?>
+            <tr>
+              <td class="col-date"><?= $paidAt !== '' ? wwm_escape($formatDate($paidAt)) : '—' ?></td>
+              <td><code><?= wwm_escape((string)($pay['course_slug'] ?? '')) ?></code></td>
+              <td class="col-status"><?= wwm_escape(\Wwm\Models\Payment::formatAmount(
+                  isset($pay['amount']) ? (float)$pay['amount'] : null,
+                  (string)($pay['currency'] ?? '')
+              )) ?></td>
+              <td class="admin-cell-muted"><?= wwm_escape((string)($pay['avo_account_id'] ?? '')) ?></td>
+              <td class="col-subject"><?= $utmParts !== [] ? wwm_escape(implode(' · ', $utmParts)) : '—' ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+  </div>
+</details>
+
 <details class="admin-card admin-expander">
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
@@ -169,67 +225,74 @@ $progressCourseCount = count($courseBlocksList);
   <?php if ($emailMessages === []): ?>
     <p class="field-hint">No cabinet emails logged for this student yet.</p>
   <?php else: ?>
-    <table class="admin-table admin-table-compact">
-      <thead>
-        <tr>
-          <th>Sent</th>
-          <th>Type</th>
-          <th>Subject</th>
-          <th>Status</th>
-          <th>Opened</th>
-          <th>Link clicks</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($emailMessages as $mail): ?>
-          <?php
-            $links = is_array($mail['links'] ?? null) ? $mail['links'] : [];
-            $openedAt = (string)($mail['opened_at'] ?? '');
-            $openCount = (int)($mail['open_count'] ?? 0);
-          ?>
+    <div class="admin-table-wrap admin-table-wrap--profile">
+      <table class="admin-table admin-table-compact admin-table--profile">
+        <thead>
           <tr>
-            <td><?= wwm_escape($formatDate((string)($mail['sent_at'] ?? ''))) ?></td>
-            <td><?= wwm_escape(\Wwm\Models\EmailMessage::typeLabel((string)($mail['email_type'] ?? ''))) ?></td>
-            <td><?= wwm_escape((string)($mail['subject'] ?? '')) ?></td>
-            <td>
-              <?php if (($mail['status'] ?? '') === 'sent'): ?>
-                <span class="badge badge-paid" style="margin:0">Sent</span>
-              <?php else: ?>
-                <span class="badge badge-draft" style="margin:0">Failed</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <?php if ($openedAt !== ''): ?>
-                <span class="badge badge-demo" style="margin:0">Yes</span>
-                <span class="field-hint"><?= wwm_escape($formatDate($openedAt)) ?><?= $openCount > 1 ? ' · ' . $openCount . '×' : '' ?></span>
-              <?php else: ?>
-                <span class="field-hint">—</span>
-              <?php endif; ?>
-            </td>
-            <td>
-              <?php if ($links === []): ?>
-                <span class="field-hint">—</span>
-              <?php else: ?>
-                <ul class="email-link-stats">
-                  <?php foreach ($links as $link): ?>
-                    <li>
-                      <span><?= wwm_escape((string)($link['link_label'] ?: 'Link')) ?>:</span>
-                      <?php if (!empty($link['clicked_at'])): ?>
-                        <strong>clicked</strong>
-                        <span class="field-hint"><?= wwm_escape($formatDate((string)$link['clicked_at'])) ?><?= (int)($link['click_count'] ?? 0) > 1 ? ' · ' . (int)$link['click_count'] . '×' : '' ?></span>
-                      <?php else: ?>
-                        <span class="field-hint">not clicked</span>
-                      <?php endif; ?>
-                    </li>
-                  <?php endforeach; ?>
-                </ul>
-              <?php endif; ?>
-            </td>
+            <th class="col-date">Sent</th>
+            <th class="col-type">Type</th>
+            <th class="col-subject">Subject</th>
+            <th class="col-status">Status</th>
+            <th class="col-status">Opened</th>
+            <th>Links</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-    <p class="field-hint" style="margin-top:12px">Open tracking uses a pixel and may be blocked by some mail clients. Link clicks are more reliable.</p>
+        </thead>
+        <tbody>
+          <?php foreach ($emailMessages as $mail): ?>
+            <?php
+              $links = is_array($mail['links'] ?? null) ? $mail['links'] : [];
+              $openedAt = (string)($mail['opened_at'] ?? '');
+              $openCount = (int)($mail['open_count'] ?? 0);
+              $subject = (string)($mail['subject'] ?? '');
+            ?>
+            <tr>
+              <td class="col-date"><?= wwm_escape($formatDate((string)($mail['sent_at'] ?? ''))) ?></td>
+              <td class="col-type"><?= wwm_escape(\Wwm\Models\EmailMessage::typeLabel((string)($mail['email_type'] ?? ''))) ?></td>
+              <td class="col-subject" title="<?= wwm_escape($subject) ?>"><?= wwm_escape($subject) ?></td>
+              <td class="col-status">
+                <?php if (($mail['status'] ?? '') === 'sent'): ?>
+                  <span class="badge badge-paid" style="margin:0">Sent</span>
+                <?php else: ?>
+                  <span class="badge badge-draft" style="margin:0">Failed</span>
+                <?php endif; ?>
+              </td>
+              <td class="col-status">
+                <?php if ($openedAt !== ''): ?>
+                  <div class="admin-cell-stack">
+                    <span class="badge badge-demo" style="margin:0">Yes</span>
+                    <span class="admin-cell-muted"><?= wwm_escape($formatDate($openedAt)) ?><?= $openCount > 1 ? ' · ' . $openCount . '×' : '' ?></span>
+                  </div>
+                <?php else: ?>
+                  <span class="admin-cell-muted">—</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ($links === []): ?>
+                  <span class="admin-cell-muted">—</span>
+                <?php else: ?>
+                  <div class="email-link-chips">
+                    <?php foreach ($links as $link): ?>
+                      <?php $clicked = !empty($link['clicked_at']); ?>
+                      <div class="email-link-chip<?= $clicked ? ' is-clicked' : '' ?>">
+                        <span class="email-link-chip__label"><?= wwm_escape((string)($link['link_label'] ?: 'Link')) ?></span>
+                        <span class="email-link-chip__status">
+                          <?php if ($clicked): ?>
+                            Clicked <?= wwm_escape($formatDate((string)$link['clicked_at'])) ?><?= (int)($link['click_count'] ?? 0) > 1 ? ' · ' . (int)$link['click_count'] . '×' : '' ?>
+                          <?php else: ?>
+                            Not clicked
+                          <?php endif; ?>
+                        </span>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <p class="admin-profile-footnote">Open tracking uses a pixel and may be blocked by some mail clients. Link clicks are more reliable.</p>
   <?php endif; ?>
   </div>
 </details>
@@ -243,7 +306,8 @@ $progressCourseCount = count($courseBlocksList);
     <span class="admin-expander-chevron" aria-hidden="true">▼</span>
   </summary>
   <div class="admin-expander-body">
-  <table class="admin-table admin-table-compact access-table">
+  <div class="admin-table-wrap admin-table-wrap--profile">
+  <table class="admin-table admin-table-compact admin-table--profile access-table">
     <thead>
       <tr>
         <th>Course</th>
@@ -315,6 +379,7 @@ $progressCourseCount = count($courseBlocksList);
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
   </div>
 </details>
 
@@ -417,7 +482,9 @@ document.querySelectorAll('.access-grant-form').forEach((form) => {
   </div>
 </details>
 
-<details class="admin-card admin-expander admin-danger-zone">
+</div>
+
+<details class="admin-card admin-expander admin-danger-zone" style="margin-top:12px">
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
       <h2>Danger zone</h2>
