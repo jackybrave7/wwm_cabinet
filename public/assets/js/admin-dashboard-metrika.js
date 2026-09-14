@@ -36,7 +36,6 @@
   function updateChart(visitsSeries, chartMax) {
     var cols = root.querySelectorAll('.admin-chart-col');
     var max = Math.max(1, Number(chartMax) || 1);
-    root.setAttribute('data-chart-max', String(max));
 
     cols.forEach(function (col, i) {
       var v = Number(visitsSeries[i]) || 0;
@@ -44,21 +43,22 @@
       var p = Number(col.getAttribute('data-chart-paid')) || 0;
       col.setAttribute('data-chart-visits', String(v));
       max = Math.max(max, v, d, p);
-
-      var bar = col.querySelector('.admin-chart-bar--visits');
-      if (bar) {
-        bar.classList.remove('admin-chart-bar--pending');
-        bar.style.height = Math.max(2, Math.round(160 * v / max)) + 'px';
-      }
     });
 
     max = Math.max(1, max);
+    root.setAttribute('data-chart-max', String(max));
+
     cols.forEach(function (col) {
       var v = Number(col.getAttribute('data-chart-visits')) || 0;
       var d = Number(col.getAttribute('data-chart-demo')) || 0;
       var p = Number(col.getAttribute('data-chart-paid')) || 0;
+      var visitBar = col.querySelector('.admin-chart-bar--visits');
       var demoBar = col.querySelector('.admin-chart-bar--demo');
       var paidBar = col.querySelector('.admin-chart-bar--paid');
+      if (visitBar) {
+        visitBar.classList.remove('admin-chart-bar--pending');
+        visitBar.style.height = Math.max(2, Math.round(160 * v / max)) + 'px';
+      }
       if (demoBar) {
         demoBar.style.height = Math.max(2, Math.round(160 * d / max)) + 'px';
       }

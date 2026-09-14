@@ -138,7 +138,19 @@ final class YandexMetrikaReporting
 
         $buckets = $this->parseBytimeBuckets($decoded, $group);
         $totals = $decoded['totals'] ?? [];
-        $visitsTotal = (int)($totals[0][0] ?? array_sum($buckets));
+        $bucketSum = array_sum($buckets);
+        $apiVisitsTotal = (int)($totals[0][0] ?? 0);
+        // bytime: card + chart must match — API "totals" can disagree with daily series (filters/timezone).
+        $visitsTotal = $bucketSum > 0 ? $bucketSum : $apiVisitsTotal;
+        if ($bucketSum > 0 && $apiVisitsTotal > 0 && $bucketSum !== $apiVisitsTotal) {
+            wwm_log(sprintf(
+                'metrika bytime visits mismatch api=%d sum_buckets=%d (%s..%s)',
+                $apiVisitsTotal,
+                $bucketSum,
+                $from->format('Y-m-d'),
+                $to->format('Y-m-d')
+            ));
+        }
         $usersTotal = (int)($totals[1][0] ?? 0);
 
         $result = [
