@@ -163,7 +163,15 @@ final class BroadcastRunner
         $text = self::renderPersonalization((string)$broadcast['body_text'], $userId, $email, $name);
         $htmlRaw = trim((string)($broadcast['body_html'] ?? ''));
         $html = $htmlRaw !== ''
-            ? self::renderPersonalization(BroadcastHtmlSanitizer::sanitize($htmlRaw), $userId, $email, $name)
+            ? self::renderPersonalization(
+                BroadcastEmailLayout::forDelivery(
+                    BroadcastHtmlSanitizer::sanitize($htmlRaw),
+                    $subject
+                ),
+                $userId,
+                $email,
+                $name
+            )
             : null;
 
         $unsubUrl = BroadcastUnsubscribe::unsubscribeUrl($userId, $email);

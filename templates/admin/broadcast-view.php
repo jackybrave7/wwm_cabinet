@@ -170,6 +170,10 @@ $htmlPreview = $bodyHtmlRaw !== ''
     : '';
 if ($htmlPreview !== '') {
     $htmlPreview = preg_replace('#\scontenteditable\s*=\s*("true"|"false"|true|false)#i', '', $htmlPreview) ?? $htmlPreview;
+    $htmlPreview = \Wwm\Services\BroadcastEmailLayout::forDelivery(
+        \Wwm\Services\BroadcastHtmlSanitizer::sanitize($htmlPreview),
+        (string)($b['subject'] ?? '')
+    );
 }
 ?>
 <div class="admin-card" style="margin-bottom:16px">

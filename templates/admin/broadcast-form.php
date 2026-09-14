@@ -104,7 +104,7 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
           <button type="button" data-cmd="formatBlock" data-value="p">P</button>
         </div>
         <input type="file" id="broadcast-image-upload" accept="image/jpeg,image/png,image/gif,image/webp" hidden>
-        <p class="field-hint broadcast-html-only" hidden style="margin:8px 0 0">Images are hosted on the cabinet site (HTTPS). Max 3 MB, JPEG/PNG/GIF/WebP.</p>
+        <p class="field-hint broadcast-html-only" hidden style="margin:8px 0 0">Images are hosted on the cabinet site (HTTPS). Max 3 MB, JPEG/PNG/GIF/WebP. Sent emails use a light layout: <strong>Email subject</strong> appears as the heading unless you add your own <code>&lt;h1&gt;</code> first.</p>
         <iframe class="email-visual-frame" id="broadcast-visual-frame" title="Visual editor" height="420"></iframe>
       </div>
 

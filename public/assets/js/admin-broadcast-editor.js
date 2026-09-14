@@ -185,7 +185,9 @@
     if (!visualFrame) {
       return;
     }
-    const docHtml = html || '<!DOCTYPE html><html><body><p></p></body></html>';
+    const docHtml =
+      html ||
+      '<!DOCTYPE html><html><head><meta name="color-scheme" content="light only"><style>body{margin:0;padding:16px;background:#fff;color:#1a1a1a;font-family:Georgia,serif;font-size:16px;line-height:1.55;}</style></head><body><p></p></body></html>';
     visualFrame.onload = () => {
       const doc = visualDocument();
       if (doc) {
@@ -200,7 +202,6 @@
         }
         sanitizeBrokenImages(doc);
         bindVisualImageGuards(doc);
-        syncVisualToHtml();
       }
     };
     visualFrame.srcdoc = docHtml;
@@ -222,12 +223,56 @@
     }
   }
 
+  function extractBodyInner(html) {
+    const match = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+    if (match) {
+      return match[1].trim();
+    }
+    if (/<html\b/i.test(html)) {
+      return html.replace(/<\/?(?:html|head|body)\b[^>]*>/gi, '').replace(/<head\b[\s\S]*?<\/head>/gi, '').trim();
+    }
+    return html;
+  }
+
+  function bodyStartsWithTitle(inner) {
+    return /^\s*<h1\b/i.test(inner);
+  }
+
+  function wrapBroadcastHtml(html, subject) {
+    const inner = extractBodyInner(html);
+    let titleHtml = '';
+    const subj = String(subject || '').trim();
+    if (subj && !bodyStartsWithTitle(inner)) {
+      const safe = subj.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      titleHtml =
+        '<h1 style="margin:0 0 18px;padding:0;font-size:22px;line-height:1.35;font-weight:700;color:#1a1a1a;font-family:Georgia,\'Times New Roman\',serif;">' +
+        safe +
+        '</h1>';
+    }
+    return (
+      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<meta name="color-scheme" content="light only">' +
+      '<meta name="supported-color-schemes" content="light"></head>' +
+      '<body style="margin:0;padding:0;background:#eceae6;">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eceae6;">' +
+      '<tr><td align="center" style="padding:16px 12px;">' +
+      '<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:8px;">' +
+      '<tr><td style="padding:24px 20px;font-family:Georgia,\'Times New Roman\',serif;font-size:16px;line-height:1.55;color:#1a1a1a;">' +
+      titleHtml +
+      inner +
+      '</td></tr></table></td></tr></table></body></html>'
+    );
+  }
+
   function renderPreview() {
     syncBeforePreview();
     const html = htmlInput ? htmlInput.value.trim() : '';
     const text = textInput ? textInput.value : '';
+    const subjectInput = form.querySelector('input[name="subject"]');
+    const subject = subjectInput ? subjectInput.value : '';
     if (contentMode === 'html' && previewFrame && html) {
-      previewFrame.srcdoc = applyPreviewVars(html);
+      previewFrame.srcdoc = wrapBroadcastHtml(applyPreviewVars(html), subject);
       if (previewText) {
         previewText.hidden = true;
       }
@@ -304,7 +349,15 @@
   function buildImageWrapperStyle(opts) {
     const mt = parseInt(opts.marginTop, 10) || 0;
     const mb = parseInt(opts.marginBottom, 10) || 0;
-    return 'text-align:' + opts.align + ';margin:' + mt + 'px 0 ' + mb + 'px 0;';
+    return (
+      'text-align:' +
+      opts.align +
+      ';margin:' +
+      mt +
+      'px 0 ' +
+      mb +
+      'px 0;background:transparent;'
+    );
   }
 
   function buildImageHtmlSnippet(opts) {
