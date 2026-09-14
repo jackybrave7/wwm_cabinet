@@ -29,14 +29,36 @@ final class Database
 
     public static function migrateIfNeeded(PDO $pdo): void
     {
-        $versionFile = WWM_ROOT . '/data/.schema_version';
-        $current = is_readable($versionFile) ? (int)file_get_contents($versionFile) : 0;
-        if ($current >= self::SCHEMA_VERSION) {
+        if (self::installedSchemaVersion($pdo) >= self::SCHEMA_VERSION) {
+            self::persistSchemaVersion($pdo);
+
             return;
         }
 
         self::migrate($pdo);
-        @file_put_contents($versionFile, (string)self::SCHEMA_VERSION);
+        self::persistSchemaVersion($pdo);
+    }
+
+    /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */
+    public static function installedSchemaVersion(PDO $pdo): int
+    {
+        $versionFile = WWM_ROOT . '/data/.schema_version';
+        $fromFile = is_readable($versionFile) ? (int)trim((string)file_get_contents($versionFile)) : 0;
+        $fromDb = (int)$pdo->query('PRAGMA user_version')->fetchColumn();
+
+        return max($fromFile, $fromDb);
+    }
+
+    public static function persistSchemaVersion(PDO $pdo): void
+    {
+        $target = self::SCHEMA_VERSION;
+        if ((int)$pdo->query('PRAGMA user_version')->fetchColumn() < $target) {
+            $pdo->exec('PRAGMA user_version = ' . $target);
+        }
+        $versionFile = WWM_ROOT . '/data/.schema_version';
+        if (!is_readable($versionFile) || (int)trim((string)file_get_contents($versionFile)) < $target) {
+            @file_put_contents($versionFile, (string)$target);
+        }
     }
 
     public static function migrate(PDO $pdo): void
