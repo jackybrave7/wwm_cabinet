@@ -127,6 +127,60 @@
     return visualFrame && visualFrame.contentDocument ? visualFrame.contentDocument : null;
   }
 
+  function isBrokenImageSrc(src) {
+    const value = String(src || '').trim();
+    if (value === '' || value === 'about:blank') {
+      return true;
+    }
+    return /^(file:|blob:)/i.test(value);
+  }
+
+  function sanitizeBrokenImages(doc) {
+    if (!doc) {
+      return;
+    }
+    doc.querySelectorAll('img').forEach((img) => {
+      if (isBrokenImageSrc(img.getAttribute('src'))) {
+        img.remove();
+      }
+    });
+  }
+
+  function bindVisualImageGuards(doc) {
+    if (!doc || !doc.body) {
+      return;
+    }
+    doc.body.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+    doc.body.addEventListener('drop', (event) => {
+      event.preventDefault();
+      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      if (file && String(file.type || '').indexOf('image/') === 0) {
+        imageInsertTarget = 'visual';
+        handleImageFile(file);
+      }
+    });
+    doc.body.addEventListener('paste', (event) => {
+      const items = event.clipboardData && event.clipboardData.items;
+      if (!items) {
+        return;
+      }
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && String(item.type || '').indexOf('image/') === 0) {
+          event.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            imageInsertTarget = 'visual';
+            handleImageFile(file);
+          }
+          return;
+        }
+      }
+    });
+  }
+
   function loadVisualFromHtml(html) {
     if (!visualFrame) {
       return;
@@ -144,6 +198,9 @@
         if (doc.body) {
           doc.body.contentEditable = 'true';
         }
+        sanitizeBrokenImages(doc);
+        bindVisualImageGuards(doc);
+        syncVisualToHtml();
       }
     };
     visualFrame.srcdoc = docHtml;

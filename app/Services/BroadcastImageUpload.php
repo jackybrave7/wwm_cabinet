@@ -40,14 +40,9 @@ final class BroadcastImageUpload
             return ['ok' => false, 'error' => 'Only JPEG, PNG, GIF, or WebP images are allowed.'];
         }
 
-        $dir = WWM_ROOT . '/public/assets/broadcasts';
-        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
-            return ['ok' => false, 'error' => 'Could not create image storage folder.'];
-        }
-
         $name = 'b_' . bin2hex(random_bytes(12)) . '.' . $ext;
-        $dest = $dir . '/' . $name;
-        if (!move_uploaded_file($tmp, $dest)) {
+        $savedPath = self::saveToWebroots($tmp, $name);
+        if ($savedPath === null) {
             return ['ok' => false, 'error' => 'Could not save uploaded image.'];
         }
 
@@ -58,6 +53,43 @@ final class BroadcastImageUpload
             'url' => wwm_base_url() . $publicPath,
             'path' => $publicPath,
         ];
+    }
+
+    /**
+     * Spaceweb docroot is public_html (FTP deploy mirrors public → public_html).
+     *
+     * @return list<string>
+     */
+    private static function webBroadcastDirectories(): array
+    {
+        $dirs = [];
+        if (is_dir(WWM_ROOT . '/public_html') || is_dir(WWM_ROOT . '/public_html/assets')) {
+            $dirs[] = WWM_ROOT . '/public_html/assets/broadcasts';
+        }
+        $dirs[] = WWM_ROOT . '/public/assets/broadcasts';
+
+        return array_values(array_unique($dirs));
+    }
+
+    private static function saveToWebroots(string $tmpPath, string $filename): ?string
+    {
+        $primaryDest = null;
+        foreach (self::webBroadcastDirectories() as $dir) {
+            if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+                continue;
+            }
+            $dest = $dir . '/' . $filename;
+            if ($primaryDest === null) {
+                if (!move_uploaded_file($tmpPath, $dest)) {
+                    return null;
+                }
+                $primaryDest = $dest;
+                continue;
+            }
+            @copy($primaryDest, $dest);
+        }
+
+        return $primaryDest;
     }
 
     private static function uploadErrorMessage(int $code): string

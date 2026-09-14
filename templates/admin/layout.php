@@ -34,8 +34,8 @@
       && preg_match('#/admin/broadcasts/(new|\d+/edit)#', (string)($_SERVER['REQUEST_URI'] ?? ''));
   ?>
   <?php if ($broadcastForm): ?>
-  <script src="/assets/js/admin-broadcast-editor.js" defer></script>
-  <script src="/assets/js/admin-broadcast-audience.js" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-broadcast-editor.js')) ?>" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-broadcast-audience.js')) ?>" defer></script>
   <?php endif; ?>
 </body>
 </html>
