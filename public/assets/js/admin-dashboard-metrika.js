@@ -8,6 +8,16 @@
   var group = root.getAttribute('data-group') || 'day';
   var url = '/admin/api/dashboard/metrika?period=' + encodeURIComponent(period)
     + '&group=' + encodeURIComponent(group);
+  if (period === 'custom') {
+    var from = root.getAttribute('data-date-from') || '';
+    var to = root.getAttribute('data-date-to') || '';
+    if (from) {
+      url += '&from=' + encodeURIComponent(from);
+    }
+    if (to) {
+      url += '&to=' + encodeURIComponent(to);
+    }
+  }
 
   function formatNum(n) {
     var x = Number(n) || 0;

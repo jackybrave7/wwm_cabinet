@@ -10,12 +10,14 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 $period = $argv[1] ?? '7d';
 $group = 'day';
+$customFrom = $argv[2] ?? null;
+$customTo = $argv[3] ?? null;
 
 $pdo = wwm_pdo();
 $dashboard = new Wwm\Services\AdminDashboardStats($pdo, new Wwm\Services\AdminStats($pdo));
 $metrika = new Wwm\Services\YandexMetrikaReporting($pdo);
 
-$filters = $dashboard->resolveFilters($period, $group);
+$filters = $dashboard->resolveFilters($period, $group, $customFrom, $customTo);
 $from = $filters['from'];
 $to = $filters['to'];
 

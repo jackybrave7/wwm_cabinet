@@ -10,7 +10,7 @@ use Wwm\Models\User;
 
 final class AdminDashboardStats
 {
-    private const PERIODS = ['yesterday', '7d', '30d', '90d', '365d', 'all'];
+    private const PERIODS = ['yesterday', '7d', '30d', '90d', '365d', 'all', 'custom'];
     private const GRANULARITIES = ['day', 'week', 'month'];
     private const REPORT_TZ = 'Europe/Moscow';
 
@@ -23,8 +23,12 @@ final class AdminDashboardStats
     /**
      * @return array{period: string, group: string, from: DateTimeImmutable, to: DateTimeImmutable}
      */
-    public function resolveFilters(string $period, string $group): array
-    {
+    public function resolveFilters(
+        string $period,
+        string $group,
+        ?string $customFrom = null,
+        ?string $customTo = null,
+    ): array {
         $period = in_array($period, self::PERIODS, true) ? $period : '7d';
         $group = in_array($group, self::GRANULARITIES, true) ? $group : 'day';
 
@@ -33,6 +37,24 @@ final class AdminDashboardStats
             $from = (new DateTimeImmutable('yesterday', $tz))->setTime(0, 0, 0);
             $to = $from->setTime(23, 59, 59);
             $group = 'day';
+        } elseif ($period === 'custom') {
+            $from = self::parseReportDate($customFrom, $tz, true);
+            $to = self::parseReportDate($customTo, $tz, false);
+            if ($from === null || $to === null || $from > $to) {
+                return $this->resolveFilters('7d', $group);
+            }
+            $today = new DateTimeImmutable('today', $tz);
+            if ($to->format('Y-m-d') === $today->format('Y-m-d')) {
+                $to = new DateTimeImmutable('now', $tz);
+            } else {
+                $to = $to->setTime(23, 59, 59);
+            }
+            $spanDays = (int)$from->diff($to)->days;
+            if ($spanDays > 365 && $group === 'day') {
+                $group = 'month';
+            } elseif ($spanDays > 90 && $group === 'day') {
+                $group = 'week';
+            }
         } else {
             $to = new DateTimeImmutable('now', $tz);
             $from = match ($period) {
@@ -60,6 +82,21 @@ final class AdminDashboardStats
             'from' => $from,
             'to' => $to,
         ];
+    }
+
+    private static function parseReportDate(?string $raw, DateTimeZone $tz, bool $startOfDay): ?DateTimeImmutable
+    {
+        $raw = trim((string)$raw);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+            return null;
+        }
+        try {
+            $dt = new DateTimeImmutable($raw, $tz);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $startOfDay ? $dt->setTime(0, 0, 0) : $dt->setTime(0, 0, 0);
     }
 
     /**

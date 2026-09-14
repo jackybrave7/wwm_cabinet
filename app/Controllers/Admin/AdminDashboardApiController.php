@@ -16,12 +16,14 @@ final class AdminDashboardApiController
 
         $period = (string)($_GET['period'] ?? '7d');
         $group = (string)($_GET['group'] ?? 'day');
+        $customFrom = isset($_GET['from']) ? (string)$_GET['from'] : null;
+        $customTo = isset($_GET['to']) ? (string)$_GET['to'] : null;
 
         $pdo = wwm_pdo();
         $dashboard = new AdminDashboardStats($pdo, new AdminStats($pdo));
         $metrika = new YandexMetrikaReporting($pdo);
 
-        $filters = $dashboard->resolveFilters($period, $group);
+        $filters = $dashboard->resolveFilters($period, $group, $customFrom, $customTo);
         $periodTotals = $dashboard->periodTotals($filters['from'], $filters['to']);
 
         $trafficPeriod = $metrika->visitsForPeriod($filters['from'], $filters['to'], $filters['group']);

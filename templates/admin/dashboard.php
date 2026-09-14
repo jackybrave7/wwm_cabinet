@@ -17,7 +17,7 @@ $periodDemos = (int)($periodTotals['demo_grants'] ?? 0);
 $periodPaid = (int)($periodTotals['paid_grants'] ?? 0);
 $demoToPaidPct = $periodDemos > 0 ? round(100 * $periodPaid / $periodDemos, 2) : null;
 ?>
-<div id="admin-dashboard" data-admin-dashboard data-period="<?= wwm_escape((string)($period ?? '7d')) ?>" data-group="<?= wwm_escape((string)($group ?? 'day')) ?>" data-metrika-deferred="<?= $metrikaDeferred ? '1' : '0' ?>" data-chart-max="<?= (int)$chartMax ?>">
+<div id="admin-dashboard" data-admin-dashboard data-period="<?= wwm_escape((string)($period ?? '7d')) ?>" data-group="<?= wwm_escape((string)($group ?? 'day')) ?>" data-date-from="<?= wwm_escape((string)($customFrom ?? '')) ?>" data-date-to="<?= wwm_escape((string)($customTo ?? '')) ?>" data-metrika-deferred="<?= $metrikaDeferred ? '1' : '0' ?>" data-chart-max="<?= (int)$chartMax ?>">
 <div class="admin-topbar">
   <div>
     <p class="badge badge-admin">Administrator</p>
@@ -36,7 +36,10 @@ $periodOptions = [
     '90d' => '90 days',
     '365d' => '12 months',
     'all' => 'All time',
+    'custom' => 'Свой период',
 ];
+$customFromVal = (string)($customFrom ?? '');
+$customToVal = (string)($customTo ?? '');
 ?>
 <form method="get" action="/admin/dashboard" class="admin-dashboard-toolbar admin-card" data-admin-dashboard-filters>
   <div class="admin-dashboard-toolbar__row">
@@ -45,12 +48,22 @@ $periodOptions = [
       <div class="admin-period-pills__list">
         <?php foreach ($periodOptions as $value => $label): ?>
           <label class="admin-period-pill<?= $dashPeriod === $value ? ' is-active' : '' ?>">
-            <input type="radio" name="period" value="<?= wwm_escape($value) ?>"<?= $dashPeriod === $value ? ' checked' : '' ?>>
+            <input type="radio" name="period" value="<?= wwm_escape($value) ?>"<?= $dashPeriod === $value ? ' checked' : '' ?><?= $value === 'custom' ? ' data-period-custom' : '' ?>>
             <span><?= wwm_escape($label) ?></span>
           </label>
         <?php endforeach; ?>
       </div>
     </fieldset>
+    <div class="admin-dashboard-custom-range<?= $dashPeriod === 'custom' ? '' : ' is-hidden' ?>" data-admin-custom-range>
+      <label class="admin-dashboard-custom-field">
+        <span class="admin-dashboard-toolbar__legend">From</span>
+        <input type="date" name="from" class="input input--dashboard" value="<?= wwm_escape($customFromVal) ?>"<?= $dashPeriod !== 'custom' ? ' disabled' : '' ?>>
+      </label>
+      <label class="admin-dashboard-custom-field">
+        <span class="admin-dashboard-toolbar__legend">To</span>
+        <input type="date" name="to" class="input input--dashboard" value="<?= wwm_escape($customToVal) ?>"<?= $dashPeriod !== 'custom' ? ' disabled' : '' ?>>
+      </label>
+    </div>
     <label class="admin-dashboard-toolbar__group<?= $dashPeriod === 'yesterday' ? ' is-disabled' : '' ?>">
       <span class="admin-dashboard-toolbar__legend">Chart grouping</span>
       <select name="group" class="input input--dashboard"<?= $dashPeriod === 'yesterday' ? ' disabled' : '' ?>>
@@ -170,9 +183,35 @@ $periodOptions = [
 <script src="<?= wwm_escape(wwm_asset_url('js/admin-dashboard-metrika.js')) ?>" defer></script>
 <script>
 document.querySelectorAll('[data-admin-dashboard-filters]').forEach(function (form) {
+  var customRange = form.querySelector('[data-admin-custom-range]');
+  var fromInput = form.querySelector('input[name="from"]');
+  var toInput = form.querySelector('input[name="to"]');
+
+  function syncCustomRange() {
+    var customSelected = form.querySelector('input[data-period-custom]:checked') !== null;
+    if (customRange) {
+      customRange.classList.toggle('is-hidden', !customSelected);
+    }
+    if (fromInput) {
+      fromInput.disabled = !customSelected;
+      fromInput.required = customSelected;
+    }
+    if (toInput) {
+      toInput.disabled = !customSelected;
+      toInput.required = customSelected;
+    }
+  }
+
   form.querySelectorAll('.admin-period-pill input').forEach(function (input) {
-    input.addEventListener('change', function () { form.requestSubmit(); });
+    input.addEventListener('change', function () {
+      syncCustomRange();
+      if (input.hasAttribute('data-period-custom')) {
+        return;
+      }
+      form.requestSubmit();
+    });
   });
+  syncCustomRange();
   form.querySelector('select[name="group"]')?.addEventListener('change', function () { form.requestSubmit(); });
 });
 </script>

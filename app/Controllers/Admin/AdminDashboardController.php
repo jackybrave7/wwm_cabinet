@@ -18,12 +18,14 @@ final class AdminDashboardController
 
         $period = (string)($_GET['period'] ?? '7d');
         $group = (string)($_GET['group'] ?? 'day');
+        $customFrom = isset($_GET['from']) ? (string)$_GET['from'] : null;
+        $customTo = isset($_GET['to']) ? (string)$_GET['to'] : null;
 
         $pdo = wwm_pdo();
         $dashboard = new AdminDashboardStats($pdo, new AdminStats($pdo));
         $metrika = new YandexMetrikaReporting($pdo);
 
-        $filters = $dashboard->resolveFilters($period, $group);
+        $filters = $dashboard->resolveFilters($period, $group, $customFrom, $customTo);
         $snapshot = $dashboard->snapshot();
 
         $periodTotals = $dashboard->periodTotals($filters['from'], $filters['to']);
@@ -42,6 +44,8 @@ final class AdminDashboardController
             'group' => $filters['group'],
             'fromLabel' => $filters['from']->format('Y-m-d'),
             'toLabel' => $filters['to']->format('Y-m-d'),
+            'customFrom' => $filters['period'] === 'custom' ? $filters['from']->format('Y-m-d') : ($customFrom ?? ''),
+            'customTo' => $filters['period'] === 'custom' ? $filters['to']->format('Y-m-d') : ($customTo ?? ''),
             'snapshot' => $snapshot,
             'periodTotals' => $periodTotals,
             'chart' => $chart,
