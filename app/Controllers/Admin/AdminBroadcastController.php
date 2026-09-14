@@ -5,6 +5,7 @@ namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
 use Wwm\Models\EmailBroadcast;
+use Wwm\Models\EmailMessage;
 use Wwm\Models\User;
 use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\BroadcastAudience;
@@ -99,11 +100,19 @@ final class AdminBroadcastController
             $broadcast = EmailBroadcast::find(wwm_pdo(), $id) ?? $broadcast;
         }
 
+        $pdo = wwm_pdo();
+        $engagement = EmailMessage::broadcastEngagementSummary($pdo, $id);
+        $linkStats = EmailMessage::broadcastLinkStats($pdo, $id);
+        $recipientEngagement = EmailMessage::broadcastRecipientEngagement($pdo, $id, 200);
+
         wwm_render_admin('broadcast-view', [
             'title' => 'Broadcast #' . $id . ' — Admin',
             'adminNav' => 'broadcasts',
             'user' => $user,
             'broadcast' => $broadcast,
+            'engagement' => $engagement,
+            'linkStats' => $linkStats,
+            'recipientEngagement' => $recipientEngagement,
             'message' => $this->flashMessage(),
         ]);
     }
@@ -220,8 +229,8 @@ final class AdminBroadcastController
 
         $email = strtolower(trim((string)$admin['email']));
         $name = trim((string)($admin['name'] ?? ''));
-        $ok = BroadcastRunner::sendToRecipient($broadcast, $adminId, $email, $name);
-        wwm_redirect('/admin/broadcasts/' . $id . '/edit?' . ($ok ? 'test_ok=1' : 'test_fail=1'));
+        $send = BroadcastRunner::sendToRecipient($broadcast, $adminId, $email, $name);
+        wwm_redirect('/admin/broadcasts/' . $id . '/edit?' . ($send['ok'] ? 'test_ok=1' : 'test_fail=1'));
     }
 
     private function startSend(int $id): void

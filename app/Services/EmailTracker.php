@@ -9,8 +9,8 @@ final class EmailTracker
 {
     private const TRANSPARENT_GIF = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
-    private int $messageId;
-    private string $openToken;
+    private int $messageId = 0;
+    private string $openToken = '';
 
     private function __construct(
         private string $to,
@@ -25,13 +25,24 @@ final class EmailTracker
         return new self($to, $subject, $type, $userId);
     }
 
+    public function lastMessageId(): int
+    {
+        return $this->messageId;
+    }
+
     /**
      * @param list<array{url: string, label?: string}> $links
+     * @param list<string> $extraHeaders
      */
-    public function deliver(string $textBody, ?string $htmlBody, array $links = []): bool
-    {
+    public function deliver(
+        string $textBody,
+        ?string $htmlBody,
+        array $links = [],
+        array $extraHeaders = [],
+        ?int $broadcastId = null,
+    ): bool {
         $pdo = wwm_pdo();
-        $created = EmailMessage::create($pdo, $this->userId, $this->to, $this->type, $this->subject);
+        $created = EmailMessage::create($pdo, $this->userId, $this->to, $this->type, $this->subject, $broadcastId);
         $this->messageId = $created['id'];
         $this->openToken = $created['open_token'];
 
@@ -51,7 +62,7 @@ final class EmailTracker
             $htmlBody = $this->injectOpenPixel($htmlBody);
         }
 
-        $ok = Mailer::send($this->to, $this->subject, $textBody, $htmlBody);
+        $ok = Mailer::send($this->to, $this->subject, $textBody, $htmlBody, $extraHeaders);
         EmailMessage::markStatus($pdo, $this->messageId, $ok, $ok ? null : Mailer::lastError());
 
         return $ok;

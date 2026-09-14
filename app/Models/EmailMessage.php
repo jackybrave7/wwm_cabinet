@@ -10,12 +10,18 @@ final class EmailMessage
     /**
      * @return array{id: int, open_token: string}
      */
-    public static function create(PDO $pdo, ?int $userId, string $toEmail, string $type, string $subject): array
-    {
+    public static function create(
+        PDO $pdo,
+        ?int $userId,
+        string $toEmail,
+        string $type,
+        string $subject,
+        ?int $broadcastId = null,
+    ): array {
         $openToken = bin2hex(random_bytes(16));
         $stmt = $pdo->prepare(
-            'INSERT INTO email_messages (user_id, to_email, email_type, subject, status, sent_at, open_token)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO email_messages (user_id, to_email, email_type, subject, status, sent_at, open_token, broadcast_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $userId,
@@ -25,6 +31,7 @@ final class EmailMessage
             'pending',
             gmdate('c'),
             $openToken,
+            $broadcastId,
         ]);
 
         return [
@@ -124,6 +131,98 @@ final class EmailMessage
         return $messages;
     }
 
+    /**
+     * @return array{
+     *   tracked_sent: int,
+     *   unique_opens: int,
+     *   total_opens: int,
+     *   unique_clickers: int,
+     *   total_clicks: int
+     * }
+     */
+    public static function broadcastEngagementSummary(PDO $pdo, int $broadcastId): array
+    {
+        $stmt = $pdo->prepare(
+            'SELECT
+                COUNT(*) AS tracked_sent,
+                SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) AS unique_opens,
+                COALESCE(SUM(open_count), 0) AS total_opens
+             FROM email_messages
+             WHERE broadcast_id = ? AND status = \'sent\''
+        );
+        $stmt->execute([$broadcastId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $clickStmt = $pdo->prepare(
+            'SELECT
+                COALESCE(SUM(el.click_count), 0) AS total_clicks,
+                COUNT(DISTINCT CASE WHEN el.clicked_at IS NOT NULL THEN em.id END) AS unique_clickers
+             FROM email_links el
+             INNER JOIN email_messages em ON em.id = el.message_id
+             WHERE em.broadcast_id = ? AND em.status = \'sent\''
+        );
+        $clickStmt->execute([$broadcastId]);
+        $clicks = $clickStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'tracked_sent' => (int)($row['tracked_sent'] ?? 0),
+            'unique_opens' => (int)($row['unique_opens'] ?? 0),
+            'total_opens' => (int)($row['total_opens'] ?? 0),
+            'unique_clickers' => (int)($clicks['unique_clickers'] ?? 0),
+            'total_clicks' => (int)($clicks['total_clicks'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return list<array{target_url: string, link_label: string, total_clicks: int, unique_clickers: int}>
+     */
+    public static function broadcastLinkStats(PDO $pdo, int $broadcastId): array
+    {
+        $stmt = $pdo->prepare(
+            'SELECT el.target_url, el.link_label,
+                    COALESCE(SUM(el.click_count), 0) AS total_clicks,
+                    COUNT(CASE WHEN el.clicked_at IS NOT NULL THEN 1 END) AS unique_clickers
+             FROM email_links el
+             INNER JOIN email_messages em ON em.id = el.message_id
+             WHERE em.broadcast_id = ? AND em.status = \'sent\'
+             GROUP BY el.target_url, el.link_label
+             ORDER BY total_clicks DESC, el.target_url ASC'
+        );
+        $stmt->execute([$broadcastId]);
+        $rows = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $rows[] = [
+                'target_url' => (string)$row['target_url'],
+                'link_label' => (string)$row['link_label'],
+                'total_clicks' => (int)$row['total_clicks'],
+                'unique_clickers' => (int)$row['unique_clickers'],
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function broadcastRecipientEngagement(PDO $pdo, int $broadcastId, int $limit = 100): array
+    {
+        $limit = max(1, min(500, $limit));
+        $stmt = $pdo->prepare(
+            'SELECT br.email, br.status AS delivery_status, br.sent_at,
+                    em.opened_at, em.open_count, em.id AS message_id,
+                    (SELECT COALESCE(SUM(el.click_count), 0) FROM email_links el WHERE el.message_id = em.id) AS click_count
+             FROM broadcast_recipients br
+             LEFT JOIN email_messages em ON em.id = br.email_message_id
+             WHERE br.broadcast_id = ?
+             ORDER BY br.id ASC
+             LIMIT ' . $limit
+        );
+        $stmt->execute([$broadcastId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public static function typeLabel(string $type): string
     {
         return match ($type) {
@@ -132,6 +231,7 @@ final class EmailMessage
             'magic' => 'Sign-in link',
             'reset' => 'Password reset',
             'test' => 'Test email',
+            'broadcast' => 'Marketing broadcast',
             'reminder_demo_no_login' => 'Reminder — no login',
             'reminder_demo_no_lesson' => 'Reminder — no lesson',
             'reminder_demo_expiring' => 'Reminder — expiring',

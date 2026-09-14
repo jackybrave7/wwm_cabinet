@@ -118,9 +118,9 @@ final class BroadcastRunner
             $user = User::findById($pdo, $userId);
             $name = is_array($user) ? trim((string)($user['name'] ?? '')) : '';
 
-            $ok = self::sendToRecipient($broadcast, $userId, $email, $name);
-            if ($ok) {
-                self::markRecipient($pdo, $recipientId, 'sent', null);
+            $send = self::sendToRecipient($broadcast, $userId, $email, $name);
+            if ($send['ok']) {
+                self::markRecipient($pdo, $recipientId, 'sent', null, $send['message_id']);
                 $sent++;
                 self::incrementCounter($pdo, $broadcastId, 'sent_count');
             } else {
@@ -152,8 +152,13 @@ final class BroadcastRunner
     /**
      * @param array<string, mixed> $broadcast
      */
-    public static function sendToRecipient(array $broadcast, int $userId, string $email, string $name): bool
+    /**
+     * @param array<string, mixed> $broadcast
+     * @return array{ok: bool, message_id: ?int}
+     */
+    public static function sendToRecipient(array $broadcast, int $userId, string $email, string $name): array
     {
+        $broadcastId = (int)$broadcast['id'];
         $subject = self::renderPersonalization((string)$broadcast['subject'], $userId, $email, $name);
         $text = self::renderPersonalization((string)$broadcast['body_text'], $userId, $email, $name);
         $htmlRaw = trim((string)($broadcast['body_html'] ?? ''));
@@ -161,15 +166,22 @@ final class BroadcastRunner
             ? self::renderPersonalization(BroadcastHtmlSanitizer::sanitize($htmlRaw), $userId, $email, $name)
             : null;
 
+        $unsubUrl = BroadcastUnsubscribe::unsubscribeUrl($userId, $email);
         $text = self::appendPlainUnsubscribeFooter($text, $userId, $email);
         if ($html !== null && $html !== '') {
             $html = self::appendHtmlUnsubscribeFooter($html, $userId, $email);
         }
 
-        $unsubUrl = BroadcastUnsubscribe::unsubscribeUrl($userId, $email);
-        $headers = self::complianceHeaders($unsubUrl, (int)$broadcast['id']);
+        $headers = self::complianceHeaders($unsubUrl, $broadcastId);
+        $links = BroadcastTracking::trackableLinks($text, $html, [$unsubUrl]);
 
-        return Mailer::send($email, $subject, $text, $html, $headers);
+        $tracker = EmailTracker::compose($userId, $email, 'broadcast', $subject);
+        $ok = $tracker->deliver($text, $html, $links, $headers, $broadcastId);
+
+        return [
+            'ok' => $ok,
+            'message_id' => $ok ? $tracker->lastMessageId() : null,
+        ];
     }
 
     private static function renderPersonalization(string $body, int $userId, string $email, string $name): string
@@ -235,14 +247,20 @@ final class BroadcastRunner
         return $headers;
     }
 
-    private static function markRecipient(PDO $pdo, int $recipientId, string $status, ?string $error): void
-    {
+    private static function markRecipient(
+        PDO $pdo,
+        int $recipientId,
+        string $status,
+        ?string $error,
+        ?int $emailMessageId = null,
+    ): void {
         $pdo->prepare(
-            'UPDATE broadcast_recipients SET status = ?, error_message = ?, sent_at = ? WHERE id = ?'
+            'UPDATE broadcast_recipients SET status = ?, error_message = ?, sent_at = ?, email_message_id = COALESCE(?, email_message_id) WHERE id = ?'
         )->execute([
             $status,
             $error,
             $status === 'sent' ? gmdate('c') : null,
+            $emailMessageId,
             $recipientId,
         ]);
     }
