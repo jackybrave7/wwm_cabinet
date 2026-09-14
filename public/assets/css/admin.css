@@ -302,6 +302,140 @@ body.admin-body {
   margin-bottom: 8px;
 }
 
+.admin-dashboard-toolbar {
+  padding: 20px 22px 18px;
+  margin-bottom: 12px;
+}
+
+.admin-dashboard-toolbar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 18px 24px;
+}
+
+.admin-dashboard-toolbar__legend {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mute);
+  margin-bottom: 10px;
+}
+
+.admin-period-pills {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.admin-period-pills__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-period-pill {
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-period-pill input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.admin-period-pill span {
+  display: inline-block;
+  padding: 11px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink, #1a1a1a);
+  background: var(--surface-2, #f4f2ef);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.admin-period-pill:hover span {
+  background: #ebe8e3;
+}
+
+.admin-period-pill.is-active span,
+.admin-period-pill input:checked + span {
+  background: #fff;
+  border-color: var(--wwm-rust, #b85c38);
+  color: var(--wwm-rust, #b85c38);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.admin-dashboard-toolbar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 0 0 auto;
+}
+
+.admin-dashboard-toolbar__group.is-disabled {
+  opacity: 0.45;
+}
+
+.input--dashboard {
+  min-width: 148px;
+  padding: 11px 14px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.btn-dashboard-apply {
+  padding: 12px 22px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.admin-dashboard-toolbar__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line, #e8e4de);
+  font-size: 0.9rem;
+}
+
+.admin-dashboard-toolbar__range strong {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.admin-dashboard-toolbar__range-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mute);
+}
+
+@media (max-width: 640px) {
+  .admin-period-pill span {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+  .btn-dashboard-apply {
+    width: 100%;
+  }
+}
+
 .admin-card--compact {
   padding: 14px 16px;
 }

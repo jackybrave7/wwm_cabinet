@@ -14,6 +14,7 @@ final class YandexMetrikaReporting
     public const KEY_OAUTH_TOKEN = SiteSettings::KEY_METRIKA_OAUTH_TOKEN;
 
     private const CACHE_TTL = 900;
+    private const CACHE_TTL_LIFETIME = 3600;
 
     public function __construct(private PDO $pdo)
     {
@@ -236,7 +237,7 @@ final class YandexMetrikaReporting
             'visits_total' => (int)($totals[0] ?? 0),
             'users_total' => (int)($totals[1] ?? 0),
         ];
-        $this->writeCache($cacheKey, $result);
+        $this->writeCache($cacheKey, $result, self::CACHE_TTL_LIFETIME);
 
         return $result;
     }
@@ -381,7 +382,7 @@ final class YandexMetrikaReporting
     /**
      * @param array<string, mixed> $payload
      */
-    private function writeCache(string $key, array $payload): void
+    private function writeCache(string $key, array $payload, int $ttl = self::CACHE_TTL): void
     {
         $dir = dirname(__DIR__, 2) . '/data/cache/metrika';
         if (!is_dir($dir)) {
@@ -389,7 +390,7 @@ final class YandexMetrikaReporting
         }
         $path = $this->cachePath($key);
         $envelope = [
-            'expires' => time() + self::CACHE_TTL,
+            'expires' => time() + $ttl,
             'payload' => $payload,
         ];
         @file_put_contents($path, json_encode($envelope, JSON_UNESCAPED_UNICODE));

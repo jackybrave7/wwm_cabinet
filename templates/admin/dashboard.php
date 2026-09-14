@@ -29,27 +29,46 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
   </div>
 </div>
 
-<form method="get" action="/admin/dashboard" class="admin-dashboard-filters admin-card admin-card--compact">
-  <label class="admin-filter-field">
-    <span>Period</span>
-    <select name="period" class="input">
-      <option value="7d" <?= ($period ?? '') === '7d' ? 'selected' : '' ?>>Last 7 days</option>
-      <option value="30d" <?= ($period ?? '30d') === '30d' ? 'selected' : '' ?>>Last 30 days</option>
-      <option value="90d" <?= ($period ?? '') === '90d' ? 'selected' : '' ?>>Last 90 days</option>
-      <option value="365d" <?= ($period ?? '') === '365d' ? 'selected' : '' ?>>Last 12 months</option>
-      <option value="all" <?= ($period ?? '') === 'all' ? 'selected' : '' ?>>All time</option>
-    </select>
-  </label>
-  <label class="admin-filter-field">
-    <span>Chart grouping</span>
-    <select name="group" class="input">
-      <option value="day" <?= ($group ?? 'day') === 'day' ? 'selected' : '' ?>>By day</option>
-      <option value="week" <?= ($group ?? '') === 'week' ? 'selected' : '' ?>>By week</option>
-      <option value="month" <?= ($group ?? '') === 'month' ? 'selected' : '' ?>>By month</option>
-    </select>
-  </label>
-  <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-  <span class="admin-filter-range field-hint"><?= wwm_escape($fromLabel ?? '') ?> — <?= wwm_escape($toLabel ?? '') ?></span>
+<?php
+$dashPeriod = $period ?? '7d';
+$dashGroup = $group ?? 'day';
+$periodOptions = [
+    'yesterday' => 'Вчера',
+    '7d' => '7 days',
+    '30d' => '30 days',
+    '90d' => '90 days',
+    '365d' => '12 months',
+    'all' => 'All time',
+];
+?>
+<form method="get" action="/admin/dashboard" class="admin-dashboard-toolbar admin-card" data-admin-dashboard-filters>
+  <div class="admin-dashboard-toolbar__row">
+    <fieldset class="admin-period-pills">
+      <legend class="admin-dashboard-toolbar__legend">Period</legend>
+      <div class="admin-period-pills__list">
+        <?php foreach ($periodOptions as $value => $label): ?>
+          <label class="admin-period-pill<?= $dashPeriod === $value ? ' is-active' : '' ?>">
+            <input type="radio" name="period" value="<?= wwm_escape($value) ?>"<?= $dashPeriod === $value ? ' checked' : '' ?>>
+            <span><?= wwm_escape($label) ?></span>
+          </label>
+        <?php endforeach; ?>
+      </div>
+    </fieldset>
+    <label class="admin-dashboard-toolbar__group<?= $dashPeriod === 'yesterday' ? ' is-disabled' : '' ?>">
+      <span class="admin-dashboard-toolbar__legend">Chart grouping</span>
+      <select name="group" class="input input--dashboard"<?= $dashPeriod === 'yesterday' ? ' disabled' : '' ?>>
+        <option value="day" <?= $dashGroup === 'day' ? 'selected' : '' ?>>By day</option>
+        <option value="week" <?= $dashGroup === 'week' ? 'selected' : '' ?>>By week</option>
+        <option value="month" <?= $dashGroup === 'month' ? 'selected' : '' ?>>By month</option>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary btn-dashboard-apply">Apply</button>
+  </div>
+  <p class="admin-dashboard-toolbar__range">
+    <span class="admin-dashboard-toolbar__range-label">Range</span>
+    <strong><?= wwm_escape($fromLabel ?? '') ?> — <?= wwm_escape($toLabel ?? '') ?></strong>
+    <span class="field-hint">Europe/Moscow</span>
+  </p>
 </form>
 
 <?php if (!$metrikaConfigured): ?>
@@ -89,7 +108,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
 </div>
 
 <h2 class="admin-section-title">Selected period</h2>
-<p class="field-hint" style="margin:-4px 0 10px">Dates in Europe/Moscow. Purchases = live sales only (webhooks/admin), unique AVO order per day — legacy CSV/AVO import excluded. Demo includes imports.</p>
+<p class="field-hint" style="margin:-4px 0 10px">Purchases = live sales only (webhooks/admin), unique AVO order per day. Demo = new student registrations with demo access (same date as Students list).</p>
 <div class="admin-stats admin-stats--4">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>
@@ -102,7 +121,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
     <span class="admin-stat-note">registrations</span>
   </div>
   <div class="admin-stat-card">
-    <span class="admin-stat-label">Demo grants</span>
+    <span class="admin-stat-label">Demo signups</span>
     <strong class="admin-stat-value"><?= (int)($periodTotals['demo_grants'] ?? 0) ?></strong>
     <span class="admin-stat-note">visit → demo <?= wwm_dash_pct($periodConversions['visit_to_demo_pct'] ?? null) ?></span>
   </div>
@@ -118,7 +137,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
     <h2>Visits, demos &amp; purchases</h2>
     <div class="admin-chart-legend">
       <span class="admin-chart-legend-item"><i class="admin-chart-swatch admin-chart-swatch--visits"></i> Visits</span>
-      <span class="admin-chart-legend-item"><i class="admin-chart-swatch admin-chart-swatch--demo"></i> Demo</span>
+      <span class="admin-chart-legend-item"><i class="admin-chart-swatch admin-chart-swatch--demo"></i> Demo signups</span>
       <span class="admin-chart-legend-item"><i class="admin-chart-swatch admin-chart-swatch--paid"></i> Purchases</span>
     </div>
   </div>
@@ -152,3 +171,11 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
 </div>
 
 <script src="<?= wwm_escape(wwm_asset_url('js/admin-dashboard-chart.js')) ?>" defer></script>
+<script>
+document.querySelectorAll('[data-admin-dashboard-filters]').forEach(function (form) {
+  form.querySelectorAll('.admin-period-pill input').forEach(function (input) {
+    input.addEventListener('change', function () { form.requestSubmit(); });
+  });
+  form.querySelector('select[name="group"]')?.addEventListener('change', function () { form.requestSubmit(); });
+});
+</script>

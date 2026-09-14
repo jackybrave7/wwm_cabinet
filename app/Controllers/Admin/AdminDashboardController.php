@@ -16,7 +16,7 @@ final class AdminDashboardController
         $userId = Session::requireAdminDashboard();
         $user = User::findById(wwm_pdo(), $userId);
 
-        $period = (string)($_GET['period'] ?? '30d');
+        $period = (string)($_GET['period'] ?? '7d');
         $group = (string)($_GET['group'] ?? 'day');
 
         $pdo = wwm_pdo();

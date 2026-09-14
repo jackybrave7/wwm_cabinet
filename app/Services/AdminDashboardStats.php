@@ -10,7 +10,7 @@ use Wwm\Models\User;
 
 final class AdminDashboardStats
 {
-    private const PERIODS = ['7d', '30d', '90d', '365d', 'all'];
+    private const PERIODS = ['yesterday', '7d', '30d', '90d', '365d', 'all'];
     private const GRANULARITIES = ['day', 'week', 'month'];
     private const REPORT_TZ = 'Europe/Moscow';
 
@@ -25,18 +25,24 @@ final class AdminDashboardStats
      */
     public function resolveFilters(string $period, string $group): array
     {
-        $period = in_array($period, self::PERIODS, true) ? $period : '30d';
+        $period = in_array($period, self::PERIODS, true) ? $period : '7d';
         $group = in_array($group, self::GRANULARITIES, true) ? $group : 'day';
 
         $tz = new DateTimeZone(self::REPORT_TZ);
-        $to = new DateTimeImmutable('now', $tz);
-        $from = match ($period) {
-            '7d' => $to->modify('-6 days')->setTime(0, 0, 0),
-            '30d' => $to->modify('-29 days')->setTime(0, 0, 0),
-            '90d' => $to->modify('-89 days')->setTime(0, 0, 0),
-            '365d' => $to->modify('-364 days')->setTime(0, 0, 0),
-            default => $this->earliestActivity($tz),
-        };
+        if ($period === 'yesterday') {
+            $from = (new DateTimeImmutable('yesterday', $tz))->setTime(0, 0, 0);
+            $to = $from->setTime(23, 59, 59);
+            $group = 'day';
+        } else {
+            $to = new DateTimeImmutable('now', $tz);
+            $from = match ($period) {
+                '7d' => $to->modify('-6 days')->setTime(0, 0, 0),
+                '30d' => $to->modify('-29 days')->setTime(0, 0, 0),
+                '90d' => $to->modify('-89 days')->setTime(0, 0, 0),
+                '365d' => $to->modify('-364 days')->setTime(0, 0, 0),
+                default => $this->earliestActivity($tz),
+            };
+        }
 
         if ($period === 'all' && $group === 'day') {
             $group = 'month';
@@ -205,11 +211,20 @@ final class AdminDashboardStats
             return (int)$stmt->fetchColumn();
         }
 
+        return $this->countDemoSignups($from, $to);
+    }
+
+    private function countDemoSignups(DateTimeImmutable $from, DateTimeImmutable $to): int
+    {
+        $registeredAt = User::sqlRegisteredAtExpression();
         $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM access
-             WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
+            'SELECT COUNT(DISTINCT u.id) FROM users u
+             INNER JOIN access a ON a.user_id = u.id AND a.access_type = \'demo\''
+            . $this->demoCabinetSourceSql('a') . '
+             WHERE u.is_admin = 0
+               AND (' . $registeredAt . ') >= ? AND (' . $registeredAt . ') <= ?'
         );
-        $stmt->execute([$type, $from->format('c'), $to->format('c')]);
+        $stmt->execute([$from->format('c'), $to->format('c')]);
 
         return (int)$stmt->fetchColumn();
     }
@@ -219,6 +234,10 @@ final class AdminDashboardStats
      */
     private function grantBuckets(string $type, DateTimeImmutable $from, DateTimeImmutable $to, string $group): array
     {
+        if ($type === 'demo') {
+            return $this->demoSignupBuckets($from, $to, $group);
+        }
+
         $eventAt = $this->accessEventAtSql($type);
         $bucketAt = $this->accessEventAtInReportTz($type);
         $expr = match ($group) {
@@ -240,6 +259,38 @@ final class AdminDashboardStats
              GROUP BY bucket'
         );
         $stmt->execute([$type, $from->format('c'), $to->format('c')]);
+
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $map[(string)$row['bucket']] = (int)$row['cnt'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function demoSignupBuckets(DateTimeImmutable $from, DateTimeImmutable $to, string $group): array
+    {
+        $registeredAt = User::sqlRegisteredAtExpression();
+        $bucketAt = 'datetime(' . $registeredAt . ", '+3 hours')";
+        $expr = match ($group) {
+            'week' => "strftime('%Y-%W', " . $bucketAt . ')',
+            'month' => "strftime('%Y-%m', " . $bucketAt . ')',
+            default => "strftime('%Y-%m-%d', " . $bucketAt . ')',
+        };
+
+        $stmt = $this->pdo->prepare(
+            'SELECT ' . $expr . ' AS bucket, COUNT(DISTINCT u.id) AS cnt
+             FROM users u
+             INNER JOIN access a ON a.user_id = u.id AND a.access_type = \'demo\''
+            . $this->demoCabinetSourceSql('a') . '
+             WHERE u.is_admin = 0
+               AND (' . $registeredAt . ') >= ? AND (' . $registeredAt . ') <= ?
+             GROUP BY bucket'
+        );
+        $stmt->execute([$from->format('c'), $to->format('c')]);
 
         $map = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
@@ -338,6 +389,13 @@ final class AdminDashboardStats
     /** Live cabinet / webhook sales only — exclude legacy bulk import rows. */
     private function paidCabinetSourceSql(): string
     {
-        return " AND COALESCE(source, '') NOT IN ('avo-import', 'csv-import')";
+        return $this->demoCabinetSourceSql();
+    }
+
+    private function demoCabinetSourceSql(string $alias = ''): string
+    {
+        $col = $alias !== '' ? $alias . '.source' : 'source';
+
+        return " AND COALESCE({$col}, '') NOT IN ('avo-import', 'csv-import')";
     }
 }

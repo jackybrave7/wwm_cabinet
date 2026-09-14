@@ -30,7 +30,7 @@
     tip.innerHTML =
       '<strong class="admin-chart-tooltip-title"></strong>' +
       '<div class="admin-chart-tooltip-row admin-chart-tooltip-row--visits"><span>Visits</span><span></span></div>' +
-      '<div class="admin-chart-tooltip-row admin-chart-tooltip-row--demo"><span>Demo</span><span></span></div>' +
+      '<div class="admin-chart-tooltip-row admin-chart-tooltip-row--demo"><span>Demo signups</span><span></span></div>' +
       '<div class="admin-chart-tooltip-row admin-chart-tooltip-row--paid"><span>Purchases</span><span></span></div>';
 
     tip.querySelector('.admin-chart-tooltip-title').textContent = label;
