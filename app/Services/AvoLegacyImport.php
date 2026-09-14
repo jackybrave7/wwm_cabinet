@@ -161,6 +161,7 @@ final class AvoLegacyImport
                 $accountId = AvoAccountRow::accountId($row);
                 $stats['orders_in_window']++;
                 $isPaid = AvoAccountRow::isPaid($row);
+                $timeline = AvoAccountRow::accessTimelineIso($row, $isPaid);
                 $name = AvoContactName::resolveFromPayload($row);
                 $contactId = AvoAccountRow::contactId($row);
                 // UTM only from the order row — no extra AVO API (avoids 404 noise and slow import).
@@ -198,31 +199,26 @@ final class AvoLegacyImport
                     }
                     $type = $isPaid ? 'paid' : 'demo';
                     $existing = $byEmail[$email]['courses'][$slug] ?? null;
+                    $grantMeta = [
+                        'type' => $type,
+                        'account_id' => $accountId,
+                        'order_ts' => $orderTs,
+                        'ordered_at' => $timeline['ordered'],
+                        'paid_at' => $timeline['paid'],
+                    ];
                     if ($existing === null) {
-                        $byEmail[$email]['courses'][$slug] = [
-                            'type' => $type,
-                            'account_id' => $accountId,
-                            'order_ts' => $orderTs,
-                        ];
+                        $byEmail[$email]['courses'][$slug] = $grantMeta;
                         continue;
                     }
                     if ($existing['type'] === 'paid') {
                         continue;
                     }
                     if ($type === 'paid') {
-                        $byEmail[$email]['courses'][$slug] = [
-                            'type' => 'paid',
-                            'account_id' => $accountId,
-                            'order_ts' => $orderTs,
-                        ];
+                        $byEmail[$email]['courses'][$slug] = $grantMeta;
                         continue;
                     }
                     if ($orderTs >= (int)$existing['order_ts']) {
-                        $byEmail[$email]['courses'][$slug] = [
-                            'type' => 'demo',
-                            'account_id' => $accountId,
-                            'order_ts' => $orderTs,
-                        ];
+                        $byEmail[$email]['courses'][$slug] = $grantMeta;
                     }
                 }
                 if ($byEmail[$email]['courses'] === []) {
@@ -315,7 +311,12 @@ final class AvoLegacyImport
                         $stats['access_unchanged']++;
                         continue;
                     }
-                    $orderIso = (int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null;
+                    $orderedAt = isset($grant['ordered_at']) && is_string($grant['ordered_at']) && $grant['ordered_at'] !== ''
+                        ? $grant['ordered_at']
+                        : ((int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null);
+                    $paidAt = isset($grant['paid_at']) && is_string($grant['paid_at']) && $grant['paid_at'] !== ''
+                        ? $grant['paid_at']
+                        : $orderedAt;
                     Access::grant(
                         $pdo,
                         $userId,
@@ -324,8 +325,8 @@ final class AvoLegacyImport
                         null,
                         self::SOURCE,
                         $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
-                        $orderIso,
-                        $orderIso
+                        $orderedAt,
+                        $paidAt
                     );
                     $stats['paid_grants']++;
                     continue;
@@ -348,7 +349,9 @@ final class AvoLegacyImport
                     continue;
                 }
 
-                $orderIso = (int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null;
+                $orderedAt = isset($grant['ordered_at']) && is_string($grant['ordered_at']) && $grant['ordered_at'] !== ''
+                    ? $grant['ordered_at']
+                    : ((int)$grant['order_ts'] > 0 ? gmdate('c', (int)$grant['order_ts']) : null);
                 Access::grant(
                     $pdo,
                     $userId,
@@ -357,7 +360,7 @@ final class AvoLegacyImport
                     $expiresAt,
                     self::SOURCE,
                     $grant['account_id'] > 0 ? (string)$grant['account_id'] : null,
-                    $orderIso,
+                    $orderedAt,
                     null
                 );
                 $stats['demo_grants']++;

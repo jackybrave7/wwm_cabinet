@@ -89,7 +89,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
 </div>
 
 <h2 class="admin-section-title">Selected period</h2>
-<p class="field-hint" style="margin:-4px 0 10px">Demo and purchases use AVO order dates when imported; new students use AVO registration date when set.</p>
+<p class="field-hint" style="margin:-4px 0 10px">Dates in Europe/Moscow. Purchases = unique AVO orders (one payment with several courses counts once). Demo uses AVO order date when imported.</p>
 <div class="admin-stats admin-stats--4">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>

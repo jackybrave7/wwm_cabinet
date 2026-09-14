@@ -12,6 +12,7 @@ final class AdminDashboardStats
 {
     private const PERIODS = ['7d', '30d', '90d', '365d', 'all'];
     private const GRANULARITIES = ['day', 'week', 'month'];
+    private const REPORT_TZ = 'Europe/Moscow';
 
     public function __construct(
         private PDO $pdo,
@@ -27,7 +28,7 @@ final class AdminDashboardStats
         $period = in_array($period, self::PERIODS, true) ? $period : '30d';
         $group = in_array($group, self::GRANULARITIES, true) ? $group : 'day';
 
-        $tz = new DateTimeZone('UTC');
+        $tz = new DateTimeZone(self::REPORT_TZ);
         $to = new DateTimeImmutable('now', $tz);
         $from = match ($period) {
             '7d' => $to->modify('-6 days')->setTime(0, 0, 0),
@@ -192,6 +193,17 @@ final class AdminDashboardStats
     private function countGrants(string $type, DateTimeImmutable $from, DateTimeImmutable $to): int
     {
         $eventAt = $this->accessEventAtSql($type);
+        if ($type === 'paid') {
+            $dedup = $this->purchaseDedupKeySql();
+            $stmt = $this->pdo->prepare(
+                'SELECT COUNT(DISTINCT ' . $dedup . ') FROM access
+                 WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
+            );
+            $stmt->execute([$type, $from->format('c'), $to->format('c')]);
+
+            return (int)$stmt->fetchColumn();
+        }
+
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(*) FROM access
              WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
@@ -207,14 +219,19 @@ final class AdminDashboardStats
     private function grantBuckets(string $type, DateTimeImmutable $from, DateTimeImmutable $to, string $group): array
     {
         $eventAt = $this->accessEventAtSql($type);
+        $bucketAt = $this->accessEventAtInReportTz($type);
         $expr = match ($group) {
-            'week' => "strftime('%Y-%W', " . $eventAt . ')',
-            'month' => "strftime('%Y-%m', " . $eventAt . ')',
-            default => "strftime('%Y-%m-%d', " . $eventAt . ')',
+            'week' => "strftime('%Y-%W', " . $bucketAt . ')',
+            'month' => "strftime('%Y-%m', " . $bucketAt . ')',
+            default => "strftime('%Y-%m-%d', " . $bucketAt . ')',
         };
 
+        $countExpr = $type === 'paid'
+            ? 'COUNT(DISTINCT ' . $this->purchaseDedupKeySql() . ')'
+            : 'COUNT(*)';
+
         $stmt = $this->pdo->prepare(
-            'SELECT ' . $expr . ' AS bucket, COUNT(*) AS cnt
+            'SELECT ' . $expr . ' AS bucket, ' . $countExpr . ' AS cnt
              FROM access
              WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?
              GROUP BY bucket'
@@ -251,6 +268,8 @@ final class AdminDashboardStats
 
     private function bucketKey(DateTimeImmutable $dt, string $group): string
     {
+        $dt = $dt->setTimezone(new DateTimeZone(self::REPORT_TZ));
+
         return match ($group) {
             'week' => $dt->format('Y-W'),
             'month' => $dt->format('Y-m'),
@@ -260,6 +279,8 @@ final class AdminDashboardStats
 
     private function bucketLabel(DateTimeImmutable $dt, string $group): string
     {
+        $dt = $dt->setTimezone(new DateTimeZone(self::REPORT_TZ));
+
         return match ($group) {
             'week' => 'W' . $dt->format('W'),
             'month' => $dt->format('M Y'),
@@ -291,6 +312,23 @@ final class AdminDashboardStats
         return "CASE access_type
             WHEN 'paid' THEN COALESCE(NULLIF(avo_paid_at, ''), NULLIF(avo_ordered_at, ''), granted_at)
             ELSE COALESCE(NULLIF(avo_ordered_at, ''), granted_at)
+        END";
+    }
+
+    private function accessEventAtInReportTz(?string $accessType = null): string
+    {
+        return "datetime(" . $this->accessEventAtSql($accessType) . ", '+3 hours')";
+    }
+
+    /**
+     * One AVO order (source_ref) with several courses must count as one purchase.
+     */
+    private function purchaseDedupKeySql(): string
+    {
+        return "CASE
+            WHEN source_ref IS NOT NULL AND TRIM(source_ref) != '' AND TRIM(source_ref) != 'manual'
+                THEN 'order:' || TRIM(source_ref)
+            ELSE 'grant:' || user_id || ':' || course_slug
         END";
     }
 }
