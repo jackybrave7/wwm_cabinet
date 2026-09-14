@@ -9,6 +9,8 @@ final class SiteSettings
 {
     public const KEY_ANALYTICS_HEAD = 'analytics_head';
     public const KEY_ANALYTICS_BODY = 'analytics_body';
+    public const KEY_METRIKA_COUNTER_ID = 'metrika_counter_id';
+    public const KEY_METRIKA_OAUTH_TOKEN = 'metrika_oauth_token';
 
     /** @var array<string, string>|null */
     private static ?array $cache = null;

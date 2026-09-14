@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm;
 
 use Wwm\Controllers\AccountController;
+use Wwm\Controllers\Admin\AdminDashboardController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminBroadcastController;
@@ -122,6 +123,10 @@ final class Router
             $userId = Session::requireAdmin();
             $user = User::findById(wwm_pdo(), $userId);
             wwm_redirect(AdminAccess::defaultAdminPath(is_array($user) ? $user : []));
+        }
+        if ($method === 'GET' && $path === '/admin/dashboard') {
+            (new AdminDashboardController())->index();
+            return;
         }
         if ($method === 'GET' && $path === '/admin/courses') {
             (new AdminCourseController())->index();

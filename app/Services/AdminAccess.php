@@ -87,6 +87,9 @@ final class AdminAccess
 
     public static function defaultAdminPath(array $user, ?array $config = null): string
     {
+        if (self::hasAdminPanelAccess($user, $config)) {
+            return '/admin/dashboard';
+        }
         if (self::canManageCourses($user, $config)) {
             return '/admin/courses';
         }

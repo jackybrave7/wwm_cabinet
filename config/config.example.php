@@ -81,6 +81,12 @@ return [
         'smtp_pass' => '',
     ],
 
+    // Yandex Metrika Reporting API (admin Dashboard). Can also be set in Admin → Analytics.
+    'metrika' => [
+        'counter_id' => 0,
+        'oauth_token' => '',
+    ],
+
     'log_enabled' => true,
     'log_file' => dirname(__DIR__) . '/data/cabinet.log',
 ];

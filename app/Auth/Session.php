@@ -100,6 +100,28 @@ final class Session
         );
     }
 
+    public static function requireAdminDashboard(): int
+    {
+        $userId = self::requireLogin();
+        $user = \Wwm\Models\User::findById(wwm_pdo(), $userId);
+        if ($user === null || !\Wwm\Services\AdminAccess::hasAdminPanelAccess($user)) {
+            http_response_code(403);
+            wwm_render('error', [
+                'pageTitle' => 'Forbidden',
+                'user' => $user,
+                'code' => 403,
+                'message' => 'Administrator access required.',
+            ]);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+
+        return $userId;
+    }
+
     /**
      * @param callable(array<string, mixed>): bool $check
      */

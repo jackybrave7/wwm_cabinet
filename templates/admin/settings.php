@@ -35,6 +35,24 @@
       <textarea name="analytics_body" rows="8" class="input" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:13px"><?= wwm_escape((string)($analytics_body ?? '')) ?></textarea>
     </label>
 
+    <h2 style="margin-top:28px">Yandex Metrika API (Dashboard)</h2>
+    <p class="field-hint" style="margin-bottom:12px">
+      OAuth token with read access to statistics (Management API). Counter ID is optional if it is already in the Metrika snippet above.
+      Used only on the server for admin Dashboard traffic and conversion rates.
+    </p>
+    <div class="field-row">
+      <label class="field">
+        <span>Counter ID (optional)</span>
+        <input type="text" name="metrika_counter_id" class="input" inputmode="numeric" autocomplete="off"
+               value="<?= wwm_escape((string)($metrika_counter_id ?? '')) ?>" placeholder="Auto from ym(…) snippet">
+      </label>
+      <label class="field">
+        <span>OAuth token</span>
+        <input type="password" name="metrika_oauth_token" class="input" autocomplete="new-password"
+               value="<?= wwm_escape((string)($metrika_oauth_token ?? '')) ?>" placeholder="y0_…">
+      </label>
+    </div>
+
     <div class="top-actions" style="margin-top:20px">
       <button type="submit" class="btn btn-primary">Save</button>
     </div>

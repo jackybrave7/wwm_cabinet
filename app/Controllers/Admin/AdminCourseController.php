@@ -39,8 +39,6 @@ final class AdminCourseController
             'user' => $user,
             'adminNav' => 'courses',
             'rows' => $rows,
-            'totalPaid' => $stats->totalPaidStudents(),
-            'totalDemo' => $stats->totalDemoActive(),
         ]);
     }
 

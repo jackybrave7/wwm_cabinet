@@ -9,6 +9,7 @@ if (!is_array($navUser)) {
     $navId = Session::userId();
     $navUser = $navId !== null ? User::findById(wwm_pdo(), $navId) : null;
 }
+$canDashboard = is_array($navUser) && AdminAccess::hasAdminPanelAccess($navUser);
 $canCourses = is_array($navUser) && AdminAccess::canManageCourses($navUser);
 $canStudents = is_array($navUser) && AdminAccess::canManageStudents($navUser);
 $canEmails = is_array($navUser) && AdminAccess::canManageEmails($navUser);
@@ -27,6 +28,9 @@ $canAdmins = is_array($navUser) && AdminAccess::canManageAdmins($navUser);
         </label>
       </div>
       <nav class="admin-nav" aria-label="Admin">
+        <?php if ($canDashboard): ?>
+          <a href="/admin/dashboard" class="<?= ($adminNav ?? '') === 'dashboard' ? 'is-active' : '' ?>">Dashboard</a>
+        <?php endif; ?>
         <?php if ($canCourses): ?>
           <a href="/admin/courses" class="<?= ($adminNav ?? '') === 'courses' ? 'is-active' : '' ?>">Courses</a>
         <?php endif; ?>

@@ -21,6 +21,8 @@ final class AdminSettingsController
             'user' => $user,
             'analytics_head' => SiteSettings::analyticsHead($pdo),
             'analytics_body' => SiteSettings::analyticsBody($pdo),
+            'metrika_counter_id' => SiteSettings::get($pdo, SiteSettings::KEY_METRIKA_COUNTER_ID),
+            'metrika_oauth_token' => SiteSettings::get($pdo, SiteSettings::KEY_METRIKA_OAUTH_TOKEN),
             'message' => match ($_GET['saved'] ?? '') {
                 '1' => 'Analytics codes saved.',
                 default => null,
@@ -43,6 +45,8 @@ final class AdminSettingsController
         $pdo = wwm_pdo();
         SiteSettings::set($pdo, SiteSettings::KEY_ANALYTICS_HEAD, trim((string)($_POST['analytics_head'] ?? '')));
         SiteSettings::set($pdo, SiteSettings::KEY_ANALYTICS_BODY, trim((string)($_POST['analytics_body'] ?? '')));
+        SiteSettings::set($pdo, SiteSettings::KEY_METRIKA_COUNTER_ID, trim((string)($_POST['metrika_counter_id'] ?? '')));
+        SiteSettings::set($pdo, SiteSettings::KEY_METRIKA_OAUTH_TOKEN, trim((string)($_POST['metrika_oauth_token'] ?? '')));
 
         wwm_redirect('/admin/settings?saved=1');
     }

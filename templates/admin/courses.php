@@ -6,24 +6,6 @@
   <a href="/admin/courses/new" class="btn btn-primary">+ Add course</a>
 </div>
 
-<div class="admin-stats">
-  <div class="admin-stat-card">
-    <span class="admin-stat-label">Full access total</span>
-    <strong class="admin-stat-value"><?= (int)$totalPaid ?></strong>
-    <span class="admin-stat-note">paid enrollments</span>
-  </div>
-  <div class="admin-stat-card">
-    <span class="admin-stat-label">Demo active</span>
-    <strong class="admin-stat-value"><?= (int)$totalDemo ?></strong>
-    <span class="admin-stat-note">time-limited access</span>
-  </div>
-  <div class="admin-stat-card">
-    <span class="admin-stat-label">Courses</span>
-    <strong class="admin-stat-value"><?= count($rows) ?></strong>
-    <span class="admin-stat-note">in catalog</span>
-  </div>
-</div>
-
 <div class="admin-card">
   <table class="admin-table">
     <thead>

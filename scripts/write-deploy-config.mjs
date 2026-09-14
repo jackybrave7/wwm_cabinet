@@ -128,6 +128,11 @@ return [
 
     'admin_emails' => ${phpAdminEmails(env('WWM_ADMIN_EMAILS', 'eaalferov@yandex.ru'))},
 
+    'metrika' => [
+        'counter_id' => ${Number(env('WWM_METRIKA_COUNTER_ID', '0')) || 0},
+        'oauth_token' => ${phpString(env('WWM_METRIKA_OAUTH_TOKEN'))},
+    ],
+
     'log_enabled' => true,
     'log_file' => dirname(__DIR__) . '/data/cabinet.log',
 ];
