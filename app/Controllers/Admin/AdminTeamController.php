@@ -205,7 +205,7 @@ final class AdminTeamController
     }
 
     /**
-     * @return array{super: bool, students: bool, courses: bool}
+     * @return array{super: bool, students: bool, courses: bool, broadcasts: bool}
      */
     private function permissionsFromPost(): array
     {
@@ -214,6 +214,7 @@ final class AdminTeamController
             'super' => $super,
             'students' => $super || !empty($_POST['perm_students']),
             'courses' => $super || !empty($_POST['perm_courses']),
+            'broadcasts' => $super || !empty($_POST['perm_broadcasts']),
         ];
     }
 

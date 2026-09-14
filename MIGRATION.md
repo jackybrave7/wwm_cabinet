@@ -82,9 +82,9 @@ git push -u origin master
 | `WWM_SMTP_USER` | (фаза 2) SMTP для сброса пароля |
 | `WWM_SMTP_PASS` | (фаза 2) |
 | `WWM_SMTP_HOST` | (фаза 2) |
-| `WWM_WEBHOOK_PAYMENT_TOKEN` | (фаза 2) оплата |
+| `WWM_WEBHOOK_PAYMENT_TOKEN` | Секрет для `/api/payment` (письмо robot@ для EN/DE курсов) |
 | `WWM_WEBHOOK_DEMO_TOKEN` | Секрет для AVO → `/api/demo` (тот же `token` в URL воронки) |
-| `WWM_WEBHOOKS_ENABLED` | `true` — включить `/api/demo` |
+| `WWM_WEBHOOKS_ENABLED` | `true` — включить `/api/demo` и `/api/payment` |
 
 Деплой **не включать** до настройки DNS и первого ручного `migrate.php` на сервере.
 
@@ -136,19 +136,25 @@ Cache для `/assets/*`.
   ```
   https://my.worldwatercolormasters.art/api/demo?email={email}&name={name}&course=elke-en&token=WWM_WEBHOOK_DEMO_TOKEN
   ```
-- Secrets: `WWM_WEBHOOKS_ENABLED=true`, `WWM_WEBHOOK_DEMO_TOKEN`
+- **Оплата (EN/DE):** вебхук на товаре AVO (вкладка «Дополнительно»), не автоворонка:
+  ```
+  https://my.worldwatercolormasters.art/api/payment?token=WWM_WEBHOOK_PAYMENT_TOKEN
+  ```
+  Товары: 188 (elke-en), 191 (elke-de), 193 (alvaro), 199 (la-fe), 201 (angus), 321 (votsmush), 329 (nono). Отключить дублирующее письмо «после оплаты» в AVO, если кабинет шлёт `paid_email`.
+  Альтернатива: вызов `avo-payment-cabinet.php` из `tilda-avo-webhook.php` на bl-school.
+- Secrets: `WWM_WEBHOOKS_ENABLED=true`, `WWM_WEBHOOK_DEMO_TOKEN`, `WWM_WEBHOOK_PAYMENT_TOKEN`
 
 ## Курсы (slug → AVO id_goods)
 
-| Slug | id_goods | Статус в MVP |
-|------|----------|--------------|
-| `alvaro` | 193 | JSON-заглушка (3 урока) |
-| `angus` | 201 | фаза 6 |
-| `la-fe` | 199 | фаза 6 |
-| `votsmush` | 321 | фаза 6 |
-| `nono` | 329 | фаза 6 |
-| `elke-en` | 188 | фаза 6 |
-| `elke-de` | 191 | фаза 6 |
+| Slug | id_goods | Статус |
+|------|----------|--------|
+| `alvaro` | 193 | JSON есть, видео частично-заглушки |
+| `angus` | 201 | оболочка + AVO payment webhook |
+| `la-fe` | 199 | оболочка + AVO payment webhook |
+| `votsmush` | 321 | оболочка + AVO payment webhook |
+| `nono` | 329 | оболочка + AVO payment webhook |
+| `elke-en` | 188 | контент + AVO payment/demo |
+| `elke-de` | 191 | контент + AVO payment/demo |
 
 ## Локальная разработка (Windows)
 

@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 18;
+    public const SCHEMA_VERSION = 19;
 
     public static function connect(string $path): PDO
     {
@@ -118,6 +118,57 @@ SQL);
             'UPDATE users SET registration_source = \'avo-import\' WHERE registration_source = \'\''
             . ' AND id IN (SELECT DISTINCT user_id FROM access WHERE source = \'avo-import\')'
         );
+
+        self::ensureColumn($pdo, 'users', 'admin_broadcasts', 'INTEGER NOT NULL DEFAULT 0');
+        $pdo->exec('UPDATE users SET admin_broadcasts = 1 WHERE admin_super = 1');
+
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS email_suppressions (
+  email TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  source TEXT NOT NULL DEFAULT 'unsubscribe',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_suppressions_user ON email_suppressions(user_id);
+
+CREATE TABLE IF NOT EXISTS email_broadcasts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL DEFAULT '',
+  subject TEXT NOT NULL,
+  body_text TEXT NOT NULL,
+  body_html TEXT NOT NULL DEFAULT '',
+  audience TEXT NOT NULL DEFAULT 'all_students',
+  status TEXT NOT NULL CHECK (status IN ('draft', 'scheduled', 'sending', 'sent', 'cancelled')),
+  scheduled_at TEXT,
+  started_at TEXT,
+  completed_at TEXT,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  recipients_total INTEGER NOT NULL DEFAULT 0,
+  sent_count INTEGER NOT NULL DEFAULT 0,
+  failed_count INTEGER NOT NULL DEFAULT 0,
+  skipped_unsub_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_broadcasts_status ON email_broadcasts(status);
+CREATE INDEX IF NOT EXISTS idx_email_broadcasts_scheduled ON email_broadcasts(scheduled_at);
+
+CREATE TABLE IF NOT EXISTS broadcast_recipients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  broadcast_id INTEGER NOT NULL REFERENCES email_broadcasts(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL COLLATE NOCASE,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'sent', 'failed', 'skipped')),
+  error_message TEXT,
+  sent_at TEXT,
+  UNIQUE(broadcast_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_broadcast ON broadcast_recipients(broadcast_id);
+CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_pending ON broadcast_recipients(broadcast_id, status);
+SQL);
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS lesson_opens (

@@ -5,7 +5,7 @@ use Wwm\Services\AdminAccess;
   <div>
     <p class="badge badge-admin">Super admin</p>
     <h1 class="page-title page-title-sm">Administrators</h1>
-    <p class="field-hint">Delegate access: students, courses, or full super admin.</p>
+    <p class="field-hint">Delegate access: students, courses, broadcasts, or full super admin.</p>
   </div>
   <a href="/admin/admins/new" class="btn btn-primary btn-sm">Add administrator</a>
 </div>

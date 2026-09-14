@@ -288,23 +288,25 @@ final class User
     }
 
     /**
-     * @param array{super?: bool, students?: bool, courses?: bool} $permissions
+     * @param array{super?: bool, students?: bool, courses?: bool, broadcasts?: bool} $permissions
      */
     public static function setAdminPermissions(PDO $pdo, int $userId, array $permissions): void
     {
         $super = !empty($permissions['super']);
         $students = $super || !empty($permissions['students']);
         $courses = $super || !empty($permissions['courses']);
-        $isAdmin = $super || $students || $courses;
+        $broadcasts = $super || !empty($permissions['broadcasts']);
+        $isAdmin = $super || $students || $courses || $broadcasts;
 
         $stmt = $pdo->prepare(
-            'UPDATE users SET is_admin = ?, admin_super = ?, admin_students = ?, admin_courses = ? WHERE id = ?'
+            'UPDATE users SET is_admin = ?, admin_super = ?, admin_students = ?, admin_courses = ?, admin_broadcasts = ? WHERE id = ?'
         );
         $stmt->execute([
             $isAdmin ? 1 : 0,
             $super ? 1 : 0,
             $students ? 1 : 0,
             $courses ? 1 : 0,
+            $broadcasts ? 1 : 0,
             $userId,
         ]);
     }
@@ -312,7 +314,7 @@ final class User
     public static function revokeAdmin(PDO $pdo, int $userId): void
     {
         $stmt = $pdo->prepare(
-            'UPDATE users SET is_admin = 0, admin_super = 0, admin_students = 0, admin_courses = 0 WHERE id = ?'
+            'UPDATE users SET is_admin = 0, admin_super = 0, admin_students = 0, admin_courses = 0, admin_broadcasts = 0 WHERE id = ?'
         );
         $stmt->execute([$userId]);
     }

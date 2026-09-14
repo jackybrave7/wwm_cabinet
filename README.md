@@ -188,6 +188,7 @@ curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&n
 | `data/courses/*.json` | Контент курсов |
 | `prototype/` | HTML-макеты студента и админки |
 | `scripts/migrate.php` | Схема БД |
+| `scripts/run-broadcasts.php` | Cron: запланированные рассылки и догон очереди `sending` (рекомендуется каждые 5–10 мин) |
 | `scripts/import-students-from-avo.php` | Разовый импорт студентов и доступов из AVO API (`--dry-run` / `--apply`) |
 | `scripts/import-students-from-csv.php` | Импорт из CSV bl-school (строки счетов с колонкой «Товар») — предпочтительно для legacy |
 | `app/Services/DemoAccess.php` | Выдача demo-доступа (user + access) |
@@ -217,6 +218,7 @@ curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&n
 | `/admin/courses/{slug}/lessons/{num}` | Редактор урока (видео, материалы) |
 | `/admin/students` | Ученики и прогресс |
 | `/admin/students/{id}` | Профиль ученика |
+| `/admin/broadcasts` | Маркетинговые рассылки (plain + HTML, отложенные отправки) |
 
 Контент курсов хранится в `data/courses/*.json`. Прогресс уроков пишется в таблицу `lesson_opens` при просмотре урока.
 

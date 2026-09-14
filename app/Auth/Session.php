@@ -92,6 +92,14 @@ final class Session
         );
     }
 
+    public static function requireAdminBroadcasts(): int
+    {
+        return self::requireAdminCapability(
+            static fn (array $user): bool => \Wwm\Services\AdminAccess::canManageBroadcasts($user),
+            'You do not have permission to manage email broadcasts.'
+        );
+    }
+
     /**
      * @param callable(array<string, mixed>): bool $check
      */

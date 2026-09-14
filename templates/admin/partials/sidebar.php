@@ -12,6 +12,7 @@ if (!is_array($navUser)) {
 $canCourses = is_array($navUser) && AdminAccess::canManageCourses($navUser);
 $canStudents = is_array($navUser) && AdminAccess::canManageStudents($navUser);
 $canEmails = is_array($navUser) && AdminAccess::canManageEmails($navUser);
+$canBroadcasts = is_array($navUser) && AdminAccess::canManageBroadcasts($navUser);
 $canSettings = is_array($navUser) && AdminAccess::canManageSettings($navUser);
 $canAdmins = is_array($navUser) && AdminAccess::canManageAdmins($navUser);
 ?>
@@ -37,6 +38,9 @@ $canAdmins = is_array($navUser) && AdminAccess::canManageAdmins($navUser);
         <?php endif; ?>
         <?php if ($canEmails): ?>
           <a href="/admin/emails" class="<?= ($adminNav ?? '') === 'emails' ? 'is-active' : '' ?>">Emails</a>
+        <?php endif; ?>
+        <?php if ($canBroadcasts): ?>
+          <a href="/admin/broadcasts" class="<?= ($adminNav ?? '') === 'broadcasts' ? 'is-active' : '' ?>">Broadcasts</a>
         <?php endif; ?>
         <?php if ($canSettings): ?>
           <a href="/admin/settings" class="<?= ($adminNav ?? '') === 'settings' ? 'is-active' : '' ?>">Analytics</a>

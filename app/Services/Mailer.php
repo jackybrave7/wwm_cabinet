@@ -12,7 +12,10 @@ final class Mailer
         return self::$lastError;
     }
 
-    public static function send(string $to, string $subject, string $body, ?string $htmlBody = null): bool
+    /**
+     * @param list<string> $extraHeaders
+     */
+    public static function send(string $to, string $subject, string $body, ?string $htmlBody = null, array $extraHeaders = []): bool
     {
         self::$lastError = null;
         $cfg = wwm_config()['mail'] ?? [];
@@ -29,7 +32,7 @@ final class Mailer
         $smtpHost = trim((string)($cfg['smtp_host'] ?? ''));
         if ($smtpHost !== '') {
             $client = new SmtpClient();
-            $ok = $client->send($cfg, $to, $subject, $body, $htmlBody);
+            $ok = $client->send($cfg, $to, $subject, $body, $htmlBody, $extraHeaders);
             if (!$ok) {
                 self::$lastError = $client->lastError() ?? 'SMTP send failed';
                 wwm_log('mail send failed via SMTP to ' . $to . ' — ' . $subject . ' | ' . self::$lastError);
@@ -43,6 +46,12 @@ final class Mailer
             'MIME-Version: 1.0',
             'From: ' . $fromName . ' <' . $from . '>',
         ];
+        foreach ($extraHeaders as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $headers[] = $line;
+            }
+        }
         if ($htmlBody !== null && $htmlBody !== '') {
             $boundary = 'wwm_' . bin2hex(random_bytes(8));
             $headers[] = 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';

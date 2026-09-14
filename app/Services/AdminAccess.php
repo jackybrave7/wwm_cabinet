@@ -56,6 +56,15 @@ final class AdminAccess
         return self::isSuperAdmin($user, $config);
     }
 
+    public static function canManageBroadcasts(array $user, ?array $config = null): bool
+    {
+        if (self::isSuperAdmin($user, $config)) {
+            return true;
+        }
+
+        return !empty($user['admin_broadcasts']);
+    }
+
     public static function canManageSettings(array $user, ?array $config = null): bool
     {
         return self::isSuperAdmin($user, $config);
@@ -72,7 +81,8 @@ final class AdminAccess
 
         return !empty($user['admin_super'])
             || !empty($user['admin_students'])
-            || !empty($user['admin_courses']);
+            || !empty($user['admin_courses'])
+            || !empty($user['admin_broadcasts']);
     }
 
     public static function defaultAdminPath(array $user, ?array $config = null): string
@@ -82,6 +92,9 @@ final class AdminAccess
         }
         if (self::canManageStudents($user, $config)) {
             return '/admin/students';
+        }
+        if (self::canManageBroadcasts($user, $config)) {
+            return '/admin/broadcasts';
         }
         if (self::canManageAdmins($user, $config)) {
             return '/admin/admins';
@@ -108,6 +121,9 @@ final class AdminAccess
         }
         if (!empty($user['admin_courses'])) {
             $labels[] = 'Courses';
+        }
+        if (!empty($user['admin_broadcasts'])) {
+            $labels[] = 'Broadcasts';
         }
 
         if ($labels === [] && !empty($user['is_admin'])) {

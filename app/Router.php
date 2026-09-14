@@ -6,7 +6,9 @@ namespace Wwm;
 use Wwm\Controllers\AccountController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
+use Wwm\Controllers\Admin\AdminBroadcastController;
 use Wwm\Controllers\Admin\AdminMailController;
+use Wwm\Controllers\BroadcastUnsubscribeController;
 use Wwm\Controllers\Admin\AdminSettingsController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Admin\AdminTeamController;
@@ -265,6 +267,52 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/reset$#', $path, $m)) {
             (new AdminMailController())->reset($m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/admin/broadcasts') {
+            (new AdminBroadcastController())->index();
+            return;
+        }
+        if ($method === 'GET' && $path === '/admin/broadcasts/new') {
+            (new AdminBroadcastController())->createForm();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/broadcasts') {
+            (new AdminBroadcastController())->store();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/broadcasts/(\d+)$#', $path, $m)) {
+            (new AdminBroadcastController())->show((int)$m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/broadcasts/(\d+)/edit$#', $path, $m)) {
+            (new AdminBroadcastController())->edit((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)$#', $path, $m)) {
+            (new AdminBroadcastController())->update((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)/send$#', $path, $m)) {
+            (new AdminBroadcastController())->send((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)/cancel$#', $path, $m)) {
+            (new AdminBroadcastController())->cancel((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)/test$#', $path, $m)) {
+            (new AdminBroadcastController())->testSend((int)$m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/email/unsubscribe') {
+            (new BroadcastUnsubscribeController())->show();
+            return;
+        }
+        if ($method === 'POST' && $path === '/email/unsubscribe') {
+            (new BroadcastUnsubscribeController())->confirm();
             return;
         }
 

@@ -6,6 +6,7 @@ $t = $isEdit ? $target : [];
 $permSuper = $isEdit ? !empty($t['admin_super']) : false;
 $permStudents = $isEdit ? (!empty($t['admin_students']) || $permSuper) : true;
 $permCourses = $isEdit ? (!empty($t['admin_courses']) || $permSuper) : false;
+$permBroadcasts = $isEdit ? (!empty($t['admin_broadcasts']) || $permSuper) : false;
 ?>
 <div class="admin-topbar">
   <div>
@@ -69,6 +70,13 @@ $permCourses = $isEdit ? (!empty($t['admin_courses']) || $permSuper) : false;
             <span class="field-hint">Edit course content and lessons.</span>
           </span>
         </label>
+        <label class="admin-perm-option">
+          <input type="checkbox" name="perm_broadcasts" value="1"<?= $permBroadcasts ? ' checked' : '' ?> data-admin-perm-broadcasts>
+          <span class="admin-perm-option-text">
+            <strong>Broadcasts</strong>
+            <span class="field-hint">Send and schedule marketing email broadcasts to students.</span>
+          </span>
+        </label>
       </div>
     </div>
 
@@ -95,18 +103,22 @@ $permCourses = $isEdit ? (!empty($t['admin_courses']) || $permSuper) : false;
   var superBox = document.querySelector('[data-admin-perm-super]');
   var studentsBox = document.querySelector('[data-admin-perm-students]');
   var coursesBox = document.querySelector('[data-admin-perm-courses]');
-  if (!superBox || !studentsBox || !coursesBox) {
+  var broadcastsBox = document.querySelector('[data-admin-perm-broadcasts]');
+  if (!superBox || !studentsBox || !coursesBox || !broadcastsBox) {
     return;
   }
   var sync = function () {
     if (superBox.checked) {
       studentsBox.checked = true;
       coursesBox.checked = true;
+      broadcastsBox.checked = true;
       studentsBox.disabled = true;
       coursesBox.disabled = true;
+      broadcastsBox.disabled = true;
     } else {
       studentsBox.disabled = false;
       coursesBox.disabled = false;
+      broadcastsBox.disabled = false;
     }
   };
   superBox.addEventListener('change', sync);

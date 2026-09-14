@@ -19,7 +19,10 @@ final class SmtpClient
     /**
      * @param array<string, mixed> $cfg
      */
-    public function send(array $cfg, string $to, string $subject, string $body, ?string $htmlBody = null): bool
+    /**
+     * @param list<string> $extraHeaders
+     */
+    public function send(array $cfg, string $to, string $subject, string $body, ?string $htmlBody = null, array $extraHeaders = []): bool
     {
         $this->lastError = null;
         $host = trim((string)($cfg['smtp_host'] ?? ''));
@@ -78,7 +81,8 @@ final class SmtpClient
                 $to,
                 $encodedSubject,
                 $body,
-                $htmlBody
+                $htmlBody,
+                $extraHeaders
             ));
 
             $this->sendData($message);
@@ -248,12 +252,16 @@ final class SmtpClient
     /**
      * @return list<string>
      */
+    /**
+     * @param list<string> $extraHeaders
+     */
     private function buildMessageHeaders(
         string $fromHeader,
         string $to,
         string $encodedSubject,
         string $textBody,
-        ?string $htmlBody
+        ?string $htmlBody,
+        array $extraHeaders = []
     ): array {
         $headers = [
             'Date: ' . gmdate('D, d M Y H:i:s') . ' +0000',
@@ -262,6 +270,12 @@ final class SmtpClient
             'Subject: ' . $encodedSubject,
             'MIME-Version: 1.0',
         ];
+        foreach ($extraHeaders as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $headers[] = $line;
+            }
+        }
 
         if ($htmlBody !== null && $htmlBody !== '') {
             $boundary = 'wwm_' . bin2hex(random_bytes(8));
