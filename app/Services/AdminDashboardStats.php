@@ -6,6 +6,7 @@ namespace Wwm\Services;
 use DateTimeImmutable;
 use DateTimeZone;
 use PDO;
+use Wwm\Models\User;
 
 final class AdminDashboardStats
 {
@@ -149,11 +150,13 @@ final class AdminDashboardStats
 
     private function earliestActivity(DateTimeZone $tz): DateTimeImmutable
     {
+        $accessAt = $this->accessEventAtSql();
+        $registeredAt = User::sqlRegisteredAtExpression();
         $stmt = $this->pdo->query(
             'SELECT MIN(dt) FROM (
-                SELECT MIN(granted_at) AS dt FROM access
+                SELECT MIN(' . $accessAt . ') AS dt FROM access
                 UNION ALL
-                SELECT MIN(created_at) AS dt FROM users
+                SELECT MIN(' . $registeredAt . ') AS dt FROM users u WHERE u.is_admin = 0
             )'
         );
         $min = $stmt ? (string)($stmt->fetchColumn() ?: '') : '';
@@ -169,14 +172,15 @@ final class AdminDashboardStats
 
     private function countStudents(?DateTimeImmutable $from = null, ?DateTimeImmutable $to = null): int
     {
-        $sql = 'SELECT COUNT(*) FROM users WHERE is_admin = 0';
+        $registeredAt = User::sqlRegisteredAtExpression();
+        $sql = 'SELECT COUNT(*) FROM users u WHERE u.is_admin = 0';
         $params = [];
         if ($from !== null) {
-            $sql .= ' AND created_at >= ?';
+            $sql .= ' AND (' . $registeredAt . ') >= ?';
             $params[] = $from->format('c');
         }
         if ($to !== null) {
-            $sql .= ' AND created_at <= ?';
+            $sql .= ' AND (' . $registeredAt . ') <= ?';
             $params[] = $to->format('c');
         }
         $stmt = $this->pdo->prepare($sql);
@@ -187,9 +191,10 @@ final class AdminDashboardStats
 
     private function countGrants(string $type, DateTimeImmutable $from, DateTimeImmutable $to): int
     {
+        $eventAt = $this->accessEventAtSql($type);
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(*) FROM access
-             WHERE access_type = ? AND granted_at >= ? AND granted_at <= ?'
+             WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
         );
         $stmt->execute([$type, $from->format('c'), $to->format('c')]);
 
@@ -201,16 +206,17 @@ final class AdminDashboardStats
      */
     private function grantBuckets(string $type, DateTimeImmutable $from, DateTimeImmutable $to, string $group): array
     {
+        $eventAt = $this->accessEventAtSql($type);
         $expr = match ($group) {
-            'week' => "strftime('%Y-%W', granted_at)",
-            'month' => "strftime('%Y-%m', granted_at)",
-            default => "strftime('%Y-%m-%d', granted_at)",
+            'week' => "strftime('%Y-%W', " . $eventAt . ')',
+            'month' => "strftime('%Y-%m', " . $eventAt . ')',
+            default => "strftime('%Y-%m-%d', " . $eventAt . ')',
         };
 
         $stmt = $this->pdo->prepare(
             'SELECT ' . $expr . ' AS bucket, COUNT(*) AS cnt
              FROM access
-             WHERE access_type = ? AND granted_at >= ? AND granted_at <= ?
+             WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?
              GROUP BY bucket'
         );
         $stmt->execute([$type, $from->format('c'), $to->format('c')]);
@@ -268,5 +274,23 @@ final class AdminDashboardStats
             'month' => $dt->modify('first day of next month'),
             default => $dt->modify('+1 day'),
         };
+    }
+
+    /**
+     * Analytics date: AVO order/paid time for imports, granted_at for live webhooks.
+     */
+    private function accessEventAtSql(?string $accessType = null): string
+    {
+        if ($accessType === 'paid') {
+            return "COALESCE(NULLIF(avo_paid_at, ''), NULLIF(avo_ordered_at, ''), granted_at)";
+        }
+        if ($accessType === 'demo') {
+            return "COALESCE(NULLIF(avo_ordered_at, ''), granted_at)";
+        }
+
+        return "CASE access_type
+            WHEN 'paid' THEN COALESCE(NULLIF(avo_paid_at, ''), NULLIF(avo_ordered_at, ''), granted_at)
+            ELSE COALESCE(NULLIF(avo_ordered_at, ''), granted_at)
+        END";
     }
 }

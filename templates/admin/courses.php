@@ -16,7 +16,6 @@
         <th class="col-num">Full access</th>
         <th>Demo</th>
         <th>Status</th>
-        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -28,7 +27,7 @@
         ?>
         <tr>
           <td>
-            <strong><?= wwm_escape((string)($course['title'] ?? $slug)) ?></strong><br>
+            <strong><a class="admin-table-primary-link" href="/admin/courses/<?= wwm_escape($slug) ?>"><?= wwm_escape((string)($course['title'] ?? $slug)) ?></a></strong><br>
             <span style="color:var(--mute);font-size:0.85rem">
               <?= wwm_escape($slug) ?>
               <?php if (!empty($course['avo_goods_id'])): ?>
@@ -47,7 +46,6 @@
               <span class="badge badge-draft" style="margin:0">Draft</span>
             <?php endif; ?>
           </td>
-          <td><a href="/admin/courses/<?= wwm_escape($slug) ?>" class="btn btn-ghost btn-sm">Edit</a></td>
         </tr>
       <?php endforeach; ?>
     </tbody>

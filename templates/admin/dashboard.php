@@ -89,6 +89,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
 </div>
 
 <h2 class="admin-section-title">Selected period</h2>
+<p class="field-hint" style="margin:-4px 0 10px">Demo and purchases use AVO order dates when imported; new students use AVO registration date when set.</p>
 <div class="admin-stats admin-stats--4">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>
@@ -121,7 +122,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
       <span class="admin-chart-legend-item"><i class="admin-chart-swatch admin-chart-swatch--paid"></i> Purchases</span>
     </div>
   </div>
-  <div class="admin-chart-scroll">
+  <div class="admin-chart-scroll" data-admin-chart-tooltip>
     <div class="admin-chart-bars" role="img" aria-label="Chart of visits, demo grants and purchases">
       <?php foreach ($chart['labels'] ?? [] as $i => $label): ?>
         <?php
@@ -132,7 +133,11 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
           $dh = (int)round(160 * $d / $chartMax);
           $ph = (int)round(160 * $p / $chartMax);
         ?>
-        <div class="admin-chart-col" title="Visits <?= $v ?>, demo <?= $d ?>, paid <?= $p ?>">
+        <div class="admin-chart-col"
+             data-chart-label="<?= wwm_escape((string)$label) ?>"
+             data-chart-visits="<?= $v ?>"
+             data-chart-demo="<?= $d ?>"
+             data-chart-paid="<?= $p ?>">
           <div class="admin-chart-cluster">
             <div class="admin-chart-bar admin-chart-bar--visits" style="height:<?= max(2, $vh) ?>px"></div>
             <div class="admin-chart-bar admin-chart-bar--demo" style="height:<?= max(2, $dh) ?>px"></div>
@@ -142,5 +147,8 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
         </div>
       <?php endforeach; ?>
     </div>
+    <div class="admin-chart-tooltip" hidden aria-hidden="true"></div>
   </div>
 </div>
+
+<script src="<?= wwm_escape(wwm_asset_url('js/admin-dashboard-chart.js')) ?>" defer></script>

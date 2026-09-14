@@ -254,6 +254,17 @@ body.admin-body {
   font-variant-numeric: tabular-nums;
 }
 
+.admin-table-primary-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-table-primary-link:hover {
+  color: var(--wwm-rust, #b85c38);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -375,6 +386,61 @@ body.admin-body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  cursor: crosshair;
+}
+
+.admin-chart-tooltip {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  min-width: 148px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  color: #f5f5f5;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.admin-chart-tooltip[hidden] {
+  display: none !important;
+}
+
+.admin-chart-tooltip-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  color: #ccc;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-chart-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.admin-chart-tooltip-row span:first-child::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.admin-chart-tooltip-row--visits span:first-child::before { background: #6b9bd1; }
+.admin-chart-tooltip-row--demo span:first-child::before { background: var(--wwm-rust, #b85c38); }
+.admin-chart-tooltip-row--paid span:first-child::before { background: #5cb88a; }
+
+.admin-chart-tooltip-row span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .admin-chart-cluster {
