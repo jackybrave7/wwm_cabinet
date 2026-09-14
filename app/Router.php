@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm;
 
 use Wwm\Controllers\AccountController;
+use Wwm\Controllers\Admin\AdminDashboardApiController;
 use Wwm\Controllers\Admin\AdminDashboardController;
 use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
@@ -126,6 +127,10 @@ final class Router
         }
         if ($method === 'GET' && $path === '/admin/dashboard') {
             (new AdminDashboardController())->index();
+            return;
+        }
+        if ($method === 'GET' && $path === '/admin/api/dashboard/metrika') {
+            (new AdminDashboardApiController())->metrika();
             return;
         }
         if ($method === 'GET' && $path === '/admin/courses') {

@@ -2,11 +2,6 @@
 /** @var array $snapshot */
 /** @var array $periodTotals */
 /** @var array $chart */
-/** @var array $trafficPeriod */
-/** @var array $trafficLifetime */
-/** @var array $periodConversions */
-/** @var array $lifetimeConversions */
-
 function wwm_dash_pct(?float $pct): string
 {
     if ($pct === null) {
@@ -17,10 +12,12 @@ function wwm_dash_pct(?float $pct): string
 }
 
 $chartMax = max(1, (int)($chart['max'] ?? 1));
-$trafficOk = !empty($trafficPeriod['ok']);
-$visitsPeriod = (int)($trafficPeriod['visits_total'] ?? 0);
-$visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
+$metrikaDeferred = !empty($metrikaDeferred);
+$periodDemos = (int)($periodTotals['demo_grants'] ?? 0);
+$periodPaid = (int)($periodTotals['paid_grants'] ?? 0);
+$demoToPaidPct = $periodDemos > 0 ? round(100 * $periodPaid / $periodDemos, 2) : null;
 ?>
+<div id="admin-dashboard" data-admin-dashboard data-period="<?= wwm_escape((string)($period ?? '7d')) ?>" data-group="<?= wwm_escape((string)($group ?? 'day')) ?>" data-metrika-deferred="<?= $metrikaDeferred ? '1' : '0' ?>" data-chart-max="<?= (int)$chartMax ?>">
 <div class="admin-topbar">
   <div>
     <p class="badge badge-admin">Administrator</p>
@@ -77,11 +74,8 @@ $periodOptions = [
     Add an OAuth token in <a href="/admin/settings">Analytics</a>
     (counter ID is taken from your Metrika snippet if omitted).
   </div>
-<?php elseif (!$trafficOk && !empty($trafficPeriod['error'])): ?>
-  <div class="alert alert-warning" style="margin-top:14px">
-    Could not load Metrika data for this period. Check the OAuth token and that the token has access to counter <?= (int)$metrikaCounterId ?>.
-  </div>
 <?php endif; ?>
+<div class="alert alert-warning" id="admin-dashboard-metrika-error" style="margin-top:14px;display:none"></div>
 
 <h2 class="admin-section-title">Overall</h2>
 <div class="admin-stats admin-stats--4">
@@ -102,8 +96,8 @@ $periodOptions = [
   </div>
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits (Metrika)</span>
-    <strong class="admin-stat-value"><?= $visitsLifetime > 0 ? number_format($visitsLifetime) : '—' ?></strong>
-    <span class="admin-stat-note">since 2018 · conv. demo <?= wwm_dash_pct($lifetimeConversions['visit_to_demo_pct'] ?? null) ?> · paid <?= wwm_dash_pct($lifetimeConversions['visit_to_paid_pct'] ?? null) ?></span>
+    <strong class="admin-stat-value<?= $metrikaDeferred ? ' admin-stat-value--loading' : '' ?>" data-dash-lifetime-visits><?= $metrikaDeferred ? '…' : '—' ?></strong>
+    <span class="admin-stat-note" data-dash-lifetime-conv><?= $metrikaDeferred ? 'since 2018 · loading Metrika…' : 'since 2018 · configure Metrika in Analytics' ?></span>
   </div>
 </div>
 
@@ -112,7 +106,7 @@ $periodOptions = [
 <div class="admin-stats admin-stats--4">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>
-    <strong class="admin-stat-value"><?= $trafficOk ? number_format($visitsPeriod) : '—' ?></strong>
+    <strong class="admin-stat-value admin-stat-value--loading" data-dash-period-visits><?= $metrikaDeferred ? '…' : '—' ?></strong>
     <span class="admin-stat-note">Yandex Metrika</span>
   </div>
   <div class="admin-stat-card">
@@ -123,12 +117,12 @@ $periodOptions = [
   <div class="admin-stat-card">
     <span class="admin-stat-label">Demo signups</span>
     <strong class="admin-stat-value"><?= (int)($periodTotals['demo_grants'] ?? 0) ?></strong>
-    <span class="admin-stat-note">visit → demo <?= wwm_dash_pct($periodConversions['visit_to_demo_pct'] ?? null) ?></span>
+    <span class="admin-stat-note" data-dash-period-conv-demo><?= $metrikaDeferred ? 'visit → demo …' : 'visit → demo —' ?></span>
   </div>
   <div class="admin-stat-card">
     <span class="admin-stat-label">Purchases</span>
     <strong class="admin-stat-value"><?= (int)($periodTotals['paid_grants'] ?? 0) ?></strong>
-    <span class="admin-stat-note">visit → paid <?= wwm_dash_pct($periodConversions['visit_to_paid_pct'] ?? null) ?> · demo → paid <?= wwm_dash_pct($periodConversions['demo_to_paid_pct'] ?? null) ?></span>
+    <span class="admin-stat-note" data-dash-period-conv-paid><?= $metrikaDeferred ? 'visit → paid …' : 'visit → paid —' ?> · demo → paid <?= wwm_dash_pct($demoToPaidPct) ?></span>
   </div>
 </div>
 
@@ -158,7 +152,7 @@ $periodOptions = [
              data-chart-demo="<?= $d ?>"
              data-chart-paid="<?= $p ?>">
           <div class="admin-chart-cluster">
-            <div class="admin-chart-bar admin-chart-bar--visits" style="height:<?= max(2, $vh) ?>px"></div>
+            <div class="admin-chart-bar admin-chart-bar--visits<?= $metrikaDeferred ? ' admin-chart-bar--pending' : '' ?>" style="height:<?= max(2, $vh) ?>px"></div>
             <div class="admin-chart-bar admin-chart-bar--demo" style="height:<?= max(2, $dh) ?>px"></div>
             <div class="admin-chart-bar admin-chart-bar--paid" style="height:<?= max(2, $ph) ?>px"></div>
           </div>
@@ -170,7 +164,10 @@ $periodOptions = [
   </div>
 </div>
 
+</div>
+
 <script src="<?= wwm_escape(wwm_asset_url('js/admin-dashboard-chart.js')) ?>" defer></script>
+<script src="<?= wwm_escape(wwm_asset_url('js/admin-dashboard-metrika.js')) ?>" defer></script>
 <script>
 document.querySelectorAll('[data-admin-dashboard-filters]').forEach(function (form) {
   form.querySelectorAll('.admin-period-pill input').forEach(function (input) {

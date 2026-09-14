@@ -418,6 +418,15 @@ body.admin-body {
   letter-spacing: 0.01em;
 }
 
+.admin-stat-value--loading {
+  color: var(--mute);
+  font-weight: 600;
+}
+
+.admin-chart-bar--pending {
+  opacity: 0.35;
+}
+
 .admin-dashboard-toolbar__range-label {
   font-size: 0.72rem;
   font-weight: 700;

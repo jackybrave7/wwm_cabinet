@@ -27,28 +27,11 @@ final class AdminDashboardController
         $snapshot = $dashboard->snapshot();
 
         $periodTotals = $dashboard->periodTotals($filters['from'], $filters['to']);
-        $trafficPeriod = $metrika->visitsForPeriod($filters['from'], $filters['to'], $filters['group']);
         $chart = $dashboard->chartSeries(
             $filters['from'],
             $filters['to'],
             $filters['group'],
-            $trafficPeriod['buckets'] ?? [],
-        );
-
-        $metrikaLifetimeFrom = new \DateTimeImmutable('2018-01-01', new \DateTimeZone('UTC'));
-        $trafficLifetime = $metrika->visitsTotal($metrikaLifetimeFrom, $filters['to']);
-
-        $periodConversions = $dashboard->conversionRates(
-            (int)($trafficPeriod['visits_total'] ?? 0),
-            (int)$periodTotals['demo_grants'],
-            (int)$periodTotals['paid_grants'],
-        );
-
-        $lifetimeGrants = $dashboard->lifetimeGrantTotals();
-        $lifetimeConversions = $dashboard->conversionRates(
-            (int)($trafficLifetime['visits_total'] ?? 0),
-            (int)$lifetimeGrants['demo_grants'],
-            (int)$lifetimeGrants['paid_grants'],
+            [],
         );
 
         wwm_render_admin('dashboard', [
@@ -62,10 +45,7 @@ final class AdminDashboardController
             'snapshot' => $snapshot,
             'periodTotals' => $periodTotals,
             'chart' => $chart,
-            'trafficPeriod' => $trafficPeriod,
-            'trafficLifetime' => $trafficLifetime,
-            'periodConversions' => $periodConversions,
-            'lifetimeConversions' => $lifetimeConversions,
+            'metrikaDeferred' => $metrika->isConfigured(),
             'metrikaConfigured' => $metrika->isConfigured(),
             'metrikaCounterId' => $metrika->counterId(),
             'metrikaVisitHosts' => $metrika->visitHostnamesLabel(),

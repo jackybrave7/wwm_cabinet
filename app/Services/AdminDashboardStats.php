@@ -67,13 +67,14 @@ final class AdminDashboardStats
      */
     public function snapshot(): array
     {
-        $courses = (new CourseCatalog())->all();
+        $coursesDir = WWM_ROOT . '/data/courses';
+        $courseFiles = is_dir($coursesDir) ? (glob($coursesDir . '/*.json') ?: []) : [];
 
         return [
             'students_total' => $this->countStudents(),
             'paid_students_total' => $this->adminStats->totalPaidStudents(),
             'demo_active_total' => $this->adminStats->totalDemoActive(),
-            'courses_total' => count($courses),
+            'courses_total' => count($courseFiles),
         ];
     }
 
