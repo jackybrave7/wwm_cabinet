@@ -86,7 +86,7 @@ final class YandexMetrikaReporting
         }
 
         $cacheKey = sprintf(
-            'visits_%d_%s_%s_%s',
+            'bytime_%d_%s_%s_%s',
             $this->counterId(),
             $from->format('Y-m-d'),
             $to->format('Y-m-d'),
@@ -109,10 +109,11 @@ final class YandexMetrikaReporting
             'date1' => $from->format('Y-m-d'),
             'date2' => $to->format('Y-m-d'),
             'group' => $metrikaGroup,
+            'timezone' => '+03:00',
             'accuracy' => 'full',
         ]);
 
-        $url = 'https://api-metrika.yandex.net/stat/v1/data?' . $query;
+        $url = 'https://api-metrika.yandex.net/stat/v1/data/bytime?' . $query;
         $body = $this->httpGet($url);
         if ($body === null) {
             $empty['error'] = 'request_failed';
@@ -133,33 +134,58 @@ final class YandexMetrikaReporting
             return $empty;
         }
 
-        $buckets = [];
-        foreach ($decoded['data'] ?? [] as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $dim = $row['dimensions'][0]['name'] ?? $row['dimensions'][0]['id'] ?? null;
-            if ($dim === null) {
-                continue;
-            }
-            $metrics = $row['metrics'] ?? [];
-            $visits = (int)($metrics[0] ?? 0);
-            $key = $this->bucketKeyFromMetrika((string)$dim, $group);
-            $buckets[$key] = ($buckets[$key] ?? 0) + $visits;
-        }
-
+        $buckets = $this->parseBytimeBuckets($decoded, $group);
         $totals = $decoded['totals'] ?? [];
+        $visitsTotal = (int)($totals[0][0] ?? array_sum($buckets));
+        $usersTotal = (int)($totals[1][0] ?? 0);
+
         $result = [
             'ok' => true,
             'error' => null,
-            'visits_total' => (int)($totals[0] ?? array_sum($buckets)),
-            'users_total' => (int)($totals[1] ?? 0),
+            'visits_total' => $visitsTotal,
+            'users_total' => $usersTotal,
             'buckets' => $buckets,
         ];
 
         $this->writeCache($cacheKey, $result);
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $decoded
+     * @return array<string, int>
+     */
+    private function parseBytimeBuckets(array $decoded, string $group): array
+    {
+        $buckets = [];
+        $intervals = $decoded['time_intervals'] ?? [];
+        if (!is_array($intervals)) {
+            return $buckets;
+        }
+
+        $dataRow = $decoded['data'][0] ?? null;
+        if (!is_array($dataRow)) {
+            return $buckets;
+        }
+
+        $metrics = $dataRow['metrics'] ?? [];
+        $visitSeries = is_array($metrics[0] ?? null) ? $metrics[0] : [];
+
+        foreach ($intervals as $index => $interval) {
+            if (!is_array($interval)) {
+                continue;
+            }
+            $startDate = (string)($interval[0] ?? '');
+            if ($startDate === '') {
+                continue;
+            }
+            $visits = (int)($visitSeries[$index] ?? 0);
+            $key = $this->bucketKeyFromMetrika($startDate, $group);
+            $buckets[$key] = ($buckets[$key] ?? 0) + $visits;
+        }
+
+        return $buckets;
     }
 
     /**
@@ -214,7 +240,12 @@ final class YandexMetrikaReporting
 
     private function bucketKeyFromMetrika(string $dim, string $group): string
     {
-        $tz = new DateTimeZone('UTC');
+        $dim = trim($dim);
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dim, $m)) {
+            $dim = $m[1];
+        }
+
+        $tz = new DateTimeZone('Europe/Moscow');
         try {
             $dt = new DateTimeImmutable($dim, $tz);
         } catch (\Throwable) {
