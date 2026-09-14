@@ -76,7 +76,10 @@ final class AdminBroadcastController
             return;
         }
 
-        echo json_encode(['url' => $result['url']], JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'url' => $result['url'],
+            'path' => $result['path'],
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     public function store(): void

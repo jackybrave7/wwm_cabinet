@@ -16,12 +16,24 @@
   const htmlFormatButton = document.getElementById('broadcast-html-format');
   const htmlInsertImageButton = document.getElementById('broadcast-html-insert-image');
   const imageUploadInput = document.getElementById('broadcast-image-upload');
+  const imageDialog = document.getElementById('broadcast-image-dialog');
+  const imageDialogUrl = document.getElementById('broadcast-image-dialog-url');
+  const imageDialogAlt = document.getElementById('broadcast-image-dialog-alt');
+  const imageDialogWidth = document.getElementById('broadcast-image-dialog-width');
+  const imageDialogAlign = document.getElementById('broadcast-image-dialog-align');
+  const imageDialogMarginTop = document.getElementById('broadcast-image-dialog-margin-top');
+  const imageDialogMarginBottom = document.getElementById('broadcast-image-dialog-margin-bottom');
+  const imageDialogPreview = document.getElementById('broadcast-image-dialog-preview');
+  const imageDialogPreviewHint = document.getElementById('broadcast-image-dialog-preview-hint');
+  const imageDialogError = document.getElementById('broadcast-image-dialog-error');
+  const imageDialogInsert = document.getElementById('broadcast-image-dialog-insert');
+  const imageDialogPickFile = document.getElementById('broadcast-image-dialog-pick-file');
   const formatRadios = form.querySelectorAll('[data-broadcast-format]');
   const htmlOnlyTabs = form.querySelectorAll('.broadcast-html-only');
-  const imageStyle = 'display:block;max-width:100%;height:auto;margin:16px auto;border:0;';
 
   let contentMode = config.contentMode === 'html' ? 'html' : 'plain';
   let activeTab = contentMode === 'html' ? 'visual' : 'text';
+  let imageInsertTarget = 'visual';
 
   function escapeHtml(text) {
     return String(text)
@@ -123,6 +135,11 @@
     visualFrame.onload = () => {
       const doc = visualDocument();
       if (doc) {
+        if (doc.head && !doc.querySelector('base')) {
+          const base = doc.createElement('base');
+          base.href = window.location.origin + '/';
+          doc.head.appendChild(base);
+        }
         doc.designMode = 'on';
         if (doc.body) {
           doc.body.contentEditable = 'true';
@@ -174,54 +191,200 @@
     textarea.focus();
   }
 
-  function promptImageUrl() {
-    const url = window.prompt('Image URL (must start with https://)', 'https://');
-    if (!url || !url.trim()) {
-      return null;
+  function normalizeImageUrl(url) {
+    const trimmed = String(url || '').trim();
+    if (trimmed === '') {
+      return '';
     }
-    const trimmed = url.trim();
-    if (!/^https:\/\//i.test(trimmed)) {
-      window.alert('Use a full https:// URL so email clients can load the image.');
-      return null;
+    if (trimmed.startsWith('//')) {
+      return window.location.protocol + trimmed;
+    }
+    if (trimmed.startsWith('/')) {
+      return window.location.origin + trimmed;
     }
     return trimmed;
   }
 
-  function promptAltText() {
-    return window.prompt('Alt text (optional)', '') || '';
+  function resolveUploadUrl(data) {
+    if (data && data.url && /^https?:\/\//i.test(data.url)) {
+      return data.url;
+    }
+    if (data && data.path) {
+      return window.location.origin + data.path;
+    }
+    return data && data.url ? normalizeImageUrl(data.url) : '';
   }
 
-  function insertImageInVisual(url, alt) {
+  function readImageOptionsFromDialog() {
+    return {
+      url: normalizeImageUrl(imageDialogUrl ? imageDialogUrl.value : ''),
+      alt: imageDialogAlt ? imageDialogAlt.value.trim() : '',
+      width: imageDialogWidth ? imageDialogWidth.value : '600px',
+      align: imageDialogAlign ? imageDialogAlign.value : 'center',
+      marginTop: imageDialogMarginTop ? imageDialogMarginTop.value : '16',
+      marginBottom: imageDialogMarginBottom ? imageDialogMarginBottom.value : '16',
+    };
+  }
+
+  function buildImageStyle(opts) {
+    const width = opts.width || '600px';
+    let imgStyle = 'display:block;max-width:100%;height:auto;border:0;';
+    if (width === '100%') {
+      imgStyle += 'width:100%;';
+    } else {
+      imgStyle += 'width:' + width + ';';
+    }
+    if (opts.align === 'center') {
+      imgStyle += 'margin-left:auto;margin-right:auto;';
+    } else if (opts.align === 'right') {
+      imgStyle += 'margin-left:auto;margin-right:0;';
+    } else {
+      imgStyle += 'margin-left:0;margin-right:auto;';
+    }
+    return imgStyle;
+  }
+
+  function buildImageWrapperStyle(opts) {
+    const mt = parseInt(opts.marginTop, 10) || 0;
+    const mb = parseInt(opts.marginBottom, 10) || 0;
+    return 'text-align:' + opts.align + ';margin:' + mt + 'px 0 ' + mb + 'px 0;';
+  }
+
+  function buildImageHtmlSnippet(opts) {
+    const safeUrl = String(opts.url).replace(/"/g, '&quot;');
+    const safeAlt = String(opts.alt).replace(/"/g, '&quot;');
+    const imgStyle = buildImageStyle(opts);
+    const wrapStyle = buildImageWrapperStyle(opts);
+    return (
+      '<div style="' + wrapStyle + '">' +
+      '<img src="' + safeUrl + '" alt="' + safeAlt + '" style="' + imgStyle + '">' +
+      '</div>'
+    );
+  }
+
+  function insertImageInVisual(opts) {
     const doc = visualDocument();
     if (!doc || !visualFrame) {
       return;
     }
+    const img = doc.createElement('img');
+    img.src = opts.url;
+    img.alt = opts.alt || '';
+    img.setAttribute('style', buildImageStyle(opts));
+
+    const wrap = doc.createElement('div');
+    wrap.setAttribute('style', buildImageWrapperStyle(opts));
+    wrap.appendChild(img);
+
     visualFrame.contentWindow.focus();
-    doc.execCommand('insertImage', false, url);
-    const images = doc.getElementsByTagName('img');
-    const image = images.length ? images[images.length - 1] : null;
-    if (image) {
-      image.setAttribute('alt', alt);
-      image.setAttribute('style', imageStyle);
+    const sel = doc.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.collapse(false);
+      range.insertNode(wrap);
+      range.setStartAfter(wrap);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else if (doc.body) {
+      doc.body.appendChild(wrap);
     }
     syncVisualToHtml();
   }
 
-  function insertImageHtmlSnippet(url, alt) {
-    const safeAlt = String(alt).replace(/"/g, '&quot;');
-    const snippet = '<img src="' + url + '" alt="' + safeAlt + '" style="' + imageStyle + '">';
-    if (htmlInput) {
-      insertAtCursor(htmlInput, snippet);
-      syncHtmlHighlight();
+  function insertImageWithOptions(opts) {
+    if (imageInsertTarget === 'html') {
+      if (htmlInput) {
+        insertAtCursor(htmlInput, buildImageHtmlSnippet(opts));
+        syncHtmlHighlight();
+      }
+      return;
+    }
+    insertImageInVisual(opts);
+  }
+
+  function setImageDialogError(message) {
+    if (!imageDialogError) {
+      return;
+    }
+    if (message) {
+      imageDialogError.textContent = message;
+      imageDialogError.hidden = false;
+    } else {
+      imageDialogError.textContent = '';
+      imageDialogError.hidden = true;
     }
   }
 
-  function insertImageUrl(url, alt) {
-    if (activeTab === 'html') {
-      insertImageHtmlSnippet(url, alt);
+  function updateImageDialogPreview() {
+    if (!imageDialogPreview) {
       return;
     }
-    insertImageInVisual(url, alt);
+    const url = normalizeImageUrl(imageDialogUrl ? imageDialogUrl.value : '');
+    if (!url) {
+      imageDialogPreview.removeAttribute('src');
+      if (imageDialogPreviewHint) {
+        imageDialogPreviewHint.hidden = false;
+      }
+      return;
+    }
+    imageDialogPreview.onload = () => {
+      if (imageDialogPreviewHint) {
+        imageDialogPreviewHint.hidden = true;
+      }
+      setImageDialogError('');
+    };
+    imageDialogPreview.onerror = () => {
+      if (imageDialogPreviewHint) {
+        imageDialogPreviewHint.hidden = false;
+      }
+    };
+    imageDialogPreview.src = url;
+  }
+
+  function openImageDialog(url, target) {
+    if (!imageDialog) {
+      return;
+    }
+    imageInsertTarget = target || (activeTab === 'html' ? 'html' : 'visual');
+    if (imageDialogUrl) {
+      imageDialogUrl.value = url || '';
+    }
+    if (imageDialogAlt) {
+      imageDialogAlt.value = '';
+    }
+    setImageDialogError('');
+    updateImageDialogPreview();
+    imageDialog.hidden = false;
+    if (imageDialogUrl) {
+      imageDialogUrl.focus();
+    }
+  }
+
+  function closeImageDialog() {
+    if (imageDialog) {
+      imageDialog.hidden = true;
+    }
+    setImageDialogError('');
+  }
+
+  function validateImageUrl(url) {
+    if (!url) {
+      return 'Enter an image URL.';
+    }
+    if (!/^https:\/\//i.test(url)) {
+      return 'Use a full https:// URL so email clients can load the image.';
+    }
+    return '';
+  }
+
+  function verifyImageLoads(url) {
+    return new Promise((resolve, reject) => {
+      const probe = new Image();
+      probe.onload = () => resolve(url);
+      probe.onerror = () => reject(new Error('Could not load this image. Check the URL or upload again.'));
+      probe.src = url;
+    });
   }
 
   async function uploadImageFile(file) {
@@ -238,11 +401,11 @@
       credentials: 'same-origin',
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.url) {
+    if (!response.ok || (!data.url && !data.path)) {
       window.alert(data.error || 'Image upload failed.');
       return null;
     }
-    return data.url;
+    return resolveUploadUrl(data);
   }
 
   async function handleImageFile(file) {
@@ -253,7 +416,7 @@
     if (!url) {
       return;
     }
-    insertImageUrl(url, promptAltText());
+    openImageDialog(url, imageInsertTarget || (activeTab === 'html' ? 'html' : 'visual'));
   }
 
   formatRadios.forEach((radio) => {
@@ -290,16 +453,14 @@
         return;
       }
       if (cmd === 'insertImage') {
+        imageInsertTarget = 'visual';
         if (imageUploadInput) {
           imageUploadInput.click();
         }
         return;
       }
       if (cmd === 'insertImageUrl') {
-        const imageUrl = promptImageUrl();
-        if (imageUrl) {
-          insertImageInVisual(imageUrl, promptAltText());
-        }
+        openImageDialog('', 'visual');
         return;
       }
       if (cmd === 'formatBlock' && value) {
@@ -362,8 +523,42 @@
 
   if (htmlInsertImageButton) {
     htmlInsertImageButton.addEventListener('click', () => {
-      if (imageUploadInput) {
-        imageUploadInput.click();
+      openImageDialog('', 'html');
+    });
+  }
+
+  if (imageDialogPickFile && imageUploadInput) {
+    imageDialogPickFile.addEventListener('click', () => {
+      imageUploadInput.click();
+    });
+  }
+
+  if (imageDialogUrl) {
+    imageDialogUrl.addEventListener('input', updateImageDialogPreview);
+  }
+
+  imageDialog &&
+    imageDialog.querySelectorAll('[data-image-dialog-close]').forEach((el) => {
+      el.addEventListener('click', closeImageDialog);
+    });
+
+  if (imageDialogInsert) {
+    imageDialogInsert.addEventListener('click', async () => {
+      const opts = readImageOptionsFromDialog();
+      const validationError = validateImageUrl(opts.url);
+      if (validationError) {
+        setImageDialogError(validationError);
+        return;
+      }
+      imageDialogInsert.disabled = true;
+      try {
+        await verifyImageLoads(opts.url);
+        insertImageWithOptions(opts);
+        closeImageDialog();
+      } catch (err) {
+        setImageDialogError(err && err.message ? err.message : 'Could not load image.');
+      } finally {
+        imageDialogInsert.disabled = false;
       }
     });
   }

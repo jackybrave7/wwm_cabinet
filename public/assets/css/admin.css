@@ -1607,6 +1607,77 @@ body.admin-body {
   background: #faf6f0;
 }
 
+.broadcast-image-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.broadcast-image-dialog[hidden] {
+  display: none !important;
+}
+
+.broadcast-image-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 18, 16, 0.45);
+}
+
+.broadcast-image-dialog-panel {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: var(--bg, #fff);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  padding: 20px 22px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+.broadcast-image-dialog-panel h3 {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+}
+
+.broadcast-image-dialog-preview-wrap {
+  margin-bottom: 14px;
+  padding: 12px;
+  background: #faf6f0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: center;
+  min-height: 80px;
+}
+
+.broadcast-image-dialog-preview {
+  max-width: 100%;
+  max-height: 200px;
+  height: auto;
+  border: 0;
+}
+
+.broadcast-image-dialog-preview-hint {
+  margin: 8px 0 0;
+}
+
+.broadcast-image-dialog-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+#broadcast-image-dialog-error {
+  color: #b42318;
+  margin-top: 10px;
+}
+
 .email-text-input {
   padding: 16px 18px;
   font-family: Consolas, 'Courier New', monospace;

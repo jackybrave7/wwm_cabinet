@@ -154,6 +154,74 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
   <?php endif; ?>
 </div>
 
+<div class="broadcast-image-dialog" id="broadcast-image-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="broadcast-image-dialog-title">
+  <div class="broadcast-image-dialog-backdrop" data-image-dialog-close tabindex="-1"></div>
+  <div class="broadcast-image-dialog-panel">
+    <h3 id="broadcast-image-dialog-title">Insert image</h3>
+    <div class="broadcast-image-dialog-preview-wrap">
+      <img src="" alt="" id="broadcast-image-dialog-preview" class="broadcast-image-dialog-preview">
+      <p class="field-hint broadcast-image-dialog-preview-hint" id="broadcast-image-dialog-preview-hint" hidden>Preview unavailable until URL loads.</p>
+    </div>
+    <label class="field">
+      <span>Image URL</span>
+      <input type="url" class="input" id="broadcast-image-dialog-url" placeholder="https://…" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>Alt text</span>
+      <input type="text" class="input" id="broadcast-image-dialog-alt" placeholder="Description for screen readers" autocomplete="off">
+    </label>
+    <div class="field-row">
+      <label class="field">
+        <span>Width</span>
+        <select class="input" id="broadcast-image-dialog-width">
+          <option value="100%">Full width (100%)</option>
+          <option value="600px" selected>600 px</option>
+          <option value="480px">480 px</option>
+          <option value="400px">400 px</option>
+          <option value="320px">320 px</option>
+          <option value="240px">240 px</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Alignment</span>
+        <select class="input" id="broadcast-image-dialog-align">
+          <option value="center" selected>Center</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+        </select>
+      </label>
+    </div>
+    <div class="field-row">
+      <label class="field">
+        <span>Margin top (px)</span>
+        <select class="input" id="broadcast-image-dialog-margin-top">
+          <option value="0">0</option>
+          <option value="8">8</option>
+          <option value="16" selected>16</option>
+          <option value="24">24</option>
+          <option value="32">32</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Margin bottom (px)</span>
+        <select class="input" id="broadcast-image-dialog-margin-bottom">
+          <option value="0">0</option>
+          <option value="8">8</option>
+          <option value="16" selected>16</option>
+          <option value="24">24</option>
+          <option value="32">32</option>
+        </select>
+      </label>
+    </div>
+    <p class="field-hint" id="broadcast-image-dialog-error" hidden></p>
+    <div class="broadcast-image-dialog-actions">
+      <button type="button" class="btn btn-primary" id="broadcast-image-dialog-insert">Insert</button>
+      <button type="button" class="btn btn-ghost" id="broadcast-image-dialog-pick-file">Upload from computer</button>
+      <button type="button" class="btn btn-ghost" data-image-dialog-close>Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script type="application/json" id="broadcast-html-seed"><?= wwm_json_for_script($bodyHtml) ?></script>
 <script>
 window.__broadcastEditor = {
