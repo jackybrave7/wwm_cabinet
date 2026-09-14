@@ -76,27 +76,29 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
   <?php if ($linkStats !== []): ?>
     <div class="admin-card" style="margin-bottom:16px">
       <h2 class="admin-team-section-title">Links</h2>
-      <table class="admin-table admin-table-compact">
-        <thead>
-          <tr>
-            <th>URL</th>
-            <th>Unique clickers</th>
-            <th>Total clicks</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($linkStats as $link): ?>
+      <div class="admin-table-wrap">
+        <table class="admin-table admin-table-compact">
+          <thead>
             <tr>
-              <td>
-                <a href="<?= wwm_escape((string)$link['target_url']) ?>" target="_blank" rel="noopener"><?= wwm_escape((string)($link['link_label'] ?: $link['target_url'])) ?></a>
-                <div class="field-hint"><?= wwm_escape((string)$link['target_url']) ?></div>
-              </td>
-              <td><?= (int)$link['unique_clickers'] ?></td>
-              <td><?= (int)$link['total_clicks'] ?></td>
+              <th>URL</th>
+              <th>Unique clickers</th>
+              <th>Total clicks</th>
             </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <?php foreach ($linkStats as $link): ?>
+              <tr>
+                <td>
+                  <a href="<?= wwm_escape((string)$link['target_url']) ?>" target="_blank" rel="noopener"><?= wwm_escape((string)($link['link_label'] ?: $link['target_url'])) ?></a>
+                  <div class="field-hint"><?= wwm_escape((string)$link['target_url']) ?></div>
+                </td>
+                <td><?= (int)$link['unique_clickers'] ?></td>
+                <td><?= (int)$link['total_clicks'] ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
     </div>
   <?php endif; ?>
 
@@ -110,35 +112,37 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
         <span class="admin-expander-chevron" aria-hidden="true">▼</span>
       </summary>
       <div class="admin-expander-body">
-        <table class="admin-table admin-table-compact">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Delivery</th>
-              <th>Opened</th>
-              <th>Clicks</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($recipientEngagement as $row): ?>
+        <div class="admin-table-wrap">
+          <table class="admin-table admin-table-compact">
+            <thead>
               <tr>
-                <td><?= wwm_escape((string)($row['email'] ?? '')) ?></td>
-                <td><span class="field-hint"><?= wwm_escape((string)($row['delivery_status'] ?? '')) ?></span></td>
-                <td>
-                  <?php if (!empty($row['opened_at'])): ?>
-                    <span class="badge badge-demo" style="margin:0">Yes</span>
-                    <span class="field-hint"><?= wwm_escape((string)$row['opened_at']) ?><?= (int)($row['open_count'] ?? 0) > 1 ? ' · ' . (int)$row['open_count'] . '×' : '' ?></span>
-                  <?php elseif (!$hasHtml): ?>
-                    <span class="field-hint">n/a (plain)</span>
-                  <?php else: ?>
-                    <span class="field-hint">—</span>
-                  <?php endif; ?>
-                </td>
-                <td><?= (int)($row['click_count'] ?? 0) > 0 ? (int)$row['click_count'] : '—' ?></td>
+                <th>Email</th>
+                <th>Delivery</th>
+                <th>Opened</th>
+                <th>Clicks</th>
               </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <?php foreach ($recipientEngagement as $row): ?>
+                <tr>
+                  <td><?= wwm_escape((string)($row['email'] ?? '')) ?></td>
+                  <td><span class="field-hint"><?= wwm_escape((string)($row['delivery_status'] ?? '')) ?></span></td>
+                  <td>
+                    <?php if (!empty($row['opened_at'])): ?>
+                      <span class="badge badge-demo" style="margin:0">Yes</span>
+                      <span class="field-hint"><?= wwm_escape((string)$row['opened_at']) ?><?= (int)($row['open_count'] ?? 0) > 1 ? ' · ' . (int)$row['open_count'] . '×' : '' ?></span>
+                    <?php elseif (!$hasHtml): ?>
+                      <span class="field-hint">n/a (plain)</span>
+                    <?php else: ?>
+                      <span class="field-hint">—</span>
+                    <?php endif; ?>
+                  </td>
+                  <td><?= (int)($row['click_count'] ?? 0) > 0 ? (int)$row['click_count'] : '—' ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
         <p class="field-hint" style="margin-top:12px">Same tracking as transactional emails: pixel opens may be blocked; link redirects are more reliable. Unsubscribe links are not tracked.</p>
       </div>
     </details>
