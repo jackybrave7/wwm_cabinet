@@ -271,7 +271,7 @@ final class AdminBroadcastController
         $audience = EmailBroadcast::normalizeAudience((string)($_POST['audience'] ?? 'all_students'));
         $contentMode = (string)($_POST['content_mode'] ?? 'plain') === 'html' ? 'html' : 'plain';
         $listFilter = AdminStudentListFilter::fromBroadcastSource($_POST);
-        $filterJson = $audience === 'filtered'
+        $filterJson = ($audience === 'filtered' || $listFilter->isActive())
             ? EmailBroadcast::encodeAudienceFilter($listFilter)
             : '';
 

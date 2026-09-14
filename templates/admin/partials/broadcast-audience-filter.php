@@ -87,6 +87,6 @@ $filterOpen = ($listFilter->isActive() || (string)($audience ?? '') === 'filtere
         <input type="text" name="bf_utm_campaign" value="<?= wwm_escape($listFilter->utmCampaign) ?>" placeholder="contains…" autocomplete="off" data-broadcast-audience-field>
       </label>
     </div>
-    <p class="field-hint" style="margin:12px 0 0">When audience is <strong>Custom filter</strong>, only students matching these criteria receive the broadcast.</p>
+    <p class="field-hint" style="margin:12px 0 0">Criteria here narrow the audience preset above (or define the full list when <strong>Custom student filter</strong> is selected).</p>
   </div>
 </details>

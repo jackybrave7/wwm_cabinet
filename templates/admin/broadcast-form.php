@@ -37,7 +37,7 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
   <p class="field-hint" style="margin:0">
     Unsubscribe link and List-Unsubscribe headers are added automatically.
     Estimated recipients: <strong id="broadcast-audience-count"><?= (int)($audienceSize ?? 0) ?></strong>
-    <span class="field-hint">(excludes admins and suppressed addresses)</span>
+    <span class="field-hint">(excludes admins and suppressed addresses; student filter narrows any audience preset)</span>
   </p>
 </div>
 

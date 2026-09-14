@@ -14,9 +14,10 @@ final class BroadcastAudience
     public static function recipientsForBroadcast(PDO $pdo, array $broadcast): array
     {
         $audience = EmailBroadcast::normalizeAudience((string)($broadcast['audience'] ?? 'all_students'));
-        if ($audience === 'filtered') {
-            $filter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
-            return self::recipientsForFilter($pdo, $filter);
+        $filter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
+
+        if ($audience === 'filtered' || $filter->isActive()) {
+            return self::recipientsMatching($pdo, $audience, $filter);
         }
 
         return self::recipientsForPreset($pdo, $audience);
@@ -25,11 +26,58 @@ final class BroadcastAudience
     public static function countForBroadcast(PDO $pdo, string $audience, AdminStudentListFilter $filter): int
     {
         $audience = EmailBroadcast::normalizeAudience($audience);
-        if ($audience === 'filtered') {
-            return self::countForFilter($pdo, $filter);
+        if ($audience === 'filtered' || $filter->isActive()) {
+            return self::countMatching($pdo, $audience, $filter);
         }
 
         return count(self::recipientsForPreset($pdo, $audience));
+    }
+
+    /**
+     * @return list<array{id: int, email: string, name: string}>
+     */
+    private static function recipientsMatching(PDO $pdo, string $audience, AdminStudentListFilter $filter): array
+    {
+        [$sql, $params] = self::matchingSql($audience, $filter, false);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return self::mapRecipientRows($stmt);
+    }
+
+    private static function countMatching(PDO $pdo, string $audience, AdminStudentListFilter $filter): int
+    {
+        [$sql, $params] = self::matchingSql($audience, $filter, true);
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * @return array{0: string, 1: list<mixed>}
+     */
+    private static function matchingSql(string $audience, AdminStudentListFilter $filter, bool $countOnly): array
+    {
+        $built = $filter->sqlWhere();
+        $parts = [
+            'u.is_admin = 0',
+            'u.email IS NOT NULL AND TRIM(u.email) != \'\'',
+            '(' . $built['where'] . ')',
+        ];
+        $params = $built['params'];
+
+        $preset = $audience === 'filtered' ? 'all_students' : EmailBroadcast::normalizeAudience($audience);
+        if ($preset === 'with_access') {
+            $parts[] = 'EXISTS (SELECT 1 FROM access a WHERE a.user_id = u.id)';
+        }
+
+        $where = implode(' AND ', $parts);
+        if ($countOnly) {
+            return ['SELECT COUNT(*) FROM users u WHERE ' . $where, $params];
+        }
+
+        return ['SELECT u.id, u.email, u.name FROM users u WHERE ' . $where . ' ORDER BY u.id ASC', $params];
     }
 
     /**
@@ -55,33 +103,6 @@ final class BroadcastAudience
         }
 
         return self::mapRecipientRows($stmt);
-    }
-
-    /**
-     * @return list<array{id: int, email: string, name: string}>
-     */
-    public static function recipientsForFilter(PDO $pdo, AdminStudentListFilter $filter): array
-    {
-        $built = $filter->sqlWhere();
-        $sql = 'SELECT u.id, u.email, u.name FROM users u WHERE u.is_admin = 0'
-            . ' AND u.email IS NOT NULL AND TRIM(u.email) != \'\''
-            . ' AND (' . $built['where'] . ') ORDER BY u.id ASC';
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($built['params']);
-
-        return self::mapRecipientRows($stmt);
-    }
-
-    public static function countForFilter(PDO $pdo, AdminStudentListFilter $filter): int
-    {
-        $built = $filter->sqlWhere();
-        $sql = 'SELECT COUNT(*) FROM users u WHERE u.is_admin = 0'
-            . ' AND u.email IS NOT NULL AND TRIM(u.email) != \'\''
-            . ' AND (' . $built['where'] . ')';
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($built['params']);
-
-        return (int)$stmt->fetchColumn();
     }
 
     /**

@@ -9,12 +9,15 @@
 
   let timer = null;
 
+  function filterFields() {
+    return form.querySelectorAll('[data-broadcast-audience-field], [name="bf_q"]');
+  }
+
   function syncFilterPanel() {
     if (!filterPanel) {
       return;
     }
-    const isFiltered = audienceSelect.value === 'filtered';
-    if (isFiltered) {
+    if (audienceSelect.value === 'filtered') {
       filterPanel.open = true;
     }
   }
@@ -22,19 +25,21 @@
   function buildQuery() {
     const params = new URLSearchParams();
     params.set('audience', audienceSelect.value);
-    form.querySelectorAll('[data-broadcast-audience-field], [name="bf_q"]').forEach((field) => {
+    filterFields().forEach((field) => {
       if (!field.name) {
         return;
       }
-      if (field.type === 'checkbox' && !field.checked) {
+      if (field.type === 'checkbox') {
+        if (field.checked) {
+          params.set(field.name, field.value);
+        }
         return;
       }
-      params.set(field.name, field.value);
+      const value = String(field.value || '').trim();
+      if (value !== '') {
+        params.set(field.name, value);
+      }
     });
-    const q = form.querySelector('[name="bf_q"]');
-    if (q && q.value.trim() !== '') {
-      params.set('bf_q', q.value.trim());
-    }
     return params.toString();
   }
 
@@ -44,7 +49,12 @@
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('preview failed');
+        }
+        return res.json();
+      })
       .then((data) => {
         if (typeof data.count === 'number') {
           countEl.textContent = String(data.count);
@@ -55,7 +65,7 @@
 
   function scheduleRefresh() {
     window.clearTimeout(timer);
-    timer = window.setTimeout(refreshCount, 350);
+    timer = window.setTimeout(refreshCount, 250);
   }
 
   audienceSelect.addEventListener('change', () => {
@@ -63,10 +73,11 @@
     scheduleRefresh();
   });
 
-  form.querySelectorAll('[data-broadcast-audience-field], [name="bf_q"]').forEach((el) => {
+  filterFields().forEach((el) => {
     el.addEventListener('change', scheduleRefresh);
     el.addEventListener('input', scheduleRefresh);
   });
 
   syncFilterPanel();
+  refreshCount();
 })();
