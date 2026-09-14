@@ -131,6 +131,7 @@ return [
     'metrika' => [
         'counter_id' => ${Number(env('WWM_METRIKA_COUNTER_ID', '0')) || 0},
         'oauth_token' => ${phpString(env('WWM_METRIKA_OAUTH_TOKEN'))},
+        'visit_hostnames' => ['worldwatercolormasters.art', 'www.worldwatercolormasters.art'],
     ],
 
     'log_enabled' => true,

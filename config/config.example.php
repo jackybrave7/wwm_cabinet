@@ -85,6 +85,8 @@ return [
     'metrika' => [
         'counter_id' => 0,
         'oauth_token' => '',
+        // Dashboard visits filter (shared school counter)
+        'visit_hostnames' => ['worldwatercolormasters.art', 'www.worldwatercolormasters.art'],
     ],
 
     'log_enabled' => true,

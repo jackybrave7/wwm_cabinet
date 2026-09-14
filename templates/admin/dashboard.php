@@ -25,7 +25,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
   <div>
     <p class="badge badge-admin">Administrator</p>
     <h1 class="page-title page-title-sm">Dashboard</h1>
-    <p class="field-hint">Cabinet enrollments and Yandex Metrika traffic<?php if ($metrikaCounterId > 0): ?> (counter <?= (int)$metrikaCounterId ?>)<?php endif; ?>.</p>
+    <p class="field-hint">Cabinet enrollments and Yandex Metrika<?php if ($metrikaCounterId > 0): ?> (counter <?= (int)$metrikaCounterId ?><?php if (!empty($metrikaVisitHosts)): ?>, visits: <?= wwm_escape((string)$metrikaVisitHosts) ?><?php endif; ?>)<?php endif; ?>.</p>
   </div>
 </div>
 
@@ -89,7 +89,7 @@ $visitsLifetime = (int)($trafficLifetime['visits_total'] ?? 0);
 </div>
 
 <h2 class="admin-section-title">Selected period</h2>
-<p class="field-hint" style="margin:-4px 0 10px">Dates in Europe/Moscow. Purchases = unique AVO orders (one payment with several courses counts once). Demo uses AVO order date when imported.</p>
+<p class="field-hint" style="margin:-4px 0 10px">Dates in Europe/Moscow. Purchases = live sales only (webhooks/admin), unique AVO order per day — legacy CSV/AVO import excluded. Demo includes imports.</p>
 <div class="admin-stats admin-stats--4">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>

@@ -198,6 +198,7 @@ final class AdminDashboardStats
             $stmt = $this->pdo->prepare(
                 'SELECT COUNT(DISTINCT ' . $dedup . ') FROM access
                  WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
+                 . $this->paidCabinetSourceSql()
             );
             $stmt->execute([$type, $from->format('c'), $to->format('c')]);
 
@@ -230,10 +231,12 @@ final class AdminDashboardStats
             ? 'COUNT(DISTINCT ' . $this->purchaseDedupKeySql() . ')'
             : 'COUNT(*)';
 
+        $sourceSql = $type === 'paid' ? $this->paidCabinetSourceSql() : '';
         $stmt = $this->pdo->prepare(
             'SELECT ' . $expr . ' AS bucket, ' . $countExpr . ' AS cnt
              FROM access
-             WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?
+             WHERE access_type = ? AND (' . $eventAt . ') >= ? AND (' . $eventAt . ') <= ?'
+             . $sourceSql . '
              GROUP BY bucket'
         );
         $stmt->execute([$type, $from->format('c'), $to->format('c')]);
@@ -330,5 +333,11 @@ final class AdminDashboardStats
                 THEN 'order:' || TRIM(source_ref)
             ELSE 'grant:' || user_id || ':' || course_slug
         END";
+    }
+
+    /** Live cabinet / webhook sales only — exclude legacy bulk import rows. */
+    private function paidCabinetSourceSql(): string
+    {
+        return " AND COALESCE(source, '') NOT IN ('avo-import', 'csv-import')";
     }
 }

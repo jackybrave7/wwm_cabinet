@@ -68,6 +68,7 @@ final class AdminDashboardController
             'lifetimeConversions' => $lifetimeConversions,
             'metrikaConfigured' => $metrika->isConfigured(),
             'metrikaCounterId' => $metrika->counterId(),
+            'metrikaVisitHosts' => $metrika->visitHostnamesLabel(),
         ]);
     }
 }

@@ -86,11 +86,12 @@ final class YandexMetrikaReporting
         }
 
         $cacheKey = sprintf(
-            'bytime_%d_%s_%s_%s',
+            'bytime_%d_%s_%s_%s_%s',
             $this->counterId(),
             $from->format('Y-m-d'),
             $to->format('Y-m-d'),
-            $group
+            $group,
+            substr(hash('sha256', $this->visitsFilterParam() ?? 'all'), 0, 12)
         );
         $cached = $this->readCache($cacheKey);
         if ($cached !== null) {
@@ -103,7 +104,7 @@ final class YandexMetrikaReporting
             default => 'day',
         };
 
-        $query = http_build_query([
+        $query = $this->buildQuery([
             'ids' => (string)$this->counterId(),
             'metrics' => 'ym:s:visits,ym:s:users',
             'date1' => $from->format('Y-m-d'),
@@ -198,21 +199,23 @@ final class YandexMetrikaReporting
         }
 
         $cacheKey = sprintf(
-            'total_%d_%s_%s',
+            'total_%d_%s_%s_%s',
             $this->counterId(),
             $from->format('Y-m-d'),
-            $to->format('Y-m-d')
+            $to->format('Y-m-d'),
+            substr(hash('sha256', $this->visitsFilterParam() ?? 'all'), 0, 12)
         );
         $cached = $this->readCache($cacheKey);
         if ($cached !== null) {
             return $cached;
         }
 
-        $query = http_build_query([
+        $query = $this->buildQuery([
             'ids' => (string)$this->counterId(),
             'metrics' => 'ym:s:visits,ym:s:users',
             'date1' => $from->format('Y-m-d'),
             'date2' => $to->format('Y-m-d'),
+            'timezone' => '+03:00',
         ]);
 
         $url = 'https://api-metrika.yandex.net/stat/v1/data?' . $query;
@@ -236,6 +239,65 @@ final class YandexMetrikaReporting
         $this->writeCache($cacheKey, $result);
 
         return $result;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function visitHostnames(): array
+    {
+        $cfg = wwm_config()['metrika'] ?? [];
+        $raw = $cfg['visit_hostnames'] ?? ['worldwatercolormasters.art', 'www.worldwatercolormasters.art'];
+        if (!is_array($raw)) {
+            $raw = array_map('trim', explode(',', (string)$raw));
+        }
+        $hosts = [];
+        foreach ($raw as $host) {
+            $host = strtolower(trim((string)$host));
+            $host = preg_replace('#^https?://#', '', $host) ?? $host;
+            $host = rtrim($host, '/');
+            if ($host !== '') {
+                $hosts[] = $host;
+            }
+        }
+
+        return array_values(array_unique($hosts));
+    }
+
+    public function visitHostnamesLabel(): string
+    {
+        $hosts = $this->visitHostnames();
+
+        return $hosts !== [] ? implode(', ', $hosts) : 'all hosts';
+    }
+
+    private function visitsFilterParam(): ?string
+    {
+        $hosts = $this->visitHostnames();
+        if ($hosts === []) {
+            return null;
+        }
+
+        $parts = [];
+        foreach ($hosts as $host) {
+            $escaped = str_replace("'", "\\'", $host);
+            $parts[] = "ym:s:startURLDomain=='{$escaped}'";
+        }
+
+        return count($parts) === 1 ? $parts[0] : '(' . implode(' OR ', $parts) . ')';
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    private function buildQuery(array $params): string
+    {
+        $filter = $this->visitsFilterParam();
+        if ($filter !== null) {
+            $params['filters'] = $filter;
+        }
+
+        return http_build_query($params);
     }
 
     private function bucketKeyFromMetrika(string $dim, string $group): string

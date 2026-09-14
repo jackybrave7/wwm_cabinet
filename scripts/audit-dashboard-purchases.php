@@ -40,6 +40,7 @@ FROM access a
 JOIN users u ON u.id = a.user_id
 WHERE a.access_type = 'paid'
   AND strftime('%Y-%m-%d', {$bucketAt}) = ?
+  AND COALESCE(a.source, '') NOT IN ('avo-import', 'csv-import')
 ORDER BY a.avo_paid_at, a.granted_at, u.email
 SQL;
 
@@ -52,7 +53,7 @@ foreach ($rows as $row) {
     $unique[(string)$row['purchase_key']] = true;
 }
 
-echo "Paid rows on {$day} (MSK): " . count($rows) . PHP_EOL;
+echo "Paid rows on {$day} (MSK, cabinet only): " . count($rows) . PHP_EOL;
 echo 'Unique purchases (dashboard): ' . count($unique) . PHP_EOL;
 echo str_repeat('-', 72) . PHP_EOL;
 
