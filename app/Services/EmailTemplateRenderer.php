@@ -18,7 +18,7 @@ final class EmailTemplateRenderer
         if ($custom !== null) {
             $bodyHtml = $custom['body_html'] !== null
                 ? self::finalizeHtmlBody(
-                    self::applyVars((string)$custom['body_html'], $vars),
+                    self::applyVarsHtml((string)$custom['body_html'], $vars),
                     $vars,
                     $templateId,
                     $context
@@ -129,6 +129,19 @@ final class EmailTemplateRenderer
         }
 
         return strtr($template, $replacements);
+    }
+
+    /**
+     * @param array<string, string> $vars
+     */
+    public static function applyVarsHtml(string $template, array $vars): string
+    {
+        $escaped = [];
+        foreach ($vars as $key => $value) {
+            $escaped[$key] = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }
+
+        return self::applyVars($template, $escaped);
     }
 
     /**

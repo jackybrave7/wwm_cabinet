@@ -203,7 +203,7 @@ final class EmailTemplateCatalog
             'subject' => EmailTemplateRenderer::applyVars($draft['subject'], $vars),
             'text' => EmailTemplateRenderer::applyVars($draft['text'], $vars),
             'html' => $draft['html'] !== null
-                ? EmailTemplateRenderer::applyVars($draft['html'], $vars)
+                ? EmailTemplateRenderer::applyVarsHtml($draft['html'], $vars)
                 : null,
         ];
 

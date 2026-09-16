@@ -334,8 +334,8 @@ function wwm_email_head_styles(): string
         . '.pad{padding-left:24px!important;padding-right:24px!important;}'
         . '.email-title{font-size:26px!important;}'
         . '.email-logo{font-size:20px!important;}'
-        . '.btn a{display:block!important;}'
         . '}'
+        . '.btn a{display:inline-block!important;color:#ffffff!important;text-decoration:none!important;font-weight:700!important;}'
         . '</style>';
 }
 
@@ -597,8 +597,10 @@ function wwm_email_button_html(string $url, string $label): string
         . 'style="border-radius:8px;background:#e63027;mso-padding-alt:16px 32px;">'
         . '<a href="' . $url . '" target="_blank" '
         . 'style="display:inline-block;padding:16px 32px;font-size:17px;font-weight:700;line-height:1.2;'
-        . 'color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;border-radius:8px;">'
-        . $label . '</a></td></tr></table>';
+        . 'color:#ffffff!important;text-decoration:none!important;font-family:Arial,Helvetica,sans-serif;'
+        . 'border-radius:8px;">'
+        . '<span style="color:#ffffff!important;text-decoration:none!important;font-weight:700;">'
+        . $label . '</span></a></td></tr></table>';
 }
 
 function wwm_email_repair_cta_blocks(string $html): string
@@ -676,6 +678,7 @@ function wwm_repair_email_html(?string $html): ?string
     $out = preg_replace('/&lt;\s*(\/?)\s*([a-z][a-z0-9]*)\b/i', '<$1$2', $out) ?? $out;
     $out = preg_replace('/<\s+([a-z][a-z0-9]*)\b/i', '<$1', $out) ?? $out;
     $out = preg_replace('/<\s*\/\s*([a-z][a-z0-9]*)\b/i', '</$1', $out) ?? $out;
+    $out = preg_replace("/'(\s*)<\\s*\\/\\s*strong\\s*>/i", "'</strong>", $out) ?? $out;
     foreach (['table', 'tr', 'td', 'th', 'p', 'a', 'span', 'div', 'h1', 'h2', 'strong', 'img'] as $tag) {
         $out = preg_replace('/<\s+' . $tag . '\b/i', '<' . $tag, $out) ?? $out;
         $out = preg_replace('/<\s+\/' . $tag . '\b/i', '</' . $tag, $out) ?? $out;
@@ -739,6 +742,9 @@ function wwm_email_html_issues(?string $html): array
     }
     if (preg_match('/(?:<|&lt;)\s*a\s+href=/i', $html)) {
         $issues[] = 'broken cta button markup';
+    }
+    if (preg_match('/<\s+\/\s*strong\b/i', $html)) {
+        $issues[] = 'broken strong close tag';
     }
     if (preg_match('/&\s+#/i', $html)) {
         $issues[] = 'broken html entity';

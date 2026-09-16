@@ -59,6 +59,7 @@ final class EmailTracker
         }
 
         if ($htmlBody !== null && $htmlBody !== '') {
+            $htmlBody = wwm_repair_email_html($htmlBody) ?? $htmlBody;
             $htmlBody = $this->injectOpenPixel($htmlBody);
         }
 

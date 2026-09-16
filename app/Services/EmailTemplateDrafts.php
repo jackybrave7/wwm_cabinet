@@ -32,7 +32,7 @@ final class EmailTemplateDrafts
                     'Your demo access',
                     implode('', [
                         self::paragraph('Hello {{name}},'),
-                        self::paragraph('Your demo access to <strong>{{course_title}}</strong> is ready.'),
+                        self::paragraph('Your demo access to <span style="font-weight:700;">{{course_title}}</span> is ready.'),
                         self::paragraph('Demo access is active for <strong>{{expires_label}}</strong>.'),
                         self::button('{{login_url}}', 'Watch the demo lesson'),
                         self::credentialsBoxDraft(false),
@@ -68,7 +68,7 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
-                            'Thank you for your purchase! Your full access to <strong>{{course_title}}</strong> is ready.'
+                            'Thank you for your purchase! Your full access to <span style="font-weight:700;">{{course_title}}</span> is ready.'
                         ),
                         self::button('{{login_url}}', 'Sign in with saved password'),
                         self::credentialsBoxDraft(true),
@@ -101,7 +101,7 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
-                            'You requested demo access to <strong>{{course_title}}</strong>, '
+                            'You requested demo access to <span style="font-weight:700;">{{course_title}}</span>, '
                             . 'but we have not seen you in the cabinet yet.'
                         ),
                         self::paragraph(
@@ -138,7 +138,7 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
-                            'You requested demo access to <strong>{{course_title}}</strong>, '
+                            'You requested demo access to <span style="font-weight:700;">{{course_title}}</span>, '
                             . 'but it looks like you have not opened the lesson yet.'
                         ),
                         self::paragraph(
@@ -177,7 +177,7 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
-                            'This is a friendly reminder: your demo access to <strong>{{course_title}}</strong> '
+                            'This is a friendly reminder: your demo access to <span style="font-weight:700;">{{course_title}}</span> '
                             . 'will not last much longer.'
                         ),
                         self::paragraph(
@@ -215,7 +215,7 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hi {{name}},'),
                         self::paragraph(
-                            'We hope you enjoyed the demo lesson from <strong>{{course_title}}</strong>.'
+                            'We hope you enjoyed the demo lesson from <span style="font-weight:700;">{{course_title}}</span>.'
                         ),
                         self::paragraph(
                             'We have reserved an exclusive <strong>40% discount</strong> on full course access — just for you.'
@@ -254,7 +254,7 @@ final class EmailTemplateDrafts
                         self::paragraph('Hi {{name}},'),
                         self::paragraph(
                             'This is your <strong>final reminder</strong>: your 40% discount on '
-                            . '<strong>{{course_title}}</strong> expires in <strong>3 hours</strong>.'
+                            . '<span style="font-weight:700;">{{course_title}}</span> expires in <strong>3 hours</strong>.'
                         ),
                         self::couponBoxDraft('Use this code before time runs out'),
                         self::bulletList([
