@@ -157,7 +157,12 @@ function wwm_escape(?string $value): string
 
 function wwm_textarea_raw(string $text): string
 {
-    return str_replace('</textarea>', '&lt;/textarea&gt;', $text);
+    return preg_replace('/<\/textarea\s*>/i', '&lt;/textarea&gt;', $text) ?? $text;
+}
+
+function wwm_iframe_srcdoc(string $html): string
+{
+    return htmlspecialchars($html, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 function wwm_sanitize_utf8(string $text): string
@@ -822,7 +827,11 @@ function wwm_render(string $template, array $vars = []): void
     ob_start();
     require $templateFile;
     $content = (string)ob_get_clean();
-    $title = $pageTitle ?? wwm_config()['app_name'] ?? 'WWM';
+    if (isset($pageTitle) && (string)$pageTitle !== '') {
+        $title = (string)$pageTitle;
+    } elseif (!isset($title) || (string)$title === '') {
+        $title = wwm_config()['app_name'] ?? 'WWM';
+    }
     $layout = $layout ?? 'layout';
     require WWM_ROOT . '/templates/' . $layout . '.php';
 }

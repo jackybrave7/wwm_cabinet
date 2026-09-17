@@ -2054,3 +2054,44 @@ body.admin-body {
     grid-template-columns: 120px 1fr;
   }
 }
+
+.admin-broadcast-detail {
+  margin-top: 0;
+}
+
+.admin-broadcast-detail .admin-table--broadcast-links .col-num,
+.admin-broadcast-detail .admin-table--broadcast-recipients .col-num {
+  width: 96px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-broadcast-detail .admin-table--broadcast-recipients .col-status {
+  width: 88px;
+}
+
+.admin-broadcast-detail .admin-table--broadcast-recipients .col-date {
+  min-width: 168px;
+}
+
+.admin-broadcast-detail .admin-table--profile {
+  display: table;
+  table-layout: fixed;
+}
+
+.admin-broadcast-detail .admin-table--profile thead {
+  display: table-header-group;
+}
+
+.admin-broadcast-detail .admin-table--profile tbody {
+  display: table-row-group;
+}
+
+.admin-broadcast-detail .admin-table--profile tr {
+  display: table-row;
+}
+
+.admin-broadcast-detail .admin-table--profile th,
+.admin-broadcast-detail .admin-table--profile td {
+  display: table-cell;
+}

@@ -17,6 +17,17 @@ $clickRate = $trackedSent > 0 ? round(100 * $uniqueClickers / $trackedSent, 1) :
 $linkStats = is_array($linkStats ?? null) ? $linkStats : [];
 $recipientEngagement = is_array($recipientEngagement ?? null) ? $recipientEngagement : [];
 $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
+$formatWhen = static function (?string $iso): string {
+    $iso = trim((string)$iso);
+    if ($iso === '') {
+        return '—';
+    }
+    try {
+        return (new DateTimeImmutable($iso))->format('Y-m-d H:i') . ' UTC';
+    } catch (Throwable) {
+        return $iso;
+    }
+};
 ?>
 <div class="admin-topbar">
   <div>
@@ -39,6 +50,8 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
 <?php if (!empty($message)): ?>
   <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
 <?php endif; ?>
+
+<div class="admin-student-profile admin-broadcast-detail">
 
 <div class="admin-card" style="margin-bottom:16px">
   <dl class="admin-kv">
@@ -76,24 +89,24 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
   <?php if ($linkStats !== []): ?>
     <div class="admin-card" style="margin-bottom:16px">
       <h2 class="admin-team-section-title">Links</h2>
-      <div class="admin-table-wrap">
-        <table class="admin-table admin-table-compact">
+      <div class="admin-table-wrap admin-table-wrap--profile">
+        <table class="admin-table admin-table-compact admin-table--profile admin-table--broadcast-links">
           <thead>
             <tr>
               <th>URL</th>
-              <th>Unique clickers</th>
-              <th>Total clicks</th>
+              <th class="col-num">Unique clickers</th>
+              <th class="col-num">Total clicks</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($linkStats as $link): ?>
               <tr>
-                <td>
+                <td class="col-subject">
                   <a href="<?= wwm_escape((string)$link['target_url']) ?>" target="_blank" rel="noopener"><?= wwm_escape((string)($link['link_label'] ?: $link['target_url'])) ?></a>
                   <div class="field-hint"><?= wwm_escape((string)$link['target_url']) ?></div>
                 </td>
-                <td><?= (int)$link['unique_clickers'] ?></td>
-                <td><?= (int)$link['total_clicks'] ?></td>
+                <td class="col-num"><?= (int)$link['unique_clickers'] ?></td>
+                <td class="col-num"><?= (int)$link['total_clicks'] ?></td>
               </tr>
             <?php endforeach; ?>
           </tbody>
@@ -112,32 +125,32 @@ $hasHtml = trim((string)($b['body_html'] ?? '')) !== '';
         <span class="admin-expander-chevron" aria-hidden="true">▼</span>
       </summary>
       <div class="admin-expander-body">
-        <div class="admin-table-wrap">
-          <table class="admin-table admin-table-compact">
+        <div class="admin-table-wrap admin-table-wrap--profile">
+          <table class="admin-table admin-table-compact admin-table--profile admin-table--broadcast-recipients">
             <thead>
               <tr>
                 <th>Email</th>
-                <th>Delivery</th>
-                <th>Opened</th>
-                <th>Clicks</th>
+                <th class="col-status">Delivery</th>
+                <th class="col-date">Opened</th>
+                <th class="col-num">Clicks</th>
               </tr>
             </thead>
             <tbody>
               <?php foreach ($recipientEngagement as $row): ?>
                 <tr>
-                  <td><?= wwm_escape((string)($row['email'] ?? '')) ?></td>
-                  <td><span class="field-hint"><?= wwm_escape((string)($row['delivery_status'] ?? '')) ?></span></td>
-                  <td>
+                  <td class="col-subject"><?= wwm_escape((string)($row['email'] ?? '')) ?></td>
+                  <td class="col-status"><span class="field-hint"><?= wwm_escape((string)($row['delivery_status'] ?? '')) ?></span></td>
+                  <td class="col-date">
                     <?php if (!empty($row['opened_at'])): ?>
                       <span class="badge badge-demo" style="margin:0">Yes</span>
-                      <span class="field-hint"><?= wwm_escape((string)$row['opened_at']) ?><?= (int)($row['open_count'] ?? 0) > 1 ? ' · ' . (int)$row['open_count'] . '×' : '' ?></span>
+                      <span class="field-hint"><?= wwm_escape($formatWhen((string)$row['opened_at'])) ?><?= (int)($row['open_count'] ?? 0) > 1 ? ' · ' . (int)$row['open_count'] . '×' : '' ?></span>
                     <?php elseif (!$hasHtml): ?>
                       <span class="field-hint">n/a (plain)</span>
                     <?php else: ?>
                       <span class="field-hint">—</span>
                     <?php endif; ?>
                   </td>
-                  <td><?= (int)($row['click_count'] ?? 0) > 0 ? (int)$row['click_count'] : '—' ?></td>
+                  <td class="col-num"><?= (int)($row['click_count'] ?? 0) > 0 ? (int)$row['click_count'] : '—' ?></td>
                 </tr>
               <?php endforeach; ?>
             </tbody>
@@ -186,8 +199,7 @@ if ($htmlPreview !== '') {
       <button type="button" class="email-preview-tab" data-broadcast-preview-tab="text">Plain text</button>
     </div>
     <div class="email-preview-panel is-active" data-broadcast-preview-panel="visual">
-      <textarea id="broadcast-view-html-source" hidden readonly><?= wwm_textarea_raw($htmlPreview) ?></textarea>
-      <iframe class="email-preview-frame" title="Broadcast visual preview" id="broadcast-view-html-frame"></iframe>
+      <iframe class="email-preview-frame" title="Broadcast visual preview" id="broadcast-view-html-frame" srcdoc="<?= wwm_iframe_srcdoc($htmlPreview) ?>"></iframe>
     </div>
     <div class="email-preview-panel" data-broadcast-preview-panel="text">
       <pre class="email-preview-text"><?= wwm_escape($textPreview) ?></pre>
@@ -211,11 +223,6 @@ if ($htmlPreview !== '') {
 <?php if ($htmlPreview !== ''): ?>
 <script>
 (function () {
-  const source = document.getElementById('broadcast-view-html-source');
-  const frame = document.getElementById('broadcast-view-html-frame');
-  if (source && frame) {
-    frame.srcdoc = source.value;
-  }
   document.querySelectorAll('[data-broadcast-preview-tab]').forEach((tab) => {
     tab.addEventListener('click', () => {
       const name = tab.getAttribute('data-broadcast-preview-tab');
@@ -231,6 +238,8 @@ if ($htmlPreview !== '') {
 })();
 </script>
 <?php endif; ?>
+
+</div><!-- .admin-broadcast-detail -->
 
 <?php if ($canCancel && $status !== 'sent'): ?>
   <div class="admin-card">
