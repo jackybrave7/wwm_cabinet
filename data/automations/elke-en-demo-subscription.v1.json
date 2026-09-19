@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Elke demo funnel (subscription ENG)",
+    "description": "Migrated from AVO BP «Доступ к демо-доступу к видеокурсу Эльке Меммлер (через подписку) — ENG v.3»",
+    "course_slug": "elke-en"
+  },
+  "nodes": {
+    "start": {
+      "type": "trigger",
+      "label": "Entry: list subscription or /api/demo"
+    },
+    "grant_demo": {
+      "type": "grant_demo",
+      "course_slug": "elke-en",
+      "send_email": true,
+      "label": "Grant demo + optional welcome email"
+    },
+    "gate_paid_any_1": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased any product?"
+    },
+    "exit_paid_pause_2d": {
+      "type": "delay",
+      "seconds": 172800,
+      "label": "Pause 2 days (paid branch)"
+    },
+    "exit_paid_revoke": {
+      "type": "revoke_demo",
+      "course_slug": "elke-en",
+      "label": "Remove demo access"
+    },
+    "exit_paid_staff": {
+      "type": "notify_staff",
+      "label": "Notify staff (purchase during funnel)"
+    },
+    "end_paid": {
+      "type": "end",
+      "label": "End (purchased early)"
+    },
+    "wait_20h": {
+      "type": "delay",
+      "seconds": 72000,
+      "label": "Pause 20 hours"
+    },
+    "branch_opened": {
+      "type": "condition",
+      "condition": "demo_lesson_opened",
+      "course_slug": "elke-en",
+      "label": "Opened demo lesson (wwm_demo_opened)"
+    },
+    "mail_waiting": {
+      "type": "send_template",
+      "template": "reminder_demo_no_login",
+      "label": "Reminder — no login"
+    },
+    "mail_still": {
+      "type": "send_template",
+      "template": "reminder_demo_no_lesson",
+      "label": "Reminder — no lesson"
+    },
+    "wait_5h": {
+      "type": "delay",
+      "seconds": 18000,
+      "label": "Pause 5 hours"
+    },
+    "gate_paid_any_2": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before revoke?"
+    },
+    "revoke_after_demo": {
+      "type": "revoke_demo",
+      "course_slug": "elke-en",
+      "label": "Revoke demo after window"
+    },
+    "mail_sale_24h": {
+      "type": "send_template",
+      "template": "sale_demo_discount_24h",
+      "label": "40% offer (24h)"
+    },
+    "gate_paid_any_3": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased after 24h mail?"
+    },
+    "mail_final_3h": {
+      "type": "send_template",
+      "template": "sale_demo_discount_3h",
+      "label": "Final 3h reminder"
+    },
+    "gate_paid_course": {
+      "type": "condition",
+      "condition": "has_paid_course",
+      "course_slug": "elke-en",
+      "label": "Purchased Elke course?"
+    },
+    "staff_notify": {
+      "type": "notify_staff",
+      "label": "Notify staff (finished without purchase)"
+    },
+    "end_ok": {
+      "type": "end",
+      "label": "End"
+    }
+  },
+  "edges": [
+    { "from": "start", "to": "grant_demo" },
+    { "from": "grant_demo", "to": "gate_paid_any_1" },
+    { "from": "gate_paid_any_1", "to": "exit_paid_pause_2d", "branch": "yes" },
+    { "from": "gate_paid_any_1", "to": "wait_20h", "branch": "no" },
+    { "from": "exit_paid_pause_2d", "to": "exit_paid_revoke" },
+    { "from": "exit_paid_revoke", "to": "exit_paid_staff" },
+    { "from": "exit_paid_staff", "to": "end_paid" },
+    { "from": "wait_20h", "to": "branch_opened" },
+    { "from": "branch_opened", "to": "wait_5h", "branch": "yes" },
+    { "from": "branch_opened", "to": "mail_waiting", "branch": "no" },
+    { "from": "mail_waiting", "to": "mail_still" },
+    { "from": "mail_still", "to": "wait_5h" },
+    { "from": "wait_5h", "to": "gate_paid_any_2" },
+    { "from": "gate_paid_any_2", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_paid_any_2", "to": "revoke_after_demo", "branch": "no" },
+    { "from": "revoke_after_demo", "to": "mail_sale_24h" },
+    { "from": "mail_sale_24h", "to": "gate_paid_any_3" },
+    { "from": "gate_paid_any_3", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_paid_any_3", "to": "mail_final_3h", "branch": "no" },
+    { "from": "mail_final_3h", "to": "gate_paid_course" },
+    { "from": "gate_paid_course", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_paid_course", "to": "staff_notify", "branch": "no" },
+    { "from": "staff_notify", "to": "end_ok" }
+  ]
+}

@@ -134,6 +134,10 @@ final class DemoAccess
             $this->sendDemoLoginEmail($user, $course, $expiresAt, $loginUrl);
         }
 
+        if ($demoGranted && $source !== 'automation') {
+            EmailAutomationEnrollment::onDemoGranted($userId, $courseSlug);
+        }
+
         return [
             'user_id' => $userId,
             'created' => $created,

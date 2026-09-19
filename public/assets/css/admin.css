@@ -2095,3 +2095,22 @@ body.admin-body {
 .admin-broadcast-detail .admin-table--profile td {
   display: table-cell;
 }
+
+.automation-step-list {
+  margin: 12px 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.automation-step-list li {
+  margin-bottom: 6px;
+}
+
+.admin-code-textarea {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  width: 100%;
+  min-height: 320px;
+}

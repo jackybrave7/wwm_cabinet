@@ -10,6 +10,7 @@ use Wwm\Controllers\Admin\AdminCourseController;
 use Wwm\Controllers\Admin\AdminLessonController;
 use Wwm\Controllers\Admin\AdminBroadcastController;
 use Wwm\Controllers\Admin\AdminMailController;
+use Wwm\Controllers\Admin\AdminAutomationController;
 use Wwm\Controllers\BroadcastUnsubscribeController;
 use Wwm\Controllers\Admin\AdminSettingsController;
 use Wwm\Controllers\Admin\AdminStudentController;
@@ -277,6 +278,27 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/reset$#', $path, $m)) {
             (new AdminMailController())->reset($m[1]);
+            return;
+        }
+
+        if ($method === 'GET' && $path === '/admin/automations') {
+            (new AdminAutomationController())->index();
+            return;
+        }
+        if ($method === 'POST' && $path === '/admin/automations/run') {
+            (new AdminAutomationController())->runNow();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/automations/(\d+)$#', $path, $m)) {
+            (new AdminAutomationController())->edit((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)$#', $path, $m)) {
+            (new AdminAutomationController())->save((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/import-avo$#', $path, $m)) {
+            (new AdminAutomationController())->importAvo((int)$m[1]);
             return;
         }
 

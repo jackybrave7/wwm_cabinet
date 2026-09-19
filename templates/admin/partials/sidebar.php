@@ -42,6 +42,7 @@ $canAdmins = is_array($navUser) && AdminAccess::canManageAdmins($navUser);
         <?php endif; ?>
         <?php if ($canEmails): ?>
           <a href="/admin/emails" class="<?= ($adminNav ?? '') === 'emails' ? 'is-active' : '' ?>">Emails</a>
+          <a href="/admin/automations" class="<?= ($adminNav ?? '') === 'automations' ? 'is-active' : '' ?>">Automations</a>
         <?php endif; ?>
         <?php if ($canBroadcasts): ?>
           <a href="/admin/broadcasts" class="<?= ($adminNav ?? '') === 'broadcasts' ? 'is-active' : '' ?>">Broadcasts</a>

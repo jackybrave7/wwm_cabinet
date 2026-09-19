@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 22;
+    public const SCHEMA_VERSION = 24;
 
     public static function connect(string $path): PDO
     {
@@ -292,9 +292,91 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_paid_at ON payments(paid_at);
+
+CREATE TABLE IF NOT EXISTS email_automations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  course_slug TEXT NOT NULL DEFAULT '',
+  is_active INTEGER NOT NULL DEFAULT 0,
+  definition_json TEXT NOT NULL,
+  avo_export_json TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_automations_course ON email_automations(course_slug);
+CREATE INDEX IF NOT EXISTS idx_email_automations_active ON email_automations(is_active);
+
+CREATE TABLE IF NOT EXISTS email_automation_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  automation_id INTEGER NOT NULL REFERENCES email_automations(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_slug TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'cancelled')),
+  current_node_id TEXT NOT NULL,
+  next_run_at TEXT,
+  context_json TEXT NOT NULL DEFAULT '{}',
+  enrolled_at TEXT NOT NULL,
+  completed_at TEXT,
+  updated_at TEXT NOT NULL,
+  UNIQUE(automation_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_automation_runs_due ON email_automation_runs(status, next_run_at);
+CREATE INDEX IF NOT EXISTS idx_email_automation_runs_user ON email_automation_runs(user_id);
+
+CREATE TABLE IF NOT EXISTS email_automation_step_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  automation_id INTEGER NOT NULL REFERENCES email_automations(id) ON DELETE CASCADE,
+  run_id INTEGER NOT NULL REFERENCES email_automation_runs(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  node_id TEXT NOT NULL,
+  node_type TEXT NOT NULL DEFAULT '',
+  branch TEXT,
+  detail TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_automation_step_events_flow ON email_automation_step_events(automation_id, node_id);
+CREATE INDEX IF NOT EXISTS idx_automation_step_events_run ON email_automation_step_events(run_id);
 SQL);
 
+        self::seedEmailAutomations($pdo);
         self::migrateEmailTemplatesLogo($pdo);
+    }
+
+    private static function seedEmailAutomations(PDO $pdo): void
+    {
+        $stmt = $pdo->query('SELECT COUNT(*) FROM email_automations');
+        if ($stmt && (int)$stmt->fetchColumn() > 0) {
+            return;
+        }
+
+        $path = WWM_ROOT . '/data/automations/elke-en-demo-subscription.v1.json';
+        if (!is_readable($path)) {
+            return;
+        }
+
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+
+        $now = gmdate('c');
+        $pdo->prepare(
+            'INSERT INTO email_automations (slug, title, description, course_slug, is_active, definition_json, avo_export_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+        )->execute([
+            'elke-en-demo-subscription',
+            'Elke demo funnel (subscription ENG)',
+            'Cabinet automation migrated from AVO business process v.3',
+            'elke-en',
+            $definition,
+            $now,
+            $now,
+        ]);
     }
 
     private static function migrateEmailTemplatesLogo(PDO $pdo): void
