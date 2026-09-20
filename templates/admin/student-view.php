@@ -297,6 +297,55 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
   </div>
 </details>
 
+<?php
+$automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
+?>
+<details class="admin-card admin-expander"<?= $automationRuns !== [] ? ' open' : '' ?>>
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2>Процессы</h2>
+      <span class="field-hint"><?= $automationRuns === [] ? 'Не в автоматизациях' : count($automationRuns) . ' зачисл.' ?></span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
+    <?php if ($automationRuns === []): ?>
+      <p class="field-hint">Ученик ещё не попадал в email-процессы. Демо или оплата зачисляют только если процесс включён и курс совпадает.</p>
+    <?php else: ?>
+      <div class="admin-table-wrap admin-table-wrap--profile">
+        <table class="admin-table admin-table-compact admin-table--profile">
+          <thead>
+            <tr>
+              <th>Процесс</th>
+              <th>Статус</th>
+              <th>Блок</th>
+              <th class="col-date">Зачислен</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($automationRuns as $run): ?>
+              <?php
+                $runStatus = (string)($run['status'] ?? '');
+                $badge = $runStatus === 'active' ? 'badge-paid' : ($runStatus === 'completed' ? 'badge-demo' : 'badge-draft');
+                $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : $runStatus);
+              ?>
+              <tr>
+                <td>
+                  <a href="/admin/automations/<?= (int)($run['automation_id'] ?? 0) ?>/edit"><?= wwm_escape((string)($run['title'] ?? $run['slug'] ?? '')) ?></a>
+                  <br><span class="field-hint"><code><?= wwm_escape((string)($run['slug'] ?? '')) ?></code></span>
+                </td>
+                <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
+                <td><?= wwm_escape((string)($run['current_node_id'] ?? '—')) ?></td>
+                <td class="col-date"><?= wwm_escape($formatDate(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+  </div>
+</details>
+
 <details class="admin-card admin-expander">
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">

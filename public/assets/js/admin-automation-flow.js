@@ -947,10 +947,10 @@
   }
 
   function defaultStaffNotifyBody() {
-    return 'Student: {{student_name}} <{{student_email}}>\n'
-      + 'Course: {{course_slug}}\n'
-      + 'Flow: {{automation_title}}\n\n'
-      + 'Open in admin:\n'
+    return '{{student_name}}\n'
+      + '{{student_email}}\n'
+      + '{{course_slug}}\n'
+      + '{{automation_title}}\n'
       + '{{admin_student_url}}';
   }
 
@@ -1866,12 +1866,19 @@
         admins.forEach((a) => {
           const val = String(a.value);
           const checked = selected.has(val) ? ' checked' : '';
-          const title = escapeHtml(a.roles || '');
-          html += '<label class="automation-staff-admin-item" title="' + title + '">';
+          const name = String(a.name || a.email || '').trim();
+          const email = String(a.email || '').trim();
+          const roles = String(a.roles || '').trim();
+          const tip = [email, roles].filter(Boolean).join(' · ');
+          html += '<label class="automation-staff-admin-item" title="' + escapeHtml(tip) + '">';
           html += '<input type="checkbox" data-staff-admin="' + escapeHtml(val) + '" value="1"' + checked + '>';
           html += '<span class="automation-staff-admin-item__text">';
-          html += '<span class="automation-staff-admin-item__name">' + escapeHtml(a.name || a.email) + '</span>';
-          html += '<span class="automation-staff-admin-item__meta">' + escapeHtml(a.email) + ' · ' + escapeHtml(a.roles || '') + '</span>';
+          html += '<span class="automation-staff-admin-item__name">' + escapeHtml(name) + '</span>';
+          if (email && email !== name) {
+            html += '<span class="automation-staff-admin-item__meta">' + escapeHtml(email) + '</span>';
+          } else if (roles) {
+            html += '<span class="automation-staff-admin-item__meta">' + escapeHtml(roles) + '</span>';
+          }
           html += '</span></label>';
         });
         html += '</div></div>';

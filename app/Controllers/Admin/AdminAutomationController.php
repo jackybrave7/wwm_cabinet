@@ -5,6 +5,7 @@ namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
 use Wwm\Models\EmailAutomation;
+use Wwm\Models\EmailAutomationRun;
 use Wwm\Models\EmailAutomationStepEvent;
 use Wwm\Models\User;
 use Wwm\Models\EmailBroadcast;
@@ -94,6 +95,7 @@ final class AdminAutomationController
             'nodeStats' => $nodeStats,
             'stepEventTotal' => EmailAutomationStepEvent::totalEvents($pdo, $id),
             'flowActiveRuns' => $activeRuns,
+            'flowRuns' => EmailAutomationRun::listForAutomation($pdo, $id),
             'isArchivedFlow' => EmailAutomation::isArchived($row),
             'entryModeLabels' => EmailAutomation::entryModeLabels(),
             'courseSlugs' => $this->courseSlugOptions(),

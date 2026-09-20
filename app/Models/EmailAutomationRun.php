@@ -17,6 +17,44 @@ final class EmailAutomationRun
         return (bool)$stmt->fetchColumn();
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function listForAutomation(PDO $pdo, int $automationId, int $limit = 80): array
+    {
+        $limit = max(1, min(200, $limit));
+        $stmt = $pdo->prepare(
+            'SELECT r.id, r.user_id, r.course_slug, r.status, r.current_node_id,
+                    r.next_run_at, r.enrolled_at, r.completed_at, u.email, u.name
+             FROM email_automation_runs r
+             LEFT JOIN users u ON u.id = r.user_id
+             WHERE r.automation_id = ?
+             ORDER BY r.enrolled_at DESC, r.id DESC
+             LIMIT ' . $limit
+        );
+        $stmt->execute([$automationId]);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function listForUser(PDO $pdo, int $userId): array
+    {
+        $stmt = $pdo->prepare(
+            'SELECT r.id, r.automation_id, r.course_slug, r.status, r.current_node_id,
+                    r.enrolled_at, r.completed_at, a.title, a.slug
+             FROM email_automation_runs r
+             INNER JOIN email_automations a ON a.id = r.automation_id
+             WHERE r.user_id = ?
+             ORDER BY r.enrolled_at DESC, r.id DESC'
+        );
+        $stmt->execute([$userId]);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
     public static function findActive(PDO $pdo, int $automationId, int $userId): ?array
     {
         $stmt = $pdo->prepare(

@@ -195,8 +195,8 @@ body.admin-body {
 
 .admin-table td,
 .admin-table th {
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .admin-table th,
@@ -2094,12 +2094,50 @@ body.admin-body {
   flex-wrap: wrap;
 }
 
+.admin-table-actions .btn {
+  white-space: nowrap;
+}
+
+.admin-table--automations {
+  min-width: 880px;
+  table-layout: fixed;
+}
+
+.admin-table--automations th {
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.admin-table--automations .col-flow {
+  width: 28%;
+}
+
+.admin-table--automations .col-entry {
+  width: 18%;
+}
+
+.admin-table--automations .col-course {
+  width: 22%;
+}
+
+.admin-table--automations .col-status,
+.admin-table--automations .col-num {
+  width: 7rem;
+  white-space: nowrap;
+}
+
 .admin-table--automations .admin-table-actions-col {
-  min-width: 18rem;
+  width: 17rem;
+  white-space: nowrap;
 }
 
 .admin-table--automations td.admin-table-actions {
   justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.admin-table--automations .badge {
+  white-space: nowrap;
 }
 
 .admin-pre {

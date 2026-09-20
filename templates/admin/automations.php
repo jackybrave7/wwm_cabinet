@@ -113,10 +113,10 @@ $listErr = (string)($_GET['error'] ?? '');
     <table class="admin-table admin-table-compact admin-table--automations">
       <thead>
         <tr>
-          <th>Flow</th>
-          <th>Entry</th>
-          <th>Course</th>
-          <th>Status</th>
+          <th class="col-flow">Flow</th>
+          <th class="col-entry">Entry</th>
+          <th class="col-course">Course</th>
+          <th class="col-status">Status</th>
           <th class="col-num">Active runs</th>
           <th class="admin-table-actions-col">Actions</th>
         </tr>
@@ -137,12 +137,12 @@ $listErr = (string)($_GET['error'] ?? '');
             $courseSlugCell = trim((string)($row['course_slug'] ?? ''));
           ?>
           <tr>
-            <td>
+            <td class="col-flow">
               <strong><?= wwm_escape($title) ?></strong><br>
               <span class="field-hint"><?= wwm_escape((string)$row['slug']) ?></span>
             </td>
-            <td><span class="field-hint"><?= wwm_escape($entryLabel) ?></span></td>
-            <td><?php
+            <td class="col-entry"><span class="field-hint"><?= wwm_escape($entryLabel) ?></span></td>
+            <td class="col-course"><?php
               if ($courseSlugCell === '') {
                   echo '<span class="field-hint">—</span>';
               } else {
@@ -153,7 +153,7 @@ $listErr = (string)($_GET['error'] ?? '');
                   }
               }
             ?></td>
-            <td>
+            <td class="col-status">
               <?php if ($archivedView): ?>
                 <span class="badge badge-draft">Archived</span>
               <?php elseif ($isActive): ?>

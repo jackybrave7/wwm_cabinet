@@ -10,6 +10,8 @@ use Wwm\Models\EmailMessage;
 use Wwm\Models\Payment;
 use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
+use Wwm\Models\EmailAutomationRun;
+use Wwm\Services\EmailAutomationEnrollment;
 use Wwm\Services\AccessPeriod;
 use Wwm\Services\AdminAccess;
 use Wwm\Services\AdminStudentListFilter;
@@ -337,6 +339,7 @@ final class AdminStudentController
                 ? $avoClient->contactHasTag($avoContactId, $avoClient->tagId('demo_opened'))
                 : null,
             'email_messages' => EmailMessage::forUser($pdo, $id),
+            'automation_runs' => EmailAutomationRun::listForUser($pdo, $id),
             'payments' => Payment::forUser($pdo, $id),
             'message' => match ($_GET['created'] ?? '') {
                 '1' => 'Student created.',
@@ -392,6 +395,11 @@ final class AdminStudentController
 
         Access::grant($pdo, $id, $courseSlug, $accessType, $expiresAt, 'admin', 'manual');
         wwm_log(sprintf('admin grant access user_id=%d course=%s type=%s', $id, $courseSlug, $accessType));
+        if ($accessType === 'demo') {
+            EmailAutomationEnrollment::onDemoGranted($id, $courseSlug);
+        } else {
+            EmailAutomationEnrollment::onPaymentRecorded($id, $courseSlug, gmdate('c'));
+        }
 
         wwm_redirect('/admin/students/' . $id . '?created=access');
     }

@@ -259,7 +259,7 @@ final class EmailAutomationNodeCatalog
                 'staff_admin_ids' => [],
                 'staff_recipients' => '',
                 'notify_subject' => 'WWM automation: {{step_label}}',
-                'notify_body' => "Student: {{student_name}} <{{student_email}}>\nCourse: {{course_slug}}\nFlow: {{automation_title}}\n\nOpen in admin:\n{{admin_student_url}}",
+                'notify_body' => "{{student_name}}\n{{student_email}}\n{{course_slug}}\n{{automation_title}}\n{{admin_student_url}}",
             ],
             'end' => $data + ['outcome' => 'completed'],
             'trigger' => $data + [

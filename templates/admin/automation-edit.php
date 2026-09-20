@@ -156,6 +156,81 @@ $nodeStats = is_array($nodeStats ?? null) ? $nodeStats : [];
 $stepEventTotal = (int)($stepEventTotal ?? 0);
 $nodesById = $nodes;
 ?>
+<?php
+$flowRuns = is_array($flowRuns ?? null) ? $flowRuns : [];
+$nodeLabel = static function (string $nodeId) use ($nodes): string {
+    $node = $nodes[$nodeId] ?? null;
+    if (is_array($node) && trim((string)($node['label'] ?? '')) !== '') {
+        return (string)$node['label'];
+    }
+    return $nodeId !== '' ? $nodeId : '—';
+};
+$formatRunAt = static function (?string $iso): string {
+    if ($iso === null || $iso === '') {
+        return '—';
+    }
+    $ts = strtotime($iso);
+    return $ts ? date('d.m.Y H:i', $ts) : $iso;
+};
+?>
+<div class="admin-card" style="margin-bottom:16px">
+  <h2 class="admin-team-section-title">Ученики в процессе</h2>
+  <p class="field-hint">
+    Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
+    Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют, если процесс <strong>включён</strong>, тип входа «демо» и slug курса совпадает.
+  </p>
+  <?php if ($flowRuns === []): ?>
+    <p class="field-hint">Пока никого нет. Если демо уже выдано вручную — зачислите email ниже (процесс должен быть включён).</p>
+  <?php else: ?>
+    <div class="admin-table-wrap admin-table-wrap--profile" style="margin-top:12px">
+      <table class="admin-table admin-table-compact admin-table--profile">
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Статус</th>
+            <th>Сейчас на блоке</th>
+            <th class="col-date">Зачислен</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($flowRuns as $run): ?>
+            <?php
+              $runStatus = (string)($run['status'] ?? '');
+              $badge = $runStatus === 'active' ? 'badge-paid' : ($runStatus === 'completed' ? 'badge-demo' : 'badge-draft');
+              $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : $runStatus);
+              $runName = trim((string)($run['name'] ?? ''));
+              $runEmail = (string)($run['email'] ?? '');
+            ?>
+            <tr>
+              <td>
+                <a href="/admin/students/<?= (int)($run['user_id'] ?? 0) ?>"><?= wwm_escape($runName !== '' ? $runName : $runEmail) ?></a>
+                <?php if ($runName !== '' && $runEmail !== ''): ?>
+                  <br><span class="field-hint"><?= wwm_escape($runEmail) ?></span>
+                <?php endif; ?>
+              </td>
+              <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
+              <td><?= wwm_escape($nodeLabel((string)($run['current_node_id'] ?? ''))) ?></td>
+              <td class="col-date"><?= wwm_escape($formatRunAt(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+  <?php if (!$isArchivedFlow): ?>
+  <form method="post" action="/admin/automations/<?= $id ?>/enroll" class="admin-filter-grid" style="margin-top:16px">
+    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    <label class="field">
+      <span class="field-label">Зачислить по email</span>
+      <input type="email" name="student_email" required placeholder="student@example.com" autocomplete="off">
+    </label>
+    <div class="field" style="align-self:flex-end">
+      <button type="submit" class="btn btn-ghost">Добавить в начало</button>
+    </div>
+  </form>
+  <?php endif; ?>
+</div>
+
 <div class="admin-card" style="margin-bottom:16px">
   <h2 class="admin-team-section-title">Step statistics</h2>
   <p class="field-hint">How many times each node was reached (unique students and total passes). Logged only while the flow is active.</p>
