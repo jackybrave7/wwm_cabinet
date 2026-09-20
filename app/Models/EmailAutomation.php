@@ -210,33 +210,11 @@ final class EmailAutomation
 
     {
 
-        $courseSlug = trim($courseSlug);
-
-        if ($courseSlug === '') {
-
-            return null;
-
-        }
-
-        $stmt = $pdo->prepare(
-
-            'SELECT * FROM email_automations
-
-             WHERE course_slug = ? AND is_active = 1 AND entry_mode = ?
-
-               AND (archived_at IS NULL OR archived_at = \'\')
-
-             ORDER BY id ASC LIMIT 1'
-
-        );
-
-        $stmt->execute([$courseSlug, self::ENTRY_DEMO_GRANT]);
-
-        $row = $stmt->fetch();
+        $rows = self::findActiveByEntryMode($pdo, self::ENTRY_DEMO_GRANT, $courseSlug);
 
 
 
-        return is_array($row) ? $row : null;
+        return $rows[0] ?? null;
 
     }
 
@@ -262,7 +240,7 @@ final class EmailAutomation
 
         $params = [$entryMode];
 
-        if ($entryMode === self::ENTRY_PAYMENT_COURSE) {
+        if (self::entryModeRequiresCourseSlug($entryMode)) {
 
             $courseSlug = trim((string)$courseSlug);
 

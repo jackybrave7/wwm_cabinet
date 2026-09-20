@@ -152,11 +152,6 @@ if ($err !== '' && isset($errors[$err])): ?>
 <?php endif; ?>
 
 <?php
-$nodeStats = is_array($nodeStats ?? null) ? $nodeStats : [];
-$stepEventTotal = (int)($stepEventTotal ?? 0);
-$nodesById = $nodes;
-?>
-<?php
 $flowRuns = is_array($flowRuns ?? null) ? $flowRuns : [];
 $nodeLabel = static function (string $nodeId) use ($nodes): string {
     $node = $nodes[$nodeId] ?? null;
@@ -177,7 +172,7 @@ $formatRunAt = static function (?string $iso): string {
   <h2 class="admin-team-section-title">Ученики в процессе</h2>
   <p class="field-hint">
     Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
-    Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют, если процесс <strong>включён</strong>, тип входа «демо» и slug курса совпадает.
+    Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют во все <strong>включённые</strong> процессы с типом входа «демо» и тем же slug курса.
   </p>
   <?php if ($flowRuns === []): ?>
     <p class="field-hint">Пока никого нет. Если демо уже выдано вручную — зачислите email ниже (процесс должен быть включён).</p>
@@ -231,52 +226,10 @@ $formatRunAt = static function (?string $iso): string {
   <?php endif; ?>
 </div>
 
-<div class="admin-card" style="margin-bottom:16px">
-  <h2 class="admin-team-section-title">Step statistics</h2>
-  <p class="field-hint">How many times each node was reached (unique students and total passes). Logged only while the flow is active.</p>
-  <?php if ($stepEventTotal === 0): ?>
-    <p class="field-hint">No events yet.</p>
-  <?php else: ?>
-    <div class="admin-table-wrap admin-table-wrap--profile" style="margin-top:12px">
-      <table class="admin-table admin-table-compact admin-table--profile">
-        <thead>
-          <tr>
-            <th>Node</th>
-            <th>Type</th>
-            <th class="col-num">Students</th>
-            <th class="col-num">Passes</th>
-            <th class="col-date">Last</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($nodeStats as $stat): ?>
-            <?php
-              $nid = (string)$stat['node_id'];
-              $nodeMeta = $nodesById[$nid] ?? null;
-              $label = is_array($nodeMeta) ? (string)($nodeMeta['label'] ?? $nid) : $nid;
-            ?>
-            <tr>
-              <td class="col-subject">
-                <strong><?= wwm_escape($nid) ?></strong><br>
-                <span class="field-hint"><?= wwm_escape($label) ?></span>
-              </td>
-              <td><?= wwm_escape((string)$stat['node_type']) ?></td>
-              <td class="col-num"><?= (int)$stat['unique_users'] ?></td>
-              <td class="col-num"><?= (int)$stat['hits'] ?></td>
-              <td class="col-date"><span class="field-hint"><?= wwm_escape((string)($stat['last_at'] ?? '—')) ?></span></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-    <p class="field-hint" style="margin-top:8px">Total logged events: <?= $stepEventTotal ?></p>
-  <?php endif; ?>
-</div>
-
 <form method="post" action="/admin/automations/<?= $id ?>" class="admin-card automation-flow-editor" id="automation-edit-form">
   <h2 class="admin-team-section-title">Визуальный редактор сценария</h2>
   <div id="automation-flow-shell" class="automation-flow-shell">
-  <p class="field-hint">Связь: от выхода к входу. <strong>Отсоединить</strong> — потяните линию с выхода или входа в пустое место и отпустите. Или клик по линии → «Удалить связь» / Delete. Колёсико — масштаб. Сдвиг схемы — зажатая <strong>ПКМ</strong> на пустом поле.</p>
+  <p class="field-hint">Связь: от выхода к входу. <strong>Отсоединить</strong> — потяните линию с выхода или входа в пустое место и отпустите. Или клик по линии → «Удалить связь» / Delete. Колёсико — масштаб. Сдвиг схемы — зажатая <strong>ПКМ</strong> на пустом поле. Цифры слева у блока: сверху — кто сейчас на шаге, снизу — кто уже прошёл. Клик по числу открывает список.</p>
   <div class="automation-flow-toolbar">
     <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-undo" disabled title="Ctrl+Z">Отменить</button>
     <span class="automation-flow-zoom-wrap" title="Ctrl + колёсико мыши на схеме">

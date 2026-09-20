@@ -587,6 +587,80 @@ body.automation-flow-rmb-pan .drawflow-node {
   border-radius: 10px;
   color: inherit;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: visible;
+}
+
+.automation-node-stat {
+  position: absolute;
+  left: -30px;
+  z-index: 8;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.automation-node-stat--wait {
+  top: 6px;
+}
+
+.automation-node-stat--pass {
+  bottom: 6px;
+}
+
+.automation-node-stat:hover,
+.automation-node-stat:focus-visible {
+  border-color: #64748b;
+  background: #f8fafc;
+}
+
+.automation-node-stat:focus-visible {
+  outline: 2px solid var(--wwm-accent, #c45c26);
+  outline-offset: 1px;
+}
+
+.automation-node-stat.is-empty {
+  color: #94a3b8;
+}
+
+.automation-node-people .modal-dialog {
+  width: min(840px, 100%);
+  max-height: min(80vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+.automation-node-people__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.automation-node-people__close:hover {
+  color: #0f172a;
+}
+
+.automation-node-people .admin-table-wrap {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .drawflow .drawflow-node.automation-node--trigger {

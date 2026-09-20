@@ -752,6 +752,210 @@
     return parts.filter(Boolean).join(' ');
   }
 
+  function statsForNode(nodeId) {
+    const all = config.step_stats || {};
+    const row = all[nodeId];
+    if (!row || typeof row !== 'object') {
+      return { hits: 0, unique_users: 0, last_at: null };
+    }
+    return {
+      hits: Number(row.hits) || 0,
+      unique_users: Number(row.unique_users) || 0,
+      last_at: row.last_at || null,
+    };
+  }
+
+  function waitingForNode(nodeId) {
+    const all = config.node_waiting || {};
+    return Array.isArray(all[nodeId]) ? all[nodeId] : [];
+  }
+
+  function occupancyForNode(nodeId) {
+    const waiting = waitingForNode(nodeId);
+    if (waiting.length > 0) {
+      return waiting.length;
+    }
+    const occ = config.node_occupancy || {};
+    return Number(occ[nodeId]) || 0;
+  }
+
+  function applyNodeStats(dfId) {
+    const id = normalizeDfId(dfId);
+    const nodeEl = document.getElementById('node-' + id);
+    if (!nodeEl) {
+      return;
+    }
+    let nodeId = '';
+    try {
+      const n = editor.getNodeFromId(id);
+      nodeId = String(n?.data?.node_id || '');
+    } catch (e) {
+      return;
+    }
+    if (nodeId === '') {
+      return;
+    }
+    const waitN = occupancyForNode(nodeId);
+    const passN = statsForNode(nodeId).unique_users;
+    let waitBtn = nodeEl.querySelector(':scope > .automation-node-stat--wait');
+    let passBtn = nodeEl.querySelector(':scope > .automation-node-stat--pass');
+    if (!waitBtn) {
+      waitBtn = document.createElement('button');
+      waitBtn.type = 'button';
+      waitBtn.className = 'automation-node-stat automation-node-stat--wait';
+      nodeEl.appendChild(waitBtn);
+    }
+    if (!passBtn) {
+      passBtn = document.createElement('button');
+      passBtn.type = 'button';
+      passBtn.className = 'automation-node-stat automation-node-stat--pass';
+      nodeEl.appendChild(passBtn);
+    }
+    waitBtn.dataset.nodeId = nodeId;
+    waitBtn.dataset.kind = 'waiting';
+    waitBtn.textContent = String(waitN);
+    waitBtn.title = 'Сейчас на блоке: ' + waitN;
+    waitBtn.setAttribute('aria-label', 'Сейчас на блоке: ' + waitN);
+    waitBtn.classList.toggle('is-empty', waitN === 0);
+
+    passBtn.dataset.nodeId = nodeId;
+    passBtn.dataset.kind = 'passed';
+    passBtn.textContent = String(passN);
+    passBtn.title = 'Прошли блок: ' + passN;
+    passBtn.setAttribute('aria-label', 'Прошли блок: ' + passN);
+    passBtn.classList.toggle('is-empty', passN === 0);
+  }
+
+  function applyAllNodeStats() {
+    const home = editor.drawflow?.drawflow?.Home?.data || {};
+    Object.keys(home).forEach(applyNodeStats);
+  }
+
+  function formatPersonDate(iso) {
+    if (!iso) {
+      return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return String(iso);
+    }
+    const p = (n) => String(n).padStart(2, '0');
+    return p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear()
+      + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function uniquePeople(rows) {
+    const seen = new Map();
+    (rows || []).forEach((row) => {
+      const uid = Number(row.user_id) || 0;
+      if (uid <= 0) {
+        return;
+      }
+      const prev = seen.get(uid);
+      if (!prev || String(row.created_at || '') > String(prev.created_at || '')) {
+        seen.set(uid, row);
+      }
+    });
+    return Array.from(seen.values());
+  }
+
+  function ensurePeopleModal() {
+    let el = document.getElementById('automation-node-people');
+    if (el) {
+      return el;
+    }
+    el = document.createElement('div');
+    el.id = 'automation-node-people';
+    el.className = 'modal automation-node-people';
+    el.innerHTML = ''
+      + '<div class="modal-backdrop" data-people-close></div>'
+      + '<div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="automation-node-people-title">'
+      + '<button type="button" class="automation-node-people__close" data-people-close aria-label="Закрыть">×</button>'
+      + '<h2 id="automation-node-people-title">Прошедшие блок</h2>'
+      + '<p class="field-hint automation-node-people__hint"></p>'
+      + '<div class="admin-table-wrap admin-table-wrap--profile">'
+      + '<table class="admin-table admin-table-compact admin-table--profile">'
+      + '<thead><tr><th>Имя</th><th>Email</th><th class="col-date">Дата</th></tr></thead>'
+      + '<tbody></tbody></table></div>'
+      + '</div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-people-close]')) {
+        el.classList.remove('is-open');
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && el.classList.contains('is-open')) {
+        el.classList.remove('is-open');
+      }
+    });
+    return el;
+  }
+
+  function renderPeopleRows(tbody, rows, emptyText) {
+    const people = uniquePeople(rows);
+    if (people.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" class="field-hint">' + escapeHtml(emptyText) + '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = people.map((row) => {
+      const name = String(row.name || '').trim();
+      const email = String(row.email || '').trim();
+      const url = String(row.student_url || ('/admin/students/' + (row.user_id || '')));
+      const label = name !== '' ? name : (email || 'Ученик');
+      return '<tr>'
+        + '<td><a href="' + escapeHtml(url) + '">' + escapeHtml(label) + '</a></td>'
+        + '<td>' + (email !== '' ? '<a href="' + escapeHtml(url) + '">' + escapeHtml(email) + '</a>' : '—') + '</td>'
+        + '<td class="col-date">' + escapeHtml(formatPersonDate(row.created_at)) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function openNodePeople(nodeId, kind) {
+    const modal = ensurePeopleModal();
+    const title = modal.querySelector('#automation-node-people-title');
+    const hint = modal.querySelector('.automation-node-people__hint');
+    const tbody = modal.querySelector('tbody');
+    const isWaiting = kind === 'waiting';
+    title.textContent = isWaiting ? 'Сейчас на блоке' : 'Прошедшие блок';
+    let label = nodeId;
+    const home = editor.export().drawflow?.Home?.data || {};
+    Object.keys(home).forEach((dfId) => {
+      const d = home[dfId] && home[dfId].data;
+      if (d && String(d.node_id || '') === nodeId) {
+        label = String(d.label || nodeId);
+      }
+    });
+    hint.textContent = label;
+    tbody.innerHTML = '<tr><td colspan="3" class="field-hint">Загрузка…</td></tr>';
+    modal.classList.add('is-open');
+
+    if (isWaiting) {
+      renderPeopleRows(tbody, waitingForNode(nodeId), 'Никого нет на этом блоке.');
+      return;
+    }
+
+    const base = String(config.step_events_url || '');
+    if (base === '') {
+      renderPeopleRows(tbody, [], 'Список недоступен.');
+      return;
+    }
+    fetch(base + '?node_id=' + encodeURIComponent(nodeId), { credentials: 'same-origin' })
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error('http ' + r.status);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        const events = Array.isArray(data.events) ? data.events : [];
+        renderPeopleRows(tbody, events, 'Пока никто не проходил этот блок.');
+      })
+      .catch(() => {
+        renderPeopleRows(tbody, [], 'Не удалось загрузить список.');
+      });
+  }
+
   function nodeHtml(data) {
     const type = data.type || 'step';
     const meta = typeMeta(type);
@@ -1037,6 +1241,9 @@
       nodeHtml(data)
     );
     registerNode(dfId, nodeKey, data);
+    window.requestAnimationFrame(function () {
+      applyNodeStats(dfId);
+    });
     return dfId;
   }
 
@@ -1245,6 +1452,7 @@
       });
       focusStartNode();
       updateZoomUi();
+      applyAllNodeStats();
     });
   }
 
@@ -1511,6 +1719,7 @@
     if (el) {
       el.innerHTML = nodeHtml(n.data);
     }
+    applyNodeStats(id);
     if (selectedDfId && normalizeDfId(selectedDfId) === id) {
       syncNodeDeleteButton();
     }
@@ -2542,6 +2751,27 @@
 
   canvas.setAttribute('tabindex', '0');
   updateRemoveConnBtn();
+  applyAllNodeStats();
+
+  canvas.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('.automation-node-stat')) {
+      e.stopPropagation();
+    }
+  }, true);
+  canvas.addEventListener('mousedown', function (e) {
+    if (e.target.closest('.automation-node-stat')) {
+      e.stopPropagation();
+    }
+  }, true);
+  canvas.addEventListener('click', function (e) {
+    const btn = e.target.closest('.automation-node-stat');
+    if (!btn) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    openNodePeople(btn.dataset.nodeId || '', btn.dataset.kind || 'passed');
+  });
 
   try {
     if (sessionStorage.getItem(FS_RESTORE_KEY) === '1') {

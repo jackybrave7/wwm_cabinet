@@ -12,19 +12,21 @@ final class EmailAutomationEnrollment
     public const BULK_ENROLL_LIMIT = 5000;
 
     /**
-     * After /api/demo grant: start funnel after demo is already granted (skip duplicate grant + email).
+     * After /api/demo or admin demo grant: enroll into every active demo funnel for that course.
      */
     public static function onDemoGranted(int $userId, string $courseSlug): void
     {
-        $pdo = wwm_pdo();
-        $automation = EmailAutomation::findActiveForCourse($pdo, $courseSlug);
-        if ($automation === null) {
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: '';
+        if ($courseSlug === '') {
             return;
         }
 
-        self::enrollFromAutomation($pdo, $automation, $userId, $courseSlug, [
-            'demo_pre_granted' => true,
-        ], 'demo_pre_granted');
+        $pdo = wwm_pdo();
+        foreach (EmailAutomation::findActiveByEntryMode($pdo, EmailAutomation::ENTRY_DEMO_GRANT, $courseSlug) as $automation) {
+            self::enrollFromAutomation($pdo, $automation, $userId, $courseSlug, [
+                'demo_pre_granted' => true,
+            ], 'demo_pre_granted');
+        }
     }
 
     /**

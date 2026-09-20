@@ -54,7 +54,7 @@ $listErr = (string)($_GET['error'] ?? '');
 <?php if (!$archivedView && $entryModeLabels !== []): ?>
 <div class="admin-card" style="margin-bottom:16px">
   <h2 class="admin-team-section-title" style="margin-top:0">Новый процесс</h2>
-  <form method="post" action="/admin/automations/create" class="admin-filter-grid">
+  <form method="post" action="/admin/automations/create" class="automation-create-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <label class="field">
       <span class="field-label">Название</span>
@@ -85,7 +85,7 @@ $listErr = (string)($_GET['error'] ?? '');
         <input type="text" name="course_slug" id="automation-create-course" pattern="[a-z0-9\-]*" placeholder="elke-en">
       <?php endif; ?>
     </label>
-    <div class="field" style="align-self:flex-end">
+    <div class="automation-create-form__submit">
       <button type="submit" class="btn btn-primary">Создать и открыть редактор</button>
     </div>
   </form>

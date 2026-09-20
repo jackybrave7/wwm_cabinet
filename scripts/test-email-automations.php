@@ -119,8 +119,38 @@ ok((int)$inactiveRun->fetchColumn() === 0, 'inactive automation does not enroll 
 
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => true]);
 \Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userId, 'elke-en');
-$inactiveRun->execute([$userId]);
-ok((int)$inactiveRun->fetchColumn() === 1, 'active automation enrolls once');
+$cntForFlow = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE automation_id = ? AND user_id = ?');
+$cntForFlow->execute([$id, $userId]);
+ok((int)$cntForFlow->fetchColumn() === 1, 'active automation enrolls once');
+
+$slugB = 'test-automation-b-' . bin2hex(random_bytes(3));
+$idB = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $slugB,
+    'title' => 'Test flow B',
+    'description' => 'second matching demo funnel',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_DEMO_GRANT,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$userIdB = \Wwm\Models\User::create($pdo, 'automation-test-b-' . bin2hex(random_bytes(3)) . '@example.com', 'test-pass-123', 'B');
+\Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userIdB, 'elke-en');
+$cntForFlow->execute([$id, $userIdB]);
+ok((int)$cntForFlow->fetchColumn() === 1, 'demo grant enrolls first matching flow');
+$cntForFlow->execute([$idB, $userIdB]);
+ok((int)$cntForFlow->fetchColumn() === 1, 'demo grant also enrolls second matching flow');
+\Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userIdB, 'alvaro');
+$cntForFlow->execute([$idB, $userIdB]);
+ok((int)$cntForFlow->fetchColumn() === 1, 'other course does not re-enroll demo flow');
 
 $run = \Wwm\Models\EmailAutomationRun::findActive($pdo, $id, $userId);
 ok($run !== null, 'active run exists');
@@ -135,7 +165,9 @@ if ($run !== null) {
 }
 
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => false]);
+\Wwm\Models\EmailAutomation::update($pdo, $idB, ['is_active' => false]);
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$id]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$idB]);
 
 $paySlug = 'test-payment-any-' . bin2hex(random_bytes(3));
 $payId = \Wwm\Models\EmailAutomation::create($pdo, [
@@ -167,6 +199,7 @@ ok((int)$cnt->fetchColumn() === 1, 'payment_any does not re-enroll on second pay
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$payId]);
 
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userIdB]);
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$payUserId]);
 
 echo PHP_EOL;

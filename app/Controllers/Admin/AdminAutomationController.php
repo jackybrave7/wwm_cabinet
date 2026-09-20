@@ -84,18 +84,46 @@ final class AdminAutomationController
         $runsStmt->execute([$id]);
         $activeRuns = (int)$runsStmt->fetchColumn();
 
+        $flowRuns = EmailAutomationRun::listForAutomation($pdo, $id, 200);
+        $nodeOccupancy = [];
+        $nodeWaiting = [];
+        foreach ($flowRuns as $run) {
+            if ((string)($run['status'] ?? '') !== 'active') {
+                continue;
+            }
+            $nid = (string)($run['current_node_id'] ?? '');
+            if ($nid === '') {
+                continue;
+            }
+            $nodeOccupancy[$nid] = ($nodeOccupancy[$nid] ?? 0) + 1;
+            $nodeWaiting[$nid][] = [
+                'user_id' => (int)($run['user_id'] ?? 0),
+                'name' => (string)($run['name'] ?? ''),
+                'email' => (string)($run['email'] ?? ''),
+                'created_at' => (string)($run['enrolled_at'] ?? ''),
+                'student_url' => '/admin/students/' . (int)($run['user_id'] ?? 0),
+            ];
+        }
+
+        $flowEditorConfig = EmailAutomationNodeCatalog::editorConfig($row);
+        $flowEditorConfig['automation_id'] = $id;
+        $flowEditorConfig['step_stats'] = $stepStatsByNode;
+        $flowEditorConfig['node_occupancy'] = $nodeOccupancy;
+        $flowEditorConfig['node_waiting'] = $nodeWaiting;
+        $flowEditorConfig['step_events_url'] = '/admin/automations/' . $id . '/step-events';
+
         wwm_render_admin('automation-edit', [
             'title' => 'Edit automation — Admin',
             'adminNav' => 'automations',
             'automation' => $row,
             'flowDefinition' => $definition,
-            'flowEditorConfig' => EmailAutomationNodeCatalog::editorConfig($row),
+            'flowEditorConfig' => $flowEditorConfig,
             'flowStepStats' => $stepStatsByNode,
             'definitionPretty' => $this->prettyJson((string)$row['definition_json']),
             'nodeStats' => $nodeStats,
             'stepEventTotal' => EmailAutomationStepEvent::totalEvents($pdo, $id),
             'flowActiveRuns' => $activeRuns,
-            'flowRuns' => EmailAutomationRun::listForAutomation($pdo, $id),
+            'flowRuns' => $flowRuns,
             'isArchivedFlow' => EmailAutomation::isArchived($row),
             'entryModeLabels' => EmailAutomation::entryModeLabels(),
             'courseSlugs' => $this->courseSlugOptions(),
