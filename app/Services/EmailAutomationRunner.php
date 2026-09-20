@@ -77,7 +77,11 @@ final class EmailAutomationRunner
 
             $type = (string)($node['type'] ?? '');
             if ($type === 'end') {
-                self::logStep($pdo, $run, $nodeId, $type, null, 'completed');
+                $outcome = trim((string)($node['outcome'] ?? 'completed'));
+                if ($outcome === '') {
+                    $outcome = 'completed';
+                }
+                self::logStep($pdo, $run, $nodeId, $type, null, 'outcome=' . $outcome);
                 EmailAutomationRun::complete($pdo, (int)$run['id']);
 
                 return;
@@ -128,9 +132,18 @@ final class EmailAutomationRunner
 
             if ($type === 'grant_demo') {
                 $context = EmailAutomationRun::context($run);
-                if (empty($context['demo_pre_granted'])) {
-                    $slug = (string)($node['course_slug'] ?? $courseSlug);
-                    $sendEmail = !empty($node['send_email']);
+                $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
+                $state = Access::courseState($pdo, $userId, $slug);
+                $skipPaid = !isset($node['skip_if_paid']) || !empty($node['skip_if_paid']);
+                $skipDemo = !isset($node['skip_if_demo_active']) || !empty($node['skip_if_demo_active']);
+
+                if (!empty($context['demo_pre_granted'])) {
+                    self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'demo_pre_granted');
+                } elseif ($skipPaid && !empty($state['has_paid'])) {
+                    self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'already_paid');
+                } elseif ($skipDemo && !empty($state['demo_active'])) {
+                    self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'demo_already_active');
+                } else {
                     try {
                         (new DemoAccess())->grant(
                             (string)$user['email'],
@@ -145,13 +158,24 @@ final class EmailAutomationRunner
                     } catch (\Throwable $e) {
                         wwm_log('automation grant_demo: ' . $e->getMessage());
                     }
-                    if (!$sendEmail) {
-                        // DemoAccess always emails on grant; flag reserved for future split.
-                    }
                 }
             } elseif ($type === 'send_template') {
                 $template = (string)($node['template'] ?? '');
                 $templateCourse = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
+                if (!empty($node['skip_if_paid_course']) && $templateCourse !== '') {
+                    $paidState = Access::courseState($pdo, $userId, $templateCourse);
+                    if (!empty($paidState['has_paid'])) {
+                        self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'already_paid_course');
+                        $next = self::nextNode($def, $nodeId, 'next');
+                        if ($next === null) {
+                            EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                            return;
+                        }
+                        $nodeId = $next;
+                        continue;
+                    }
+                }
                 if ($template !== '' && EmailTemplateCatalog::find($template) !== null) {
                     try {
                         if (MarketingEmailDelivery::isMarketingTemplate($template)) {
@@ -180,10 +204,22 @@ final class EmailAutomationRunner
                     }
                 }
             } elseif ($type === 'revoke_demo') {
-                $slug = (string)($node['course_slug'] ?? $courseSlug);
-                Access::revoke($pdo, $userId, $slug, 'demo');
+                // Demo access expires by course demo_hours / expires_at — early revoke is not used.
+                self::logStep(
+                    $pdo,
+                    $run,
+                    $nodeId,
+                    $type,
+                    'skipped',
+                    'demo_expires_by_timer'
+                );
+                wwm_log(sprintf(
+                    'automation revoke_demo skipped run=%d user=%d (demo expires automatically)',
+                    (int)$run['id'],
+                    $userId
+                ));
             } elseif ($type === 'notify_staff') {
-                self::notifyStaff($automation, $user, $courseSlug, (string)($node['label'] ?? ''));
+                self::notifyStaff($automation, $user, $courseSlug, $node);
             } else {
                 wwm_log('automation unknown node type ' . $type . ' id=' . $nodeId);
             }
@@ -230,6 +266,7 @@ final class EmailAutomationRunner
         return match ($condition) {
             'has_paid_any' => self::hasPaidAny($stateMap),
             'has_paid_course' => !empty($stateMap[$slug]['has_paid']),
+            'has_active_demo' => !empty($stateMap[$slug]['demo_active']),
             'demo_lesson_opened' => self::demoLessonOpened($pdo, $userId, $slug),
             default => false,
         };
@@ -266,27 +303,84 @@ final class EmailAutomationRunner
     /**
      * @param array<string, mixed> $automation
      * @param array<string, mixed> $user
+     * @param array<string, mixed> $node
      */
-    private static function notifyStaff(array $automation, array $user, string $courseSlug, string $label): void
+    private static function notifyStaff(array $automation, array $user, string $courseSlug, array $node): void
     {
-        $message = sprintf(
-            'Automation «%s» (%s): student %s <%s>, course %s. Step: %s',
-            (string)$automation['title'],
-            (string)$automation['slug'],
-            (string)($user['name'] ?? ''),
-            (string)$user['email'],
-            $courseSlug,
-            $label !== '' ? $label : 'notify_staff'
-        );
-        wwm_log($message);
+        $stepLabel = trim((string)($node['label'] ?? ''));
+        if ($stepLabel === '') {
+            $stepLabel = 'notify_staff';
+        }
 
-        $cfg = wwm_config()['mail'] ?? [];
-        $to = trim((string)($cfg['staff_notify_email'] ?? ''));
-        if ($to === '' || empty($cfg['enabled'])) {
+        $vars = [
+            '{{student_name}}' => trim((string)($user['name'] ?? '')),
+            '{{student_email}}' => (string)$user['email'],
+            '{{course_slug}}' => $courseSlug,
+            '{{automation_title}}' => (string)($automation['title'] ?? ''),
+            '{{automation_slug}}' => (string)($automation['slug'] ?? ''),
+            '{{step_label}}' => $stepLabel,
+            '{{admin_student_url}}' => wwm_base_url() . '/admin/students?q=' . rawurlencode((string)$user['email']),
+        ];
+
+        $defaultBody = sprintf(
+            "Student: %s <%s>\nCourse: %s\nFlow: %s (%s)\nStep: %s\n\nAdmin:\n%s",
+            $vars['{{student_name}}'],
+            $vars['{{student_email}}'],
+            $courseSlug,
+            $vars['{{automation_title}}'],
+            $vars['{{automation_slug}}'],
+            $stepLabel,
+            $vars['{{admin_student_url}}']
+        );
+
+        $bodyTemplate = trim((string)($node['notify_body'] ?? ''));
+        $body = $bodyTemplate !== '' ? self::applyNotifyTemplate($bodyTemplate, $vars) : $defaultBody;
+
+        $subjectTemplate = trim((string)($node['notify_subject'] ?? ''));
+        $subject = $subjectTemplate !== ''
+            ? self::applyNotifyTemplate($subjectTemplate, $vars)
+            : 'WWM automation: ' . $stepLabel;
+
+        wwm_log('automation staff notify: ' . str_replace("\n", ' ', $body));
+
+        $recipients = StaffNotifyRecipients::resolveFromNode($node);
+        if ($recipients === []) {
+            $recipients = self::resolveStaffRecipientsFallback();
+        }
+        if ($recipients === []) {
             return;
         }
 
-        Mailer::send($to, 'WWM automation notice', $message . "\n");
+        $cfg = wwm_config()['mail'] ?? [];
+        if (empty($cfg['enabled'])) {
+            return;
+        }
+
+        foreach ($recipients as $to) {
+            Mailer::send($to, $subject, $body . "\n");
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function resolveStaffRecipientsFallback(): array
+    {
+        $cfg = wwm_config()['mail'] ?? [];
+        $fallback = trim((string)($cfg['staff_notify_email'] ?? ''));
+        if ($fallback !== '' && filter_var($fallback, FILTER_VALIDATE_EMAIL)) {
+            return [$fallback];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, string> $vars
+     */
+    private static function applyNotifyTemplate(string $template, array $vars): string
+    {
+        return str_replace(array_keys($vars), array_values($vars), $template);
     }
 
     /**

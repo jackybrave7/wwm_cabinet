@@ -51,65 +51,57 @@ final class EmailAutomationNodeCatalog
         return [
             [
                 'id' => 'trigger',
-                'label' => 'Start',
+                'label' => 'Старт',
                 'short' => 'Старт',
-                'description' => 'Entry when student joins the funnel',
+                'description' => 'Точка входа: кто попадает в цепочку и с каким курсом (настройки в свойствах блока).',
                 'outputs' => 1,
                 'class' => 'automation-node--trigger',
             ],
             [
                 'id' => 'grant_demo',
-                'label' => 'Grant demo',
+                'label' => 'Выдать демо',
                 'short' => 'Демо',
-                'description' => 'Create demo access (usually skip if demo webhook already ran)',
+                'description' => 'Демо-доступ на срок demo_hours курса. Обычно демо уже выдано через /api/demo — блок можно пропустить.',
                 'outputs' => 1,
                 'class' => 'automation-node--grant',
             ],
             [
                 'id' => 'delay',
-                'label' => 'Wait',
+                'label' => 'Пауза',
                 'short' => 'Пауза',
-                'description' => 'Pause before the next step',
+                'description' => 'Ждать указанное время, затем перейти к следующему блоку. Cron обрабатывает очередь.',
                 'outputs' => 1,
                 'class' => 'automation-node--delay',
             ],
             [
                 'id' => 'condition',
-                'label' => 'Condition',
+                'label' => 'Условие',
                 'short' => 'Условие',
-                'description' => 'Yes / No branch',
+                'description' => 'Ветвление: верхний выход — «да», нижний — «нет».',
                 'outputs' => 2,
                 'class' => 'automation-node--condition',
             ],
             [
                 'id' => 'send_template',
-                'label' => 'Send email',
+                'label' => 'Письмо',
                 'short' => 'Письмо',
-                'description' => 'Transactional template from cabinet',
+                'description' => 'Шаблон из раздела Emails. Cross-sell — с отпиской и List-Unsubscribe.',
                 'outputs' => 1,
                 'class' => 'automation-node--email',
             ],
             [
-                'id' => 'revoke_demo',
-                'label' => 'Revoke demo',
-                'short' => 'Отзыв',
-                'description' => 'Remove demo access',
-                'outputs' => 1,
-                'class' => 'automation-node--revoke',
-            ],
-            [
                 'id' => 'notify_staff',
-                'label' => 'Notify staff',
+                'label' => 'Уведомить staff',
                 'short' => 'Staff',
-                'description' => 'Log + optional email to staff',
+                'description' => 'Запись в лог + письмо выбранным администраторам (или staff_notify_email в config, если никого не отмечено).',
                 'outputs' => 1,
                 'class' => 'automation-node--staff',
             ],
             [
                 'id' => 'end',
-                'label' => 'End',
+                'label' => 'Конец',
                 'short' => 'Конец',
-                'description' => 'Stop the flow',
+                'description' => 'Завершить run для ученика. У каждой завершённой ветки должен быть свой «Конец».',
                 'outputs' => 0,
                 'class' => 'automation-node--end',
             ],
@@ -122,9 +114,30 @@ final class EmailAutomationNodeCatalog
     public static function conditionOptions(): array
     {
         return [
-            ['value' => 'has_paid_any', 'label' => 'Purchased any course'],
-            ['value' => 'has_paid_course', 'label' => 'Purchased this course'],
-            ['value' => 'demo_lesson_opened', 'label' => 'Opened demo lesson'],
+            [
+                'value' => 'has_paid_any',
+                'label' => 'Купил любой курс',
+                'hint' => 'Полный доступ хотя бы к одному курсу.',
+                'needs_course' => false,
+            ],
+            [
+                'value' => 'has_paid_course',
+                'label' => 'Купил этот курс',
+                'hint' => 'Оплата именно выбранного slug (ниже).',
+                'needs_course' => true,
+            ],
+            [
+                'value' => 'has_active_demo',
+                'label' => 'Активное демо на курс',
+                'hint' => 'Демо ещё не истекло по expires_at.',
+                'needs_course' => true,
+            ],
+            [
+                'value' => 'demo_lesson_opened',
+                'label' => 'Открыл демо-урок',
+                'hint' => 'Тег AVO / открытие урока в кабинете.',
+                'needs_course' => true,
+            ],
         ];
     }
 
@@ -155,6 +168,7 @@ final class EmailAutomationNodeCatalog
                 'value' => $id,
                 'label' => (string)($meta['label'] ?? $id),
                 'edit_url' => '/admin/emails/' . $id . '/edit',
+                'kind' => MarketingEmailDelivery::isMarketingTemplate($id) ? 'marketing' : 'transactional',
             ];
         }
 
@@ -162,10 +176,15 @@ final class EmailAutomationNodeCatalog
     }
 
     /**
+     * @param array<string, mixed>|null $automation row from email_automations
      * @return array<string, mixed>
      */
-    public static function editorConfig(): array
+    public static function editorConfig(?array $automation = null): array
     {
+        $automation ??= [];
+        $entryMode = EmailAutomation::normalizeEntryMode((string)($automation['entry_mode'] ?? ''));
+        $entryLabels = EmailAutomation::entryModeLabels();
+
         return [
             'palette' => self::palette(),
             'conditions' => self::conditionOptions(),
@@ -173,7 +192,31 @@ final class EmailAutomationNodeCatalog
             'courses' => self::courseOptionsForEditor(),
             'entry_modes' => self::entryModeOptionsForEditor(),
             'marketing_templates' => MarketingEmailDelivery::automationMarketingTemplateIds(),
+            'staff_notify_default_email' => trim((string)(wwm_config()['staff_notify_email'] ?? '')),
+            'staff_admins' => StaffNotifyRecipients::optionsForEditor(),
+            'staff_notify_placeholders' => [
+                '{{student_name}}',
+                '{{student_email}}',
+                '{{course_slug}}',
+                '{{automation_title}}',
+                '{{automation_slug}}',
+                '{{step_label}}',
+                '{{admin_student_url}}',
+            ],
             'demo_email_edit_url' => '/admin/emails/demo/edit',
+            'automation' => [
+                'title' => (string)($automation['title'] ?? ''),
+                'slug' => (string)($automation['slug'] ?? ''),
+                'course_slug' => (string)($automation['course_slug'] ?? ''),
+                'entry_mode' => $entryMode,
+                'entry_mode_label' => $entryLabels[$entryMode] ?? $entryMode,
+            ],
+            'end_outcomes' => [
+                ['value' => 'completed', 'label' => 'Обычное завершение'],
+                ['value' => 'converted', 'label' => 'Конверсия (оплата)'],
+                ['value' => 'exited', 'label' => 'Вышел без покупки'],
+                ['value' => 'other', 'label' => 'Другое'],
+            ],
         ];
     }
 
@@ -199,10 +242,30 @@ final class EmailAutomationNodeCatalog
         ];
 
         return match ($type) {
-            'grant_demo', 'revoke_demo' => $data + ['course_slug' => $courseSlug, 'send_email' => $type === 'grant_demo'],
+            'grant_demo' => $data + [
+                'course_slug' => $courseSlug,
+                'skip_if_paid' => true,
+                'skip_if_demo_active' => true,
+            ],
+            'revoke_demo' => $data + ['course_slug' => $courseSlug],
             'delay' => $data + ['seconds' => 3600],
             'condition' => $data + ['condition' => 'has_paid_any', 'course_slug' => $courseSlug],
-            'send_template' => $data + ['template' => 'reminder_demo_no_login', 'course_slug' => $courseSlug],
+            'send_template' => $data + [
+                'template' => 'reminder_demo_no_login',
+                'course_slug' => $courseSlug,
+                'skip_if_paid_course' => false,
+            ],
+            'notify_staff' => $data + [
+                'staff_admin_ids' => [],
+                'staff_recipients' => '',
+                'notify_subject' => 'WWM automation: {{step_label}}',
+                'notify_body' => "Student: {{student_name}} <{{student_email}}>\nCourse: {{course_slug}}\nFlow: {{automation_title}}\n\nOpen in admin:\n{{admin_student_url}}",
+            ],
+            'end' => $data + ['outcome' => 'completed'],
+            'trigger' => $data + [
+                'entry_mode' => EmailAutomation::ENTRY_DEMO_GRANT,
+                'process_course_slug' => preg_replace('/[^a-z0-9\-]/', '', $courseSlug),
+            ],
             default => $data,
         };
     }

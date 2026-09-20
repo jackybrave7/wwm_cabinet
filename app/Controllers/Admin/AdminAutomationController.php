@@ -11,7 +11,6 @@ use Wwm\Models\EmailBroadcast;
 use Wwm\Services\AdminStudentListFilter;
 use Wwm\Services\AvoAutomationImporter;
 use Wwm\Services\BroadcastAudience;
-use Wwm\Services\CourseCatalog;
 use Wwm\Services\EmailAutomationEnrollment;
 use Wwm\Services\EmailAutomationNodeCatalog;
 use Wwm\Services\EmailAutomationRunner;
@@ -89,7 +88,7 @@ final class AdminAutomationController
             'adminNav' => 'automations',
             'automation' => $row,
             'flowDefinition' => $definition,
-            'flowEditorConfig' => EmailAutomationNodeCatalog::editorConfig(),
+            'flowEditorConfig' => EmailAutomationNodeCatalog::editorConfig($row),
             'flowStepStats' => $stepStatsByNode,
             'definitionPretty' => $this->prettyJson((string)$row['definition_json']),
             'nodeStats' => $nodeStats,
@@ -196,8 +195,15 @@ final class AdminAutomationController
             }
         }
 
-        $entryMode = EmailAutomation::normalizeEntryMode((string)($_POST['entry_mode'] ?? (string)($row['entry_mode'] ?? '')));
-        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', (string)($_POST['course_slug'] ?? '')) ?: '';
+        $fromStart = self::entrySettingsFromDefinition($definition);
+        $entryMode = EmailAutomation::normalizeEntryMode(
+            (string)($fromStart['entry_mode'] ?? $_POST['entry_mode'] ?? (string)($row['entry_mode'] ?? ''))
+        );
+        $courseSlug = preg_replace(
+            '/[^a-z0-9\-]/',
+            '',
+            (string)($fromStart['course_slug'] ?? $_POST['course_slug'] ?? '')
+        ) ?: '';
         if (EmailAutomation::entryModeRequiresCourseSlug($entryMode) && $courseSlug === '') {
             $this->finishAutomationSave($id, $jsonSave, false, 'course_required');
             return;
@@ -467,18 +473,43 @@ final class AdminAutomationController
     /**
      * @return list<string>
      */
+    /**
+     * @return list<array{value: string, label: string}>
+     */
     private function courseSlugOptions(): array
     {
-        $out = [];
-        foreach ((new CourseCatalog())->all() as $course) {
-            $slug = trim((string)($course['slug'] ?? ''));
-            if ($slug !== '') {
-                $out[] = $slug;
+        return EmailAutomationNodeCatalog::courseOptionsForEditor();
+    }
+
+    /**
+     * @param array<string, mixed> $definition
+     * @return array{entry_mode?: string, course_slug?: string}
+     */
+    private static function entrySettingsFromDefinition(array $definition): array
+    {
+        $nodes = $definition['nodes'] ?? [];
+        if (!is_array($nodes)) {
+            return [];
+        }
+        $start = null;
+        foreach ($nodes as $id => $node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            if ((string)($node['type'] ?? '') === 'trigger' || (string)$id === 'start') {
+                $start = $node;
+                break;
             }
         }
-        sort($out);
+        if ($start === null) {
+            return [];
+        }
+        $course = (string)($start['process_course_slug'] ?? $start['course_slug'] ?? '');
 
-        return $out;
+        return [
+            'entry_mode' => (string)($start['entry_mode'] ?? ''),
+            'course_slug' => preg_replace('/[^a-z0-9\-]/', '', $course),
+        ];
     }
 
     /**

@@ -196,10 +196,10 @@ final class AutomationDefinitionValidator
             }
         }
 
-        if ($type === 'grant_demo' || $type === 'revoke_demo') {
+        if ($type === 'grant_demo') {
             $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
             if ($slug === '') {
-                return '«' . $label . '»: укажите курс.';
+                return '«' . $label . '»: укажите курс демо.';
             }
         }
 
@@ -208,7 +208,7 @@ final class AutomationDefinitionValidator
             if ($cond === '') {
                 return '«' . $label . '»: выберите тип условия.';
             }
-            if (in_array($cond, ['has_paid_course', 'demo_lesson_opened'], true)) {
+            if (in_array($cond, ['has_paid_course', 'has_active_demo', 'demo_lesson_opened'], true)) {
                 $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
                 if ($slug === '') {
                     return '«' . $label . '»: для этого условия нужен курс.';
@@ -216,10 +216,45 @@ final class AutomationDefinitionValidator
             }
         }
 
+        if ($type === 'revoke_demo') {
+            return '«' . $label . '»: блок «Отзыв демо» устарел — демо истекает по таймеру курса. Удалите блок и соедините ветки напрямую.';
+        }
+
+        if ($type === 'end') {
+            $outcome = (string)($node['outcome'] ?? '');
+            $allowed = ['completed', 'converted', 'exited', 'other', ''];
+            if ($outcome !== '' && !in_array($outcome, $allowed, true)) {
+                return '«' . $label . '»: некорректный тип завершения.';
+            }
+        }
+
         if ($type === 'delay') {
             $sec = (int)($node['seconds'] ?? -1);
             if ($sec < 0) {
                 return '«' . $label . '»: укажите длительность паузы.';
+            }
+        }
+
+        if ($type === 'notify_staff') {
+            $ids = $node['staff_admin_ids'] ?? null;
+            if (is_array($ids)) {
+                foreach ($ids as $key) {
+                    if (trim((string)$key) === '') {
+                        return '«' . $label . '»: пустой id администратора в списке получателей.';
+                    }
+                }
+            }
+            $raw = trim((string)($node['staff_recipients'] ?? ''));
+            if ($raw !== '') {
+                foreach (preg_split('/[,;\s]+/', $raw) ?: [] as $part) {
+                    $email = trim($part);
+                    if ($email === '') {
+                        continue;
+                    }
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        return '«' . $label . '»: некорректный email в legacy-поле staff_recipients.';
+                    }
+                }
             }
         }
 

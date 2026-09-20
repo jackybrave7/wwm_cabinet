@@ -11,7 +11,8 @@
   const defEl = document.getElementById('automation-flow-definition');
   const config = JSON.parse((configEl && configEl.textContent) || root.dataset.config || '{}');
   const definition = JSON.parse((defEl && defEl.textContent) || root.dataset.definition || '{}');
-  const courseSlug = root.dataset.courseSlug || 'elke-en';
+  const initialProcessCourseSlug = root.dataset.courseSlug || 'elke-en';
+  const ENTRY_MODES_NEED_COURSE = { demo_grant: true, payment_course: true };
   const marketingTemplates = new Set(config.marketing_templates || []);
 
   function templateNeedsCourseSlug(template) {
@@ -24,6 +25,27 @@
 
   const canvas = document.getElementById('drawflow');
   const propsPanel = document.getElementById('automation-flow-props');
+  if (propsPanel) {
+    document.addEventListener('click', (e) => {
+      propsPanel.querySelectorAll('.automation-staff-multiselect.is-open').forEach((wrap) => {
+        if (!wrap.contains(e.target)) {
+          wrap.classList.remove('is-open');
+          const btn = wrap.querySelector('.automation-staff-multiselect__trigger');
+          const panel = wrap.querySelector('.automation-staff-multiselect__panel');
+          if (btn) {
+            btn.setAttribute('aria-expanded', 'false');
+          }
+          if (panel) {
+            panel.hidden = true;
+          }
+          const propsWrap = wrap.closest('.automation-flow-props-wrap');
+          if (propsWrap) {
+            propsWrap.classList.remove('automation-props--staff-open');
+          }
+        }
+      });
+    });
+  }
   const palette = document.getElementById('automation-flow-palette');
   const undoBtn = document.getElementById('automation-flow-undo');
   const shell = document.getElementById('automation-flow-shell');
@@ -40,6 +62,181 @@
   editor.reroute = true;
   editor.curvature = 0.4;
   editor.start();
+
+  (function setupCanvasPanWithRightMouse() {
+    const surface = editor.container || canvas;
+    if (!surface) {
+      return;
+    }
+
+    function isCanvasBackgroundTarget(target) {
+      if (!target || !surface.contains(target)) {
+        return false;
+      }
+      return !target.closest('.drawflow-node');
+    }
+
+    function isRightMouseButton(e) {
+      return e.button === 2 || e.which === 3;
+    }
+
+    function applyCanvasTransform() {
+      if (!editor.precanvas) {
+        return;
+      }
+      editor.precanvas.style.transform = 'translate(' + editor.canvas_x + 'px, ' + editor.canvas_y
+        + 'px) scale(' + editor.zoom + ')';
+    }
+
+    function clearFlowSelection() {
+      editor.editor_selected = false;
+      editor.drag = false;
+      document.querySelectorAll('.drawflow-node.selected').forEach((el) => el.classList.remove('selected'));
+      editor.node_selected = null;
+      selectedDfId = null;
+      removeAllNodeDeleteButtons();
+      if (propsPanel) {
+        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+      }
+    }
+
+    function setPanningUi(active) {
+      surface.classList.toggle('automation-flow-panning', active);
+      document.body.classList.toggle('automation-flow-rmb-pan', active);
+    }
+
+    let rmbPanActive = false;
+    let panLastX = 0;
+    let panLastY = 0;
+    let panPointerId = null;
+    let panMoveBound = null;
+    let panEndBound = null;
+
+    function stopRmbPan() {
+      if (!rmbPanActive) {
+        return;
+      }
+      rmbPanActive = false;
+      panPointerId = null;
+      editor.editor_selected = false;
+      setPanningUi(false);
+      if (panMoveBound) {
+        document.removeEventListener('pointermove', panMoveBound, true);
+        document.removeEventListener('mousemove', panMoveBound, true);
+        panMoveBound = null;
+      }
+      if (panEndBound) {
+        document.removeEventListener('pointerup', panEndBound, true);
+        document.removeEventListener('mouseup', panEndBound, true);
+        panEndBound = null;
+      }
+    }
+
+    function onRmbPanMove(e) {
+      if (!rmbPanActive) {
+        return;
+      }
+      if (panPointerId !== null && e.pointerId !== undefined && e.pointerId !== panPointerId) {
+        return;
+      }
+      if (typeof e.buttons === 'number' && (e.buttons & 2) === 0 && e.type.indexOf('mouse') !== -1) {
+        stopRmbPan();
+        return;
+      }
+      const dx = e.clientX - panLastX;
+      const dy = e.clientY - panLastY;
+      if (dx === 0 && dy === 0) {
+        return;
+      }
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      editor.canvas_x += dx;
+      editor.canvas_y += dy;
+      applyCanvasTransform();
+    }
+
+    function onRmbPanEnd(e) {
+      if (!rmbPanActive) {
+        return;
+      }
+      if (panPointerId !== null && e.pointerId !== undefined && e.pointerId !== panPointerId) {
+        return;
+      }
+      if (e.type === 'mouseup' && !isRightMouseButton(e) && typeof e.buttons === 'number' && e.buttons !== 0) {
+        return;
+      }
+      stopRmbPan();
+    }
+
+    function startRmbPan(e) {
+      rmbPanActive = true;
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      panPointerId = typeof e.pointerId === 'number' ? e.pointerId : null;
+      editor.editor_selected = false;
+      editor.drag = false;
+      setPanningUi(true);
+      panMoveBound = onRmbPanMove;
+      panEndBound = onRmbPanEnd;
+      document.addEventListener('pointermove', panMoveBound, true);
+      document.addEventListener('mousemove', panMoveBound, true);
+      document.addEventListener('pointerup', panEndBound, true);
+      document.addEventListener('mouseup', panEndBound, true);
+      if (surface.setPointerCapture && panPointerId !== null) {
+        try {
+          surface.setPointerCapture(panPointerId);
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    function onCanvasPointerDownCapture(e) {
+      if (!isCanvasBackgroundTarget(e.target)) {
+        return;
+      }
+      if (e.button === 0) {
+        editor.editor_selected = false;
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        clearFlowSelection();
+        return;
+      }
+      if (isRightMouseButton(e)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        startRmbPan(e);
+      }
+    }
+
+    surface.addEventListener('mousedown', onCanvasPointerDownCapture, true);
+    surface.addEventListener('pointerdown', onCanvasPointerDownCapture, true);
+
+    surface.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && isCanvasBackgroundTarget(e.target)) {
+        editor.editor_selected = false;
+      }
+    });
+
+    surface.addEventListener('mousemove', (e) => {
+      if (rmbPanActive) {
+        return;
+      }
+      if (editor.editor_selected && !editor.drag && (e.buttons & 1) === 1) {
+        editor.editor_selected = false;
+        applyCanvasTransform();
+      }
+    }, true);
+
+    window.addEventListener('blur', stopRmbPan);
+
+    surface.addEventListener('contextmenu', (e) => {
+      if (isCanvasBackgroundTarget(e.target)) {
+        e.preventDefault();
+      }
+    });
+  })();
 
   let selectedDfId = null;
   const dfIdToKey = new Map();
@@ -128,15 +325,108 @@
     });
   }
 
+  function removeAllNodeDeleteButtons() {
+    document.querySelectorAll('.automation-node-delete').forEach((el) => el.remove());
+  }
+
+  function isNodeVisuallySelected(dfId) {
+    const id = normalizeDfId(dfId);
+    const nodeEl = document.getElementById('node-' + id);
+    if (!nodeEl) {
+      return false;
+    }
+    if (nodeEl.classList.contains('selected')) {
+      return true;
+    }
+    return editor.node_selected === nodeEl;
+  }
+
+  function syncNodeDeleteButton() {
+    removeAllNodeDeleteButtons();
+    if (!selectedDfId) {
+      return;
+    }
+    const dfId = normalizeDfId(selectedDfId);
+    if (!isNodeVisuallySelected(dfId)) {
+      return;
+    }
+    const nodeEl = document.getElementById('node-' + dfId);
+    if (!nodeEl) {
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'automation-node-delete';
+    btn.setAttribute('aria-label', 'Удалить блок');
+    btn.title = 'Удалить блок';
+    btn.innerHTML = '<span aria-hidden="true">&times;</span>';
+    btn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+    });
+    btn.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      removeNodeWithConfirm(dfId);
+    });
+    nodeEl.appendChild(btn);
+  }
+
+  function removeNodeWithConfirm(dfId) {
+    const id = normalizeDfId(dfId);
+    const n = editor.getNodeFromId(id);
+    if (!n) {
+      return;
+    }
+    const label = n.data.label || n.data.type || id;
+    const runRemove = function () {
+      pushHistory();
+      unregisterNode(id);
+      editor.removeNodeId('node-' + id);
+      if (String(selectedDfId) === String(id)) {
+        selectedDfId = null;
+      }
+      removeAllNodeDeleteButtons();
+      if (propsPanel) {
+        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+      }
+      syncJsonField();
+    };
+    if (typeof wwmAdminConfirm === 'function') {
+      wwmAdminConfirm({
+        title: 'Удалить блок?',
+        message: 'Блок «' + label + '» и его связи будут удалены с холста.',
+        confirmLabel: 'Удалить',
+        danger: true,
+      }).then((ok) => {
+        if (ok) {
+          runRemove();
+        }
+      });
+      return;
+    }
+    runRemove();
+  }
+
   editor.on('nodeSelected', function (id) {
     selectedDfId = normalizeDfId(id);
     editor.connection_selected = null;
     updateRemoveConnBtn();
     renderProps(selectedDfId);
+    window.requestAnimationFrame(function () {
+      syncNodeDeleteButton();
+    });
+  });
+
+  editor.on('nodeUnselected', function () {
+    removeAllNodeDeleteButtons();
   });
 
   editor.on('connectionSelected', function () {
     selectedDfId = null;
+    removeAllNodeDeleteButtons();
     updateRemoveConnBtn();
     if (propsPanel) {
       propsPanel.innerHTML = (
@@ -218,6 +508,7 @@
       editor.node_selected = nodeEl;
     }
     renderProps(dfId);
+    syncNodeDeleteButton();
   }
 
   editor.on('zoom', function () {
@@ -241,6 +532,187 @@
       syncJsonField();
     }
   });
+
+  (function setupConnectionDetachByDrag() {
+    const surface = editor.container || canvas;
+    if (!surface || typeof editor.removeSingleConnection !== 'function') {
+      return;
+    }
+
+    const MOVE_PX = 10;
+    let outputDetach = null;
+    let inputDetach = null;
+
+    function removeConnectionPair(outNodeId, inNodeId, outClass, inClass) {
+      editor.removeSingleConnection(
+        String(outNodeId),
+        String(inNodeId),
+        String(outClass),
+        String(inClass)
+      );
+    }
+
+    function parseInputPort(target) {
+      if (!target || !target.closest) {
+        return null;
+      }
+      const el = target.closest('.input');
+      if (!el) {
+        return null;
+      }
+      const nodeEl = el.closest('.drawflow-node');
+      if (!nodeEl || !nodeEl.id || !nodeEl.id.startsWith('node-')) {
+        return null;
+      }
+      let inputClass = '';
+      el.classList.forEach((cls) => {
+        if (cls.indexOf('input_') === 0) {
+          inputClass = cls;
+        }
+      });
+      if (!inputClass) {
+        return null;
+      }
+      return { inNodeId: nodeEl.id.slice(5), inputClass };
+    }
+
+    function getInputConnections(inNodeId, inputClass) {
+      const node = editor.getNodeFromId(inNodeId);
+      const list = node?.inputs?.[inputClass]?.connections;
+      if (!Array.isArray(list) || list.length === 0) {
+        return [];
+      }
+      return list.map((c) => ({
+        outNodeId: String(c.node),
+        outClass: String(c.input),
+      }));
+    }
+
+    function trackOutputDetachMove() {
+      if (outputDetach && editor.connection) {
+        outputDetach.moved = true;
+      }
+    }
+
+    surface.addEventListener('mousemove', trackOutputDetachMove, true);
+    surface.addEventListener('pointermove', trackOutputDetachMove, true);
+
+    editor.on('connectionStart', (info) => {
+      if (!info || info.output_id === undefined) {
+        outputDetach = null;
+        return;
+      }
+      const outputId = String(info.output_id);
+      const outputClass = String(info.output_class || 'output_1');
+      const node = editor.getNodeFromId(outputId);
+      const list = node?.outputs?.[outputClass]?.connections;
+      if (!Array.isArray(list) || list.length === 0) {
+        outputDetach = null;
+        return;
+      }
+      outputDetach = {
+        outputId,
+        outputClass,
+        connections: list.map((c) => ({
+          inNodeId: String(c.node),
+          inClass: String(c.output),
+        })),
+        moved: false,
+      };
+    });
+
+    editor.on('connectionCreated', () => {
+      outputDetach = null;
+    });
+
+    editor.on('connectionCancel', () => {
+      if (!outputDetach || !outputDetach.moved) {
+        outputDetach = null;
+        return;
+      }
+      outputDetach.connections.forEach((c) => {
+        removeConnectionPair(outputDetach.outputId, c.inNodeId, outputDetach.outputClass, c.inClass);
+      });
+      outputDetach = null;
+      if (!restoring) {
+        syncJsonField();
+      }
+    });
+
+    function cleanupInputDetachListeners() {
+      document.removeEventListener('pointermove', onInputDetachMove, true);
+      document.removeEventListener('mousemove', onInputDetachMove, true);
+      document.removeEventListener('pointerup', endInputDetach, true);
+      document.removeEventListener('mouseup', endInputDetach, true);
+      surface.classList.remove('automation-flow-detach-cable');
+    }
+
+    function onInputDetachMove(e) {
+      if (!inputDetach) {
+        return;
+      }
+      const dx = e.clientX - inputDetach.startX;
+      const dy = e.clientY - inputDetach.startY;
+      if (dx * dx + dy * dy < MOVE_PX * MOVE_PX) {
+        return;
+      }
+      inputDetach.moved = true;
+      surface.classList.add('automation-flow-detach-cable');
+      if (!inputDetach.historySaved && !restoring) {
+        pushHistory();
+        inputDetach.historySaved = true;
+      }
+    }
+
+    function endInputDetach(e) {
+      if (!inputDetach) {
+        return;
+      }
+      const state = inputDetach;
+      inputDetach = null;
+      cleanupInputDetachListeners();
+
+      if (!state.moved) {
+        return;
+      }
+      if (e.target && e.target.closest && e.target.closest('.input')) {
+        return;
+      }
+      state.connections.forEach((c) => {
+        removeConnectionPair(c.outNodeId, state.inNodeId, c.outClass, state.inputClass);
+      });
+      if (!restoring) {
+        syncJsonField();
+      }
+    }
+
+    surface.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) {
+        return;
+      }
+      const port = parseInputPort(e.target);
+      if (!port) {
+        return;
+      }
+      const connections = getInputConnections(port.inNodeId, port.inputClass);
+      if (connections.length === 0) {
+        return;
+      }
+      inputDetach = {
+        inNodeId: port.inNodeId,
+        inputClass: port.inputClass,
+        connections,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        historySaved: false,
+      };
+      document.addEventListener('pointermove', onInputDetachMove, true);
+      document.addEventListener('mousemove', onInputDetachMove, true);
+      document.addEventListener('pointerup', endInputDetach, true);
+      document.addEventListener('mouseup', endInputDetach, true);
+    }, true);
+  })();
 
   editor.on('nodeRemoved', function () {
     if (!restoring) {
@@ -299,14 +771,51 @@
     switch (data.type) {
       case 'delay':
         return formatDelay(data.seconds);
-      case 'send_template':
-        return templateLabel(data.template);
+      case 'send_template': {
+        const bits = [templateLabel(data.template)];
+        if (data.skip_if_paid_course) {
+          bits.push('skip if paid');
+        }
+        const cslug = String(data.course_slug || '').trim();
+        if (cslug && templateNeedsCourseSlug(data.template)) {
+          bits.push(cslug);
+        }
+        return bits.filter(Boolean).join(' · ');
+      }
+      case 'trigger': {
+        const mode = entryModeLabel(data.entry_mode || (config.automation && config.automation.entry_mode));
+        const slug = String(data.process_course_slug || '').trim();
+        const bits = [mode];
+        if (slug) {
+          bits.push(courseLabelForSlug(slug));
+        }
+        return bits.join(' · ');
+      }
       case 'condition':
-        return data.condition || '';
-      case 'grant_demo':
-        return data.send_email ? 'demo email' : (data.course_slug || courseSlug);
+        return conditionLabel(data.condition);
+      case 'grant_demo': {
+        const slug = data.course_slug || processCourseSlug();
+        const bits = [courseLabelForSlug(slug)];
+        if (data.skip_if_paid) bits.push('skip paid');
+        if (data.skip_if_demo_active) bits.push('skip active demo');
+        return bits.filter(Boolean).join(' · ');
+      }
       case 'revoke_demo':
-        return data.course_slug || courseSlug;
+        return 'устарел — удалите';
+      case 'end':
+        return outcomeLabel(data.outcome);
+      case 'notify_staff': {
+        const ids = staffAdminIds(data);
+        if (ids.length) {
+          const names = ids.map((id) => {
+            const opt = (config.staff_admins || []).find((o) => String(o.value) === id);
+            return opt ? (opt.name || opt.email) : id;
+          });
+          return names.slice(0, 2).join(', ') + (names.length > 2 ? '…' : '');
+        }
+        const def = String(config.staff_notify_default_email || '').trim();
+        return def ? '→ config ' + def : 'только лог';
+      }
       default:
         return data.type || '';
     }
@@ -315,6 +824,134 @@
   function templateLabel(id) {
     const t = (config.templates || []).find((x) => x.value === id);
     return t ? t.label : (id || '');
+  }
+
+  function conditionLabel(cond) {
+    const cm = conditionMeta(cond);
+    return (cm && cm.label) ? cm.label : (cond || '');
+  }
+
+  function outcomeLabel(outcome) {
+    const v = outcome || 'completed';
+    const o = (config.end_outcomes || []).find((x) => x.value === v);
+    return o ? o.label : v;
+  }
+
+  function staffAdminIds(data) {
+    let ids = data.staff_admin_ids;
+    if (!Array.isArray(ids)) {
+      ids = [];
+    }
+    if (ids.length === 0 && String(data.staff_recipients || '').trim()) {
+      ids = staffAdminIdsFromLegacyEmails(data.staff_recipients);
+    }
+    return ids.map(String);
+  }
+
+  function staffAdminIdsFromLegacyEmails(raw) {
+    const emails = String(raw || '').split(/[,;]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const out = [];
+    (config.staff_admins || []).forEach((opt) => {
+      const em = String(opt.email || '').trim().toLowerCase();
+      if (em && emails.includes(em)) {
+        out.push(String(opt.value));
+      }
+    });
+    return out;
+  }
+
+  function staffAdminSummaryText(ids) {
+    const list = (ids || []).map(String);
+    if (!list.length) {
+      return 'Не выбрано';
+    }
+    const names = list.map((id) => {
+      const opt = (config.staff_admins || []).find((o) => String(o.value) === id);
+      return opt ? (opt.name || opt.email) : id;
+    });
+    if (names.length === 1) {
+      return names[0];
+    }
+    if (names.length === 2) {
+      return names.join(', ');
+    }
+    return names.length + ' выбрано: ' + names.slice(0, 2).join(', ') + '…';
+  }
+
+  function bindStaffAdminMultiselect(dfId, d) {
+    const root = propsPanel.querySelector('[data-staff-multiselect]');
+    if (!root) {
+      return;
+    }
+    const trigger = root.querySelector('.automation-staff-multiselect__trigger');
+    const panel = root.querySelector('.automation-staff-multiselect__panel');
+    const labelEl = root.querySelector('.automation-staff-multiselect__label');
+    if (!trigger || !panel || !labelEl) {
+      return;
+    }
+
+    function syncLabel() {
+      labelEl.textContent = staffAdminSummaryText(staffAdminIds(d));
+    }
+
+    const propsWrap = root.closest('.automation-flow-props-wrap');
+
+    function setOpen(open) {
+      root.classList.toggle('is-open', open);
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      panel.hidden = !open;
+      if (propsWrap) {
+        propsWrap.classList.toggle('automation-props--staff-open', open);
+      }
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(!root.classList.contains('is-open'));
+    });
+
+    panel.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    root.querySelectorAll('[data-staff-admin]').forEach((el) => {
+      el.addEventListener('change', () => {
+        pushHistory();
+        const picked = [];
+        root.querySelectorAll('[data-staff-admin]:checked').forEach((chk) => {
+          picked.push(chk.getAttribute('data-staff-admin'));
+        });
+        d.staff_admin_ids = picked;
+        d.staff_recipients = '';
+        editor.updateNodeDataFromId(dfId, d);
+        updateNodeHtml(dfId);
+        syncLabel();
+        scheduleHistory();
+      });
+    });
+
+    syncLabel();
+  }
+
+  function ensureStaffAdminIdsFromLegacy(d) {
+    if (!Array.isArray(d.staff_admin_ids)) {
+      d.staff_admin_ids = [];
+    }
+    if (d.staff_admin_ids.length === 0 && String(d.staff_recipients || '').trim()) {
+      d.staff_admin_ids = staffAdminIdsFromLegacyEmails(d.staff_recipients);
+      if (d.staff_admin_ids.length) {
+        d.staff_recipients = '';
+      }
+    }
+  }
+
+  function defaultStaffNotifyBody() {
+    return 'Student: {{student_name}} <{{student_email}}>\n'
+      + 'Course: {{course_slug}}\n'
+      + 'Flow: {{automation_title}}\n\n'
+      + 'Open in admin:\n'
+      + '{{admin_student_url}}';
   }
 
   function templateEditUrl(id) {
@@ -423,10 +1060,28 @@
     syncJsonField();
   }
 
-  const LAYOUT_ROW_H = 132;
+  const LAYOUT_ROW_GAP = 32;
+  const LAYOUT_FALLBACK_NODE_H = 150;
+  const LAYOUT_MIN_NODE_H = 56;
   const LAYOUT_COL_W = 248;
   const LAYOUT_ORIGIN_Y = 36;
   const LAYOUT_CENTER_X = 340;
+
+  function nodeHeightForLayout(key) {
+    const dfId = keyToDfId.get(key);
+    if (!dfId) {
+      return LAYOUT_FALLBACK_NODE_H;
+    }
+    const el = document.getElementById('node-' + dfId);
+    if (!el) {
+      return LAYOUT_FALLBACK_NODE_H;
+    }
+    const h = Math.ceil(el.offsetHeight || el.getBoundingClientRect().height || 0);
+    if (h > 0) {
+      return Math.max(h, LAYOUT_MIN_NODE_H);
+    }
+    return LAYOUT_FALLBACK_NODE_H;
+  }
 
   function computeTopDownPositions(nodes, edges) {
     const positions = new Map();
@@ -481,12 +1136,23 @@
     });
     const orderIndex = new Map();
     visitOrder.forEach((id, i) => orderIndex.set(id, i));
-    Object.keys(byDepth).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)).forEach((lv) => {
-      const row = byDepth[lv].sort((a, b) => (orderIndex.get(a) || 0) - (orderIndex.get(b) || 0));
+    const levelNums = Object.keys(byDepth).map((lv) => parseInt(lv, 10)).sort((a, b) => a - b);
+    const levelY = new Map();
+    let yCursor = LAYOUT_ORIGIN_Y;
+    levelNums.forEach((lv) => {
+      levelY.set(lv, yCursor);
+      let rowMaxH = LAYOUT_MIN_NODE_H;
+      (byDepth[lv] || []).forEach((key) => {
+        rowMaxH = Math.max(rowMaxH, nodeHeightForLayout(key));
+      });
+      yCursor += rowMaxH + LAYOUT_ROW_GAP;
+    });
+    levelNums.forEach((lv) => {
+      const row = (byDepth[lv] || []).sort((a, b) => (orderIndex.get(a) || 0) - (orderIndex.get(b) || 0));
       const count = row.length;
+      const y = levelY.get(lv) ?? LAYOUT_ORIGIN_Y;
       row.forEach((key, index) => {
         const x = Math.round(LAYOUT_CENTER_X + (index - (count - 1) / 2) * LAYOUT_COL_W);
-        const y = LAYOUT_ORIGIN_Y + parseInt(lv, 10) * LAYOUT_ROW_H;
         positions.set(key, { x, y });
       });
     });
@@ -517,11 +1183,19 @@
     applyNodePositions(positions);
   }
 
+  function runLayoutAfterPaint(def) {
+    window.requestAnimationFrame(function () {
+      layoutTopDownFromDef(def);
+    });
+  }
+
   function autoLayout() {
     pushHistory();
     const def = exportDefinition();
-    layoutTopDownFromDef(def);
-    syncJsonField();
+    window.requestAnimationFrame(function () {
+      layoutTopDownFromDef(def);
+      syncJsonField();
+    });
   }
 
   function updateFullscreenButton() {
@@ -676,36 +1350,7 @@
     if (!selectedDfId) {
       return;
     }
-    const dfId = normalizeDfId(selectedDfId);
-    const n = editor.getNodeFromId(dfId);
-    if (!n) {
-      return;
-    }
-    const label = n.data.label || n.data.type || dfId;
-    const runRemove = function () {
-      pushHistory();
-      unregisterNode(dfId);
-      editor.removeNodeId('node-' + dfId);
-      selectedDfId = null;
-      if (propsPanel) {
-        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
-      }
-      syncJsonField();
-    };
-    if (typeof wwmAdminConfirm === 'function') {
-      wwmAdminConfirm({
-        title: 'Удалить блок?',
-        message: 'Блок «' + label + '» и его связи будут удалены с холста.',
-        confirmLabel: 'Удалить',
-        danger: true,
-      }).then((ok) => {
-        if (ok) {
-          runRemove();
-        }
-      });
-      return;
-    }
-    runRemove();
+    removeNodeWithConfirm(selectedDfId);
   }
 
   function buildFromDefinition(def, options) {
@@ -723,8 +1368,9 @@
       reconcileNodeIds(nodes);
       rebuildMapsFromCanvas();
       if (opts.relayoutTopDown) {
-        layoutTopDownFromDef(def);
+        runLayoutAfterPaint(def);
       }
+      reconcileTriggerEntrySettings();
       refreshCanvasAfterRebuild();
       return;
     }
@@ -735,7 +1381,7 @@
       const node = nodes[key];
       const type = node.type || 'step';
       const data = Object.assign({ node_id: key, type, label: node.label || key }, node);
-      const pos = positions.get(key) || { x: LAYOUT_CENTER_X, y: LAYOUT_ORIGIN_Y + index * LAYOUT_ROW_H };
+      const pos = positions.get(key) || { x: LAYOUT_CENTER_X, y: LAYOUT_ORIGIN_Y + index * LAYOUT_FALLBACK_NODE_H };
       addNodeToCanvas(type, key, data, pos.x, pos.y);
       if (index === 0) {
         selectedDfId = String(editor.nodeId - 1);
@@ -758,8 +1404,9 @@
       editor.addConnection(fromDf, toDf, outputClass, 'input_1');
     });
     rebuildMapsFromCanvas();
-    layoutTopDownFromDef(def);
+    runLayoutAfterPaint(def);
     refreshCanvasAfterRebuild();
+    reconcileTriggerEntrySettings();
   }
 
   function reconcileNodeIds(defNodes) {
@@ -826,7 +1473,12 @@
       });
     });
 
-    const meta = Object.assign({}, definition.meta || {}, { course_slug: courseSlug });
+    const trig = findTriggerOnCanvas();
+    const metaCourse = trig ? String(trig.data.process_course_slug || '').trim() : '';
+    const meta = Object.assign({}, definition.meta || {}, {
+      course_slug: metaCourse || processCourseSlug(),
+      entry_mode: trig ? String(trig.data.entry_mode || '') : (config.automation?.entry_mode || ''),
+    });
     return {
       version: definition.version || 1,
       meta,
@@ -859,6 +1511,9 @@
     if (el) {
       el.innerHTML = nodeHtml(n.data);
     }
+    if (selectedDfId && normalizeDfId(selectedDfId) === id) {
+      syncNodeDeleteButton();
+    }
   }
 
   function bindPropHandlers(dfId, d) {
@@ -887,12 +1542,19 @@
         editor.updateNodeDataFromId(dfId, d);
         updateNodeHtml(dfId);
         scheduleHistory();
-        if (key === 'template' || key === 'condition' || key === 'send_email' || key === 'course_slug') {
+        if (key === 'template' || key === 'condition' || key === 'course_slug' || key === 'staff_recipients'
+          || key === 'entry_mode' || key === 'process_course_slug') {
+          if (key === 'entry_mode' || key === 'process_course_slug') {
+            syncAutomationFormFromTrigger();
+          }
           renderProps(dfId);
         }
       };
       el.addEventListener('change', handler);
       if (el.tagName === 'INPUT' && el.type === 'number') {
+        el.addEventListener('input', handler);
+      }
+      if (el.tagName === 'TEXTAREA') {
         el.addEventListener('input', handler);
       }
     });
@@ -922,22 +1584,137 @@
     return Array.isArray(config.courses) ? config.courses : [];
   }
 
-  function conditionNeedsCourseSlug(condition) {
-    return condition === 'has_paid_course' || condition === 'demo_lesson_opened';
+  function courseLabelForSlug(slug) {
+    const s = String(slug || '').trim();
+    if (!s) {
+      return '';
+    }
+    const c = courseSelectOptions().find((x) => String(x.value) === s);
+    return c ? (c.label || s) : s;
   }
 
-  function courseSlugFieldHtml(currentValue, label) {
-    const val = String(currentValue || courseSlug || '').trim();
+  function entryModeLabel(mode) {
+    const m = String(mode || '').trim();
+    const o = (config.entry_modes || []).find((x) => x.value === m);
+    return o ? (o.label || m) : m;
+  }
+
+  function findTriggerOnCanvas() {
+    const home = editor.export().drawflow?.Home?.data || {};
+    let found = null;
+    Object.keys(home).forEach((dfId) => {
+      const n = home[dfId];
+      const type = n.data?.type || n.name;
+      const key = n.data?.node_id;
+      if (type === 'trigger' || key === 'start') {
+        found = { dfId: normalizeDfId(dfId), data: n.data };
+      }
+    });
+    return found;
+  }
+
+  function processCourseSlug() {
+    const trig = findTriggerOnCanvas();
+    if (trig?.data) {
+      const s = String(trig.data.process_course_slug ?? '').trim();
+      if (s) {
+        return s;
+      }
+    }
+    const am = config.automation || {};
+    return String(am.course_slug || initialProcessCourseSlug).trim() || initialProcessCourseSlug;
+  }
+
+  function reconcileTriggerEntrySettings() {
+    const trig = findTriggerOnCanvas();
+    if (!trig) {
+      return;
+    }
+    const d = trig.data;
+    const am = config.automation || {};
+    const defStart = (definition.nodes && (definition.nodes.start || definition.nodes[d.node_id])) || {};
+    if (!d.entry_mode) {
+      d.entry_mode = defStart.entry_mode || am.entry_mode || 'demo_grant';
+    }
+    if (d.process_course_slug === undefined || d.process_course_slug === null || d.process_course_slug === '') {
+      d.process_course_slug = defStart.process_course_slug
+        ?? defStart.course_slug
+        ?? am.course_slug
+        ?? initialProcessCourseSlug;
+    }
+    d.process_course_slug = String(d.process_course_slug || '').trim();
+    editor.updateNodeDataFromId(trig.dfId, d);
+    updateNodeHtml(trig.dfId);
+    syncAutomationFormFromTrigger();
+  }
+
+  function syncAutomationFormFromTrigger() {
+    const trig = findTriggerOnCanvas();
+    const modeEl = document.getElementById('automation-entry-mode');
+    const courseEl = document.getElementById('automation-settings-course');
+    const hintEl = document.getElementById('automation-entry-settings-hint');
+    if (!trig) {
+      return;
+    }
+    const mode = String(trig.data.entry_mode || 'demo_grant');
+    const slug = String(trig.data.process_course_slug || '').trim();
+    if (modeEl) {
+      modeEl.value = mode;
+    }
+    if (courseEl) {
+      courseEl.value = slug;
+    }
+    if (config.automation) {
+      config.automation.entry_mode = mode;
+      config.automation.course_slug = slug;
+      config.automation.entry_mode_label = entryModeLabel(mode);
+    }
+    if (hintEl) {
+      const modeText = entryModeLabel(mode);
+      const courseText = slug ? courseLabelForSlug(slug) : 'не привязан';
+      hintEl.innerHTML = 'С блока <strong>«Старт»</strong>: ' + escapeHtml(modeText) + ' · ' + escapeHtml(courseText);
+    }
+  }
+
+  function conditionMeta(condition) {
+    return (config.conditions || []).find((c) => c.value === condition);
+  }
+
+  function conditionNeedsCourseSlug(condition) {
+    const m = conditionMeta(condition);
+    if (m && typeof m.needs_course === 'boolean') {
+      return m.needs_course;
+    }
+    return condition === 'has_paid_course' || condition === 'demo_lesson_opened' || condition === 'has_active_demo';
+  }
+
+  function paletteHint(type) {
+    const p = (config.palette || []).find((item) => item.id === type);
+    return p && p.description ? p.description : '';
+  }
+
+  function templateKind(templateId) {
+    const t = (config.templates || []).find((x) => x.value === templateId);
+    return t && t.kind ? t.kind : 'transactional';
+  }
+
+  function courseSlugFieldHtml(currentValue, label, opts) {
+    const allowEmpty = !!(opts && opts.allowEmpty);
+    const prop = (opts && opts.prop) ? String(opts.prop) : 'course_slug';
+    const val = String(currentValue !== undefined && currentValue !== null ? currentValue : processCourseSlug()).trim();
     const fieldLabel = label || 'Курс';
     const courses = courseSelectOptions();
     if (courses.length === 0) {
       return (
         '<label class="field"><span class="field-label">' + escapeHtml(fieldLabel) + '</span>'
-        + '<input type="text" data-prop="course_slug" value="' + escapeHtml(val) + '" pattern="[a-z0-9\\-]+" placeholder="slug курса"></label>'
+        + '<input type="text" data-prop="' + escapeHtml(prop) + '" value="' + escapeHtml(val) + '" pattern="[a-z0-9\\-]+" placeholder="slug курса"></label>'
       );
     }
     const known = new Set();
-    let html = '<label class="field"><span class="field-label">' + escapeHtml(fieldLabel) + '</span><select data-prop="course_slug">';
+    let html = '<label class="field"><span class="field-label">' + escapeHtml(fieldLabel) + '</span><select data-prop="' + escapeHtml(prop) + '">';
+    if (allowEmpty) {
+      html += '<option value=""' + (val === '' ? ' selected' : '') + '>— не привязан —</option>';
+    }
     courses.forEach((c) => {
       const v = String(c.value || '');
       if (!v) {
@@ -967,7 +1744,31 @@
     let html = '<h3 class="automation-props-title">' + escapeHtml(d.label || d.type) + '</h3>';
     html += '<p class="field-hint">ID: <code>' + escapeHtml(d.node_id || id) + '</code></p>';
 
-    html += '<label class="field"><span class="field-label">Подпись</span><input type="text" data-prop="label" value="' + escapeHtml(d.label || '') + '"></label>';
+    html += '<label class="field"><span class="field-label">Подпись на схеме</span><input type="text" data-prop="label" value="' + escapeHtml(d.label || '') + '"></label>';
+
+    const help = paletteHint(d.type);
+    if (help) {
+      html += '<p class="automation-props-help field-hint">' + escapeHtml(help) + '</p>';
+    }
+
+    if (d.type === 'trigger') {
+      const curMode = d.entry_mode || (config.automation && config.automation.entry_mode) || 'demo_grant';
+      html += '<label class="field"><span class="field-label">Тип входа в процесс</span><select data-prop="entry_mode">';
+      (config.entry_modes || []).forEach((m) => {
+        html += '<option value="' + escapeHtml(m.value) + '"' + (m.value === curMode ? ' selected' : '') + '>'
+          + escapeHtml(m.label || m.value) + '</option>';
+      });
+      html += '</select></label>';
+      html += '<p class="field-hint">Демо по курсу — AVO/API; вручную и после оплаты — допродажи и общие цепочки.</p>';
+      html += courseSlugFieldHtml(d.process_course_slug, 'Курс процесса', {
+        allowEmpty: true,
+        prop: 'process_course_slug',
+      });
+      const needCourse = !!ENTRY_MODES_NEED_COURSE[curMode];
+      html += '<p class="field-hint" id="automation-trigger-course-hint">' + (needCourse
+        ? 'Для этого типа входа курс обязателен (сохраняется slug).'
+        : 'Необязательно — контекст для писем и условий в схеме.') + '</p>';
+    }
 
     if (d.type === 'delay') {
       const parts = secondsToDhm(d.seconds);
@@ -977,42 +1778,115 @@
       html += '<label class="automation-dhm-field"><span>Часы</span><input type="number" min="0" max="23" data-dhm="hours" value="' + parts.hours + '"></label>';
       html += '<label class="automation-dhm-field"><span>Минуты</span><input type="number" min="0" max="59" data-dhm="minutes" value="' + parts.minutes + '"></label>';
       html += '</div>';
-      html += '<p class="field-hint automation-dhm-total">' + escapeHtml(formatDelay(d.seconds)) + '</p></div>';
+      html += '<p class="field-hint automation-dhm-total">' + escapeHtml(formatDelay(d.seconds)) + '</p>';
+      html += '<p class="field-hint">Обработка по cron (run-email-automations). Ученик «ждёт» на этом шаге до наступления времени.</p></div>';
     }
     if (d.type === 'send_template') {
       html += '<label class="field"><span class="field-label">Шаблон письма</span><select data-prop="template">';
       (config.templates || []).forEach((t) => {
-        html += '<option value="' + escapeHtml(t.value) + '"' + (t.value === d.template ? ' selected' : '') + '>' + escapeHtml(t.label) + '</option>';
+        const kindTag = t.kind === 'marketing' ? ' [маркетинг]' : '';
+        html += '<option value="' + escapeHtml(t.value) + '"' + (t.value === d.template ? ' selected' : '') + '>' + escapeHtml((t.label || t.value) + kindTag) + '</option>';
       });
       html += '</select></label>';
+      const kind = templateKind(d.template);
+      html += '<p class="field-hint">' + (kind === 'marketing'
+        ? 'Маркетинг: отписка, List-Unsubscribe, промокод cross-sell из config.'
+        : 'Транзакционное: напоминания и demo/sale из AVO-воронки.') + '</p>';
       const editUrl = templateEditUrl(d.template);
       if (editUrl) {
         html += '<p><a class="btn btn-primary btn-sm" href="' + escapeHtml(editUrl) + '" target="_blank" rel="noopener">Редактировать письмо</a></p>';
-        html += '<p class="field-hint">Откроется редактор шаблона в новой вкладке. Сохраните письмо там — сценарий использует актуальную версию.</p>';
       }
+      html += courseSlugFieldHtml(d.course_slug, 'Курс в письме');
+      html += '<p class="field-hint">Slug для buy_url, course_title и условий. Пустой — контекст run / настройки процесса.</p>';
+      html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_paid_course" value="1"'
+        + (d.skip_if_paid_course ? ' checked' : '') + '><span>Не слать, если этот курс уже куплен</span></label>';
       if (templateNeedsCourseSlug(d.template)) {
-        html += courseSlugFieldHtml(d.course_slug, 'Курс для письма');
-        html += '<p class="field-hint">Cross-sell: ссылка на оплату и название курса в письме.</p>';
+        html += '<p class="field-hint"><strong>Cross-sell:</strong> для этого шаблона курс обязателен.</p>';
       }
     }
     if (d.type === 'condition') {
       html += '<label class="field"><span class="field-label">Условие</span><select data-prop="condition">';
       (config.conditions || []).forEach((c) => {
-        html += '<option value="' + escapeHtml(c.value) + '"' + (c.value === d.condition ? ' selected' : '') + '>' + escapeHtml(c.label) + '</option>';
+        html += '<option value="' + escapeHtml(c.value) + '"' + (c.value === d.condition ? ' selected' : '') + '>' + escapeHtml(c.label || c.value) + '</option>';
       });
       html += '</select></label>';
+      const cm = conditionMeta(d.condition);
+      if (cm && cm.hint) {
+        html += '<p class="field-hint">' + escapeHtml(cm.hint) + '</p>';
+      }
       if (conditionNeedsCourseSlug(d.condition)) {
         html += courseSlugFieldHtml(d.course_slug, 'Курс для условия');
       }
-      html += '<p class="field-hint">Верхний выход — «да», нижний — «нет»</p>';
+      html += '<p class="field-hint">Верхний кружок — «да», нижний — «нет».</p>';
     }
-    if (d.type === 'grant_demo' || d.type === 'revoke_demo') {
-      html += courseSlugFieldHtml(d.course_slug, 'Курс');
+    if (d.type === 'revoke_demo') {
+      html += '<div class="alert alert-warning" style="margin:12px 0">Блок устарел: демо снимается по таймеру курса (demo_hours). Удалите блок и соедините линию напрямую.</div>';
     }
     if (d.type === 'grant_demo') {
-      html += '<label class="field field-checkbox"><input type="checkbox" data-prop="send_email" value="1"' + (d.send_email ? ' checked' : '') + '><span>Отправить письмо «демо»</span></label>';
-      if (d.send_email && config.demo_email_edit_url) {
-        html += '<p><a class="btn btn-primary btn-sm" href="' + escapeHtml(config.demo_email_edit_url) + '" target="_blank" rel="noopener">Редактировать письмо demo</a></p>';
+      html += courseSlugFieldHtml(d.course_slug, 'Курс демо');
+      html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_paid" value="1"'
+        + (d.skip_if_paid !== false ? ' checked' : '') + '><span>Пропустить, если курс уже куплен</span></label>';
+      html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_demo_active" value="1"'
+        + (d.skip_if_demo_active !== false ? ' checked' : '') + '><span>Пропустить, если демо уже активно</span></label>';
+      html += '<p class="field-hint">Письмо demo уходит только при новой выдаче. Срок демо — в карточке курса (demo_hours), отзыв не нужен.</p>';
+      if (config.demo_email_edit_url) {
+        html += '<p><a class="btn btn-ghost btn-sm" href="' + escapeHtml(config.demo_email_edit_url) + '" target="_blank" rel="noopener">Шаблон письма demo</a></p>';
+      }
+    }
+    if (d.type === 'end') {
+      html += '<label class="field"><span class="field-label">Тип завершения (статистика)</span><select data-prop="outcome">';
+      const outcomes = config.end_outcomes || [{ value: 'completed', label: 'Обычное завершение' }];
+      const cur = d.outcome || 'completed';
+      outcomes.forEach((o) => {
+        html += '<option value="' + escapeHtml(o.value) + '"' + (o.value === cur ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
+      });
+      html += '</select></label>';
+      html += '<p class="field-hint">Пишется в step events (detail=outcome=…). На логику веток не влияет.</p>';
+    }
+    if (d.type === 'notify_staff') {
+      const hadLegacyRecipients = String(d.staff_recipients || '').trim();
+      ensureStaffAdminIdsFromLegacy(d);
+      if (hadLegacyRecipients && Array.isArray(d.staff_admin_ids) && d.staff_admin_ids.length) {
+        editor.updateNodeDataFromId(id, d);
+      }
+      const defaultEmail = String(config.staff_notify_default_email || '').trim();
+      const selected = new Set(staffAdminIds(d));
+      const admins = config.staff_admins || [];
+      html += '<div class="field"><span class="field-label">Кому из администраторов</span>';
+      if (!admins.length) {
+        html += '<p class="field-hint">Список пуст — добавьте админов в разделе Administrators или <code>admin_emails</code> в config.</p>';
+      } else {
+        const summary = staffAdminSummaryText(Array.from(selected));
+        html += '<div class="automation-staff-multiselect" data-staff-multiselect>';
+        html += '<button type="button" class="automation-staff-multiselect__trigger" aria-expanded="false" aria-haspopup="listbox">';
+        html += '<span class="automation-staff-multiselect__label">' + escapeHtml(summary) + '</span>';
+        html += '<span class="automation-staff-multiselect__chevron" aria-hidden="true"></span>';
+        html += '</button>';
+        html += '<div class="automation-staff-multiselect__panel" role="listbox" hidden>';
+        admins.forEach((a) => {
+          const val = String(a.value);
+          const checked = selected.has(val) ? ' checked' : '';
+          const title = escapeHtml(a.roles || '');
+          html += '<label class="automation-staff-admin-item" title="' + title + '">';
+          html += '<input type="checkbox" data-staff-admin="' + escapeHtml(val) + '" value="1"' + checked + '>';
+          html += '<span class="automation-staff-admin-item__text">';
+          html += '<span class="automation-staff-admin-item__name">' + escapeHtml(a.name || a.email) + '</span>';
+          html += '<span class="automation-staff-admin-item__meta">' + escapeHtml(a.email) + ' · ' + escapeHtml(a.roles || '') + '</span>';
+          html += '</span></label>';
+        });
+        html += '</div></div>';
+      }
+      html += '</div>';
+      html += '<p class="field-hint">Отметьте одного или нескольких. Если никого не выбрано — '
+        + (defaultEmail ? 'письмо на <code>' + escapeHtml(defaultEmail) + '</code> из config' : 'только запись в cabinet.log (<code>staff_notify_email</code>)')
+        + '. Нужен <code>mail.enabled</code>.</p>';
+      html += '<label class="field"><span class="field-label">Тема письма</span>';
+      html += '<input type="text" data-prop="notify_subject" value="' + escapeHtml(d.notify_subject || 'WWM automation: {{step_label}}') + '"></label>';
+      html += '<label class="field"><span class="field-label">Текст уведомления</span>';
+      html += '<textarea data-prop="notify_body" rows="8" spellcheck="false">' + escapeHtml(d.notify_body || defaultStaffNotifyBody()) + '</textarea></label>';
+      const ph = (config.staff_notify_placeholders || []).join(', ');
+      if (ph) {
+        html += '<p class="field-hint">Подстановки: ' + escapeHtml(ph) + '</p>';
       }
     }
 
@@ -1023,6 +1897,7 @@
     propsPanel.innerHTML = html;
 
     bindPropHandlers(id, d);
+    bindStaffAdminMultiselect(id, d);
 
     const dup = propsPanel.querySelector('.automation-props-duplicate');
     if (dup) {
@@ -1095,15 +1970,30 @@
     }
     if (type === 'send_template') {
       base.template = (config.templates && config.templates[0]?.value) || 'reminder_demo_no_login';
-      base.course_slug = courseSlug;
+      base.course_slug = processCourseSlug();
+      base.skip_if_paid_course = false;
+    }
+    if (type === 'trigger') {
+      base.entry_mode = (config.automation && config.automation.entry_mode) || 'demo_grant';
+      base.process_course_slug = processCourseSlug();
+    }
+    if (type === 'notify_staff') {
+      base.staff_admin_ids = [];
+      base.staff_recipients = '';
+      base.notify_subject = 'WWM automation: {{step_label}}';
+      base.notify_body = defaultStaffNotifyBody();
     }
     if (type === 'condition') {
       base.condition = 'has_paid_any';
-      base.course_slug = courseSlug;
+      base.course_slug = processCourseSlug();
     }
-    if (type === 'grant_demo' || type === 'revoke_demo') {
-      base.course_slug = courseSlug;
-      base.send_email = type === 'grant_demo';
+    if (type === 'grant_demo') {
+      base.course_slug = processCourseSlug();
+      base.skip_if_paid = true;
+      base.skip_if_demo_active = true;
+    }
+    if (type === 'end') {
+      base.outcome = 'completed';
     }
     return base;
   }
@@ -1134,6 +2024,7 @@
   });
 
   buildFromDefinition(definition);
+  reconcileTriggerEntrySettings();
   updateZoomUi();
   if (jsonField) {
     syncJsonField();
@@ -1253,12 +2144,16 @@
         const cond = String(node.condition || '');
         if (!cond) {
           issues.push('«' + label + '»: выберите тип условия.');
-        } else if (cond === 'has_paid_course' || cond === 'demo_lesson_opened') {
+        } else if (conditionNeedsCourseSlug(cond)) {
           const slug = String(node.course_slug || '').trim();
           if (!slug) {
             issues.push('«' + label + '»: для условия нужен курс.');
           }
         }
+      }
+
+      if (type === 'revoke_demo') {
+        issues.push('«' + label + '»: блок «Отзыв демо» устарел — удалите и пересоедините ветки.');
       }
 
       if (type === 'send_template' && !String(node.template || '').trim()) {
@@ -1270,12 +2165,41 @@
         }
       }
 
-      if ((type === 'grant_demo' || type === 'revoke_demo') && !String(node.course_slug || '').trim()) {
-        issues.push('«' + label + '»: укажите курс.');
+      if (type === 'grant_demo' && !String(node.course_slug || '').trim()) {
+        issues.push('«' + label + '»: укажите курс демо.');
+      }
+
+      if (type === 'trigger' || id === 'start') {
+        const mode = String(node.entry_mode || '').trim() || 'demo_grant';
+        const procCourse = String(node.process_course_slug ?? node.course_slug ?? '').trim();
+        if (ENTRY_MODES_NEED_COURSE[mode] && !procCourse) {
+          issues.push('«' + label + '»: для типа входа «' + entryModeLabel(mode) + '» укажите курс в блоке «Старт».');
+        }
+      }
+
+      if (type === 'notify_staff') {
+        const ids = Array.isArray(node.staff_admin_ids) ? node.staff_admin_ids : [];
+        const legacy = String(node.staff_recipients || '').trim();
+        if (ids.length === 0 && legacy) {
+          legacy.split(/[,;\s]+/).forEach((part) => {
+            const email = part.trim();
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              issues.push('«' + label + '»: некорректный email в устаревшем поле получателей.');
+            }
+          });
+        }
       }
 
       if (type === 'delay' && (parseInt(node.seconds, 10) || 0) < 0) {
         issues.push('«' + label + '»: укажите длительность паузы.');
+      }
+
+      if (type === 'end') {
+        const outcome = String(node.outcome || 'completed');
+        const allowed = (config.end_outcomes || []).map((o) => o.value);
+        if (allowed.length && outcome && !allowed.includes(outcome)) {
+          issues.push('«' + label + '»: выберите тип завершения.');
+        }
       }
     });
 
@@ -1322,6 +2246,20 @@
     return 'Исправьте схему перед сохранением:\n\n' + issues.map((line) => '• ' + line).join('\n');
   }
 
+  function validateAutomationEntryFromForm() {
+    const modeEl = document.getElementById('automation-entry-mode');
+    const courseEl = document.getElementById('automation-settings-course');
+    if (!modeEl || !courseEl) {
+      return '';
+    }
+    const mode = String(modeEl.value || 'demo_grant');
+    const slug = String(courseEl.value || '').trim();
+    if (ENTRY_MODES_NEED_COURSE[mode] && !slug) {
+      return 'Для типа входа «' + entryModeLabel(mode) + '» выберите курс в блоке «Старт» на схеме.';
+    }
+    return '';
+  }
+
   function showValidationAlert(message) {
     if (typeof wwmAdminAlert === 'function') {
       wwmAdminAlert({ title: 'Схема не готова к сохранению', message });
@@ -1336,8 +2274,13 @@
       jsonField.value = jsonInline.value;
     }
     try {
+      syncAutomationFormFromTrigger();
       syncJsonField();
       const def = JSON.parse(jsonField.value);
+      const formErr = validateAutomationEntryFromForm();
+      if (formErr) {
+        return formErr;
+      }
       return validateDefinitionClient(def);
     } catch (err) {
       return 'Ошибка при экспорте схемы в JSON. Проверьте блоки на холсте.';

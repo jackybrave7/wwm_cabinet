@@ -131,6 +131,121 @@
   opacity: 0.55;
 }
 
+.automation-staff-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.automation-staff-multiselect__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: #fff;
+  border: 1px solid #d4cdc2;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.automation-staff-multiselect__trigger:hover {
+  border-color: #b8aea0;
+}
+
+.automation-staff-multiselect.is-open .automation-staff-multiselect__trigger {
+  border-color: #8a7f72;
+  box-shadow: 0 0 0 2px rgba(138, 127, 114, 0.15);
+}
+
+.automation-staff-multiselect__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.automation-staff-multiselect__chevron {
+  flex-shrink: 0;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #6b6358;
+  transition: transform 0.15s ease;
+}
+
+.automation-staff-multiselect.is-open .automation-staff-multiselect__chevron {
+  transform: rotate(180deg);
+}
+
+.automation-staff-multiselect__panel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: #fff;
+  border: 1px solid #d4cdc2;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(40, 35, 30, 0.12);
+}
+
+.automation-staff-admin-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.automation-staff-admin-item:hover {
+  background: #f5f2ec;
+}
+
+.automation-staff-admin-item input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.automation-staff-admin-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.automation-staff-admin-item__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.automation-staff-admin-item__meta {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #6b6358;
+}
+
+.automation-props-help {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f5f2ec;
+  border: 1px solid #e8e2d8;
+  line-height: 1.45;
+}
+
 .automation-flow-editor {
   margin-bottom: 16px;
 }
@@ -372,6 +487,10 @@ body.automation-flow-body-lock .admin-shell {
   overflow-y: auto;
 }
 
+.automation-flow-props-wrap.automation-props--staff-open {
+  overflow: visible;
+}
+
 .automation-props-title {
   font-size: 1rem;
   margin: 0 0 8px;
@@ -409,6 +528,25 @@ body.automation-flow-body-lock .admin-shell {
 .automation-df-node--revoke_demo .automation-df-node__badge { background: #fee2e2; color: #b91c1c; }
 .automation-df-node--notify_staff .automation-df-node__badge { background: #e0e7ff; color: #4338ca; }
 .automation-df-node--end .automation-df-node__badge { background: #e2e8f0; color: #475569; }
+
+.automation-flow-canvas.parent-drawflow,
+.automation-flow-canvas .drawflow {
+  cursor: default;
+}
+
+.automation-flow-canvas.automation-flow-panning.parent-drawflow,
+.automation-flow-canvas.automation-flow-panning .drawflow,
+body.automation-flow-rmb-pan {
+  cursor: grabbing !important;
+}
+
+.automation-flow-canvas .drawflow-node {
+  cursor: default;
+}
+
+body.automation-flow-rmb-pan .drawflow-node {
+  cursor: grabbing !important;
+}
 
 .drawflow .drawflow-node {
   background: #fff;
@@ -463,6 +601,56 @@ body.automation-flow-body-lock .admin-shell {
 
 .drawflow .drawflow-node.selected {
   box-shadow: 0 0 0 2px var(--wwm-accent, #c45c26);
+}
+
+.drawflow .drawflow-node:not(.selected) > .automation-node-delete {
+  display: none !important;
+}
+
+.drawflow .drawflow-node.selected > .automation-node-delete {
+  display: flex;
+}
+
+.automation-node-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 6;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 50%;
+  background: #fff;
+  color: #b91c1c;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.automation-node-delete span {
+  display: block;
+  margin-top: -1px;
+}
+
+.automation-node-delete:hover {
+  background: #fef2f2;
+  border-color: #b91c1c;
+}
+
+.automation-node-delete:focus-visible {
+  outline: 2px solid var(--wwm-accent, #c45c26);
+  outline-offset: 1px;
+}
+
+.automation-flow-detach-cable .drawflow .input,
+.automation-flow-detach-cable .drawflow .output {
+  cursor: grabbing;
 }
 
 .drawflow .drawflow-node .input,

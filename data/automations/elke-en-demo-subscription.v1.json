@@ -2,19 +2,22 @@
   "version": 1,
   "meta": {
     "title": "Elke demo funnel (subscription ENG)",
-    "description": "Migrated from AVO BP «Доступ к демо-доступу к видеокурсу Эльке Меммлер (через подписку) — ENG v.3»",
+    "description": "Demo access expires by course timer (demo_hours). No manual revoke steps.",
     "course_slug": "elke-en"
   },
   "nodes": {
     "start": {
       "type": "trigger",
+      "entry_mode": "demo_grant",
+      "process_course_slug": "elke-en",
       "label": "Entry: list subscription or /api/demo"
     },
     "grant_demo": {
       "type": "grant_demo",
       "course_slug": "elke-en",
-      "send_email": true,
-      "label": "Grant demo + optional welcome email"
+      "skip_if_paid": true,
+      "skip_if_demo_active": true,
+      "label": "Grant demo (skip if already active/paid)"
     },
     "gate_paid_any_1": {
       "type": "condition",
@@ -26,17 +29,15 @@
       "seconds": 172800,
       "label": "Pause 2 days (paid branch)"
     },
-    "exit_paid_revoke": {
-      "type": "revoke_demo",
-      "course_slug": "elke-en",
-      "label": "Remove demo access"
-    },
     "exit_paid_staff": {
       "type": "notify_staff",
-      "label": "Notify staff (purchase during funnel)"
+      "label": "Notify staff (purchase during funnel)",
+      "notify_subject": "WWM: purchase during demo funnel — {{student_email}}",
+      "notify_body": "Student bought during Elke demo funnel.\n\n{{student_name}} <{{student_email}}>\nCourse context: {{course_slug}}\n\n{{admin_student_url}}"
     },
     "end_paid": {
       "type": "end",
+      "outcome": "converted",
       "label": "End (purchased early)"
     },
     "wait_20h": {
@@ -68,12 +69,7 @@
     "gate_paid_any_2": {
       "type": "condition",
       "condition": "has_paid_any",
-      "label": "Purchased before revoke?"
-    },
-    "revoke_after_demo": {
-      "type": "revoke_demo",
-      "course_slug": "elke-en",
-      "label": "Revoke demo after window"
+      "label": "Purchased before sale emails?"
     },
     "mail_sale_24h": {
       "type": "send_template",
@@ -98,10 +94,13 @@
     },
     "staff_notify": {
       "type": "notify_staff",
-      "label": "Notify staff (finished without purchase)"
+      "label": "Notify staff (finished without purchase)",
+      "notify_subject": "WWM: demo funnel ended without purchase — {{student_email}}",
+      "notify_body": "Student finished Elke demo funnel without buying.\n\n{{student_name}} <{{student_email}}>\n\n{{admin_student_url}}"
     },
     "end_ok": {
       "type": "end",
+      "outcome": "completed",
       "label": "End"
     }
   },
@@ -110,8 +109,7 @@
     { "from": "grant_demo", "to": "gate_paid_any_1" },
     { "from": "gate_paid_any_1", "to": "exit_paid_pause_2d", "branch": "yes" },
     { "from": "gate_paid_any_1", "to": "wait_20h", "branch": "no" },
-    { "from": "exit_paid_pause_2d", "to": "exit_paid_revoke" },
-    { "from": "exit_paid_revoke", "to": "exit_paid_staff" },
+    { "from": "exit_paid_pause_2d", "to": "exit_paid_staff" },
     { "from": "exit_paid_staff", "to": "end_paid" },
     { "from": "wait_20h", "to": "branch_opened" },
     { "from": "branch_opened", "to": "wait_5h", "branch": "yes" },
@@ -120,8 +118,7 @@
     { "from": "mail_still", "to": "wait_5h" },
     { "from": "wait_5h", "to": "gate_paid_any_2" },
     { "from": "gate_paid_any_2", "to": "end_ok", "branch": "yes" },
-    { "from": "gate_paid_any_2", "to": "revoke_after_demo", "branch": "no" },
-    { "from": "revoke_after_demo", "to": "mail_sale_24h" },
+    { "from": "gate_paid_any_2", "to": "mail_sale_24h", "branch": "no" },
     { "from": "mail_sale_24h", "to": "gate_paid_any_3" },
     { "from": "gate_paid_any_3", "to": "end_ok", "branch": "yes" },
     { "from": "gate_paid_any_3", "to": "mail_final_3h", "branch": "no" },

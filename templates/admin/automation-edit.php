@@ -15,6 +15,14 @@ $flowActiveRuns = (int)($flowActiveRuns ?? 0);
 $canDeleteFlow = empty($a['is_active']) && $flowActiveRuns === 0;
 $entryModeLabels = is_array($entryModeLabels ?? null) ? $entryModeLabels : [];
 $courseSlugList = is_array($courseSlugs ?? null) ? $courseSlugs : [];
+$courseSlugValues = [];
+foreach ($courseSlugList as $courseOpt) {
+    if (is_array($courseOpt)) {
+        $courseSlugValues[] = (string)($courseOpt['value'] ?? '');
+    } else {
+        $courseSlugValues[] = (string)$courseOpt;
+    }
+}
 $currentEntryMode = \Wwm\Models\EmailAutomation::normalizeEntryMode((string)($a['entry_mode'] ?? ''));
 $currentCourseSlug = (string)($a['course_slug'] ?? '');
 $entryNeedsCourse = \Wwm\Models\EmailAutomation::entryModeRequiresCourseSlug($currentEntryMode);
@@ -193,7 +201,7 @@ $nodesById = $nodes;
 <form method="post" action="/admin/automations/<?= $id ?>" class="admin-card automation-flow-editor" id="automation-edit-form">
   <h2 class="admin-team-section-title">Визуальный редактор сценария</h2>
   <div id="automation-flow-shell" class="automation-flow-shell">
-  <p class="field-hint">Тяните от кружка на блоке к кружку другого блока. Линию можно переназначить: клик по линии → «Удалить связь» или Delete, затем проведите новую. Колёсико — масштаб, перетаскивание пустого поля — сдвиг схемы.</p>
+  <p class="field-hint">Связь: от выхода к входу. <strong>Отсоединить</strong> — потяните линию с выхода или входа в пустое место и отпустите. Или клик по линии → «Удалить связь» / Delete. Колёсико — масштаб. Сдвиг схемы — зажатая <strong>ПКМ</strong> на пустом поле.</p>
   <div class="automation-flow-toolbar">
     <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-undo" disabled title="Ctrl+Z">Отменить</button>
     <span class="automation-flow-zoom-wrap" title="Ctrl + колёсико мыши на схеме">
@@ -251,55 +259,9 @@ $nodesById = $nodes;
     <textarea name="description" rows="2"><?= wwm_escape((string)($a['description'] ?? '')) ?></textarea>
   </label>
 
-  <label class="field">
-    <span class="field-label">Тип входа в процесс</span>
-    <select name="entry_mode" id="automation-entry-mode">
-      <?php foreach ($entryModeLabels as $mode => $modeLabel): ?>
-        <option value="<?= wwm_escape($mode) ?>"<?= $currentEntryMode === $mode ? ' selected' : '' ?>><?= wwm_escape($modeLabel) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <span class="field-hint">Демо по курсу — как раньше через AVO; вручную и после оплаты — для допродаж и общих цепочек.</span>
-  </label>
-
-  <label class="field" id="automation-settings-course-wrap">
-    <span class="field-label">Курс</span>
-    <?php if ($courseSlugList !== []): ?>
-      <select name="course_slug" id="automation-settings-course">
-        <option value=""<?= $currentCourseSlug === '' ? ' selected' : '' ?>>— не привязан —</option>
-        <?php foreach ($courseSlugList as $slug): ?>
-          <option value="<?= wwm_escape($slug) ?>"<?= $currentCourseSlug === $slug ? ' selected' : '' ?>><?= wwm_escape($slug) ?></option>
-        <?php endforeach; ?>
-        <?php if ($currentCourseSlug !== '' && !in_array($currentCourseSlug, $courseSlugList, true)): ?>
-          <option value="<?= wwm_escape($currentCourseSlug) ?>" selected><?= wwm_escape($currentCourseSlug) ?> (сохранённый)</option>
-        <?php endif; ?>
-      </select>
-    <?php else: ?>
-      <input type="text" name="course_slug" id="automation-settings-course" value="<?= wwm_escape($currentCourseSlug) ?>" pattern="[a-z0-9\-]*">
-    <?php endif; ?>
-    <span class="field-hint" id="automation-settings-course-hint">Для демо-воронки и «оплата курса» — выберите slug из списка.</span>
-  </label>
-
-  <script>
-  (function () {
-    const mode = document.getElementById('automation-entry-mode');
-    const course = document.getElementById('automation-settings-course');
-    const hint = document.getElementById('automation-settings-course-hint');
-    if (!mode || !course) return;
-    const needs = { demo_grant: true, payment_course: true, manual: false, payment_any: false };
-    function sync() {
-      const key = mode.value;
-      const required = !!needs[key];
-      course.required = required;
-      if (hint) {
-        hint.textContent = required
-          ? 'Обязательно для этого типа входа.'
-          : 'Необязательно — контекст для писем и условий в схеме.';
-      }
-    }
-    mode.addEventListener('change', sync);
-    sync();
-  })();
-  </script>
+  <input type="hidden" name="entry_mode" id="automation-entry-mode" value="<?= wwm_escape($currentEntryMode) ?>">
+  <input type="hidden" name="course_slug" id="automation-settings-course" value="<?= wwm_escape($currentCourseSlug) ?>">
+  <p class="field-hint" id="automation-entry-settings-hint">Тип входа и курс процесса настраиваются в блоке <strong>«Старт»</strong> на схеме (свойства справа).</p>
 
   <details class="automation-flow-advanced">
     <summary>Definition (JSON) — для опытных</summary>

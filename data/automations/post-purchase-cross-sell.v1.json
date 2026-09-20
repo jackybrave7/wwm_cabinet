@@ -8,6 +8,8 @@
   "nodes": {
     "start": {
       "type": "trigger",
+      "entry_mode": "payment_any",
+      "process_course_slug": "",
       "label": "Entry: after any course purchase"
     },
     "wait_30d": {
@@ -17,6 +19,7 @@
     },
     "end_done": {
       "type": "end",
+      "outcome": "completed",
       "label": "End — cross-sell sequence finished"
     },
     "cond_elke_en": {
@@ -29,6 +32,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_offer",
       "course_slug": "elke-en",
+      "skip_if_paid_course": true,
       "label": "Elke — 50% offer (WWM5, 48h)"
     },
     "wait43_elke_en": {
@@ -40,6 +44,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_reminder",
       "course_slug": "elke-en",
+      "skip_if_paid_course": true,
       "label": "Elke — reminder (5h left)"
     },
     "wait5_elke_en": {
@@ -62,6 +67,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_offer",
       "course_slug": "la-fe",
+      "skip_if_paid_course": true,
       "label": "La Fe — 50% offer (WWM5, 48h)"
     },
     "wait43_la_fe": {
@@ -73,6 +79,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_reminder",
       "course_slug": "la-fe",
+      "skip_if_paid_course": true,
       "label": "La Fe — reminder (5h left)"
     },
     "wait5_la_fe": {
@@ -95,6 +102,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_offer",
       "course_slug": "alvaro",
+      "skip_if_paid_course": true,
       "label": "Alvaro — 50% offer (WWM5, 48h)"
     },
     "wait43_alvaro": {
@@ -106,6 +114,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_reminder",
       "course_slug": "alvaro",
+      "skip_if_paid_course": true,
       "label": "Alvaro — reminder (5h left)"
     },
     "wait5_alvaro": {
@@ -128,6 +137,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_offer",
       "course_slug": "angus",
+      "skip_if_paid_course": true,
       "label": "Angus — 50% offer (WWM5, 48h)"
     },
     "wait43_angus": {
@@ -139,6 +149,7 @@
       "type": "send_template",
       "template": "sale_crosssell_50_reminder",
       "course_slug": "angus",
+      "skip_if_paid_course": true,
       "label": "Angus — reminder (5h left)"
     },
     "wait5_angus": {

@@ -74,6 +74,9 @@ return [
 
     // Transactional email (password reset, demo access, magic links).
     // Without mail.enabled=true letters are written to data/mail.log only.
+    // Fallback for automation blocks «Notify staff» when block has empty «Кому»
+    'staff_notify_email' => 'support@worldwatercolormasters.art',
+
     'mail' => [
         'enabled' => false,
         'from_email' => 'robot@worldwatercolormasters.art',

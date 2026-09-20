@@ -3,6 +3,15 @@ $rows = is_array($automations ?? null) ? $automations : [];
 $archivedView = !empty($archivedView);
 $entryModeLabels = is_array($entryModeLabels ?? null) ? $entryModeLabels : [];
 $courseSlugList = is_array($courseSlugs ?? null) ? $courseSlugs : [];
+$courseTitleBySlug = [];
+foreach ($courseSlugList as $courseOpt) {
+    if (is_array($courseOpt)) {
+        $slug = (string)($courseOpt['value'] ?? '');
+        if ($slug !== '') {
+            $courseTitleBySlug[$slug] = (string)($courseOpt['label'] ?? $slug);
+        }
+    }
+}
 $listErrors = [
     'csrf' => 'Сессия истекла. Повторите действие.',
     'not_found' => 'Процесс не найден.',
@@ -64,8 +73,12 @@ $listErr = (string)($_GET['error'] ?? '');
       <?php if ($courseSlugList !== []): ?>
         <select name="course_slug" id="automation-create-course">
           <option value="">— не привязан —</option>
-          <?php foreach ($courseSlugList as $slug): ?>
-            <option value="<?= wwm_escape($slug) ?>"><?= wwm_escape($slug) ?></option>
+          <?php foreach ($courseSlugList as $courseOpt): ?>
+            <?php
+              $slug = is_array($courseOpt) ? (string)($courseOpt['value'] ?? '') : (string)$courseOpt;
+              $courseLabel = is_array($courseOpt) ? (string)($courseOpt['label'] ?? $slug) : (string)$courseOpt;
+            ?>
+            <option value="<?= wwm_escape($slug) ?>"><?= wwm_escape($courseLabel) ?></option>
           <?php endforeach; ?>
         </select>
       <?php else: ?>
@@ -129,7 +142,17 @@ $listErr = (string)($_GET['error'] ?? '');
               <span class="field-hint"><?= wwm_escape((string)$row['slug']) ?></span>
             </td>
             <td><span class="field-hint"><?= wwm_escape($entryLabel) ?></span></td>
-            <td><?= $courseSlugCell !== '' ? '<code>' . wwm_escape($courseSlugCell) . '</code>' : '<span class="field-hint">—</span>' ?></td>
+            <td><?php
+              if ($courseSlugCell === '') {
+                  echo '<span class="field-hint">—</span>';
+              } else {
+                  $courseListLabel = $courseTitleBySlug[$courseSlugCell] ?? $courseSlugCell;
+                  echo wwm_escape($courseListLabel);
+                  if ($courseListLabel !== $courseSlugCell && !str_contains($courseListLabel, $courseSlugCell)) {
+                      echo '<br><span class="field-hint"><code>' . wwm_escape($courseSlugCell) . '</code></span>';
+                  }
+              }
+            ?></td>
             <td>
               <?php if ($archivedView): ?>
                 <span class="badge badge-draft">Archived</span>

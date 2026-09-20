@@ -34,6 +34,7 @@ final class Database
         }
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
+        self::syncElkeDemoAutomationDefinition($pdo);
     }
 
     /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */
@@ -346,6 +347,37 @@ SQL);
         self::seedEmailAutomations($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::migrateEmailTemplatesLogo($pdo);
+    }
+
+    private static function syncElkeDemoAutomationDefinition(PDO $pdo): void
+    {
+        $path = WWM_ROOT . '/data/automations/elke-en-demo-subscription.v1.json';
+        if (!is_readable($path)) {
+            return;
+        }
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+        $decoded = json_decode($definition, true);
+        if (!is_array($decoded)) {
+            return;
+        }
+        try {
+            \Wwm\Services\AutomationDefinitionValidator::validate($decoded);
+        } catch (\Throwable) {
+            return;
+        }
+        $slug = 'elke-en-demo-subscription';
+        $stmt = $pdo->prepare('SELECT id FROM email_automations WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        $id = $stmt->fetchColumn();
+        if (!$id) {
+            return;
+        }
+        $pdo->prepare(
+            'UPDATE email_automations SET definition_json = ?, updated_at = ? WHERE id = ?'
+        )->execute([$definition, gmdate('c'), (int)$id]);
     }
 
     private static function seedPostPurchaseCrossSellAutomation(PDO $pdo): void
