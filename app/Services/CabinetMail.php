@@ -62,6 +62,38 @@ final class CabinetMail
         $message = $this->buildMessage($template, $user, $course, $courseSlug);
         $links = $this->trackedLinks($template, $message, $course);
 
+        return $this->deliverComposed($userId, $email, $template, $message, $links, $courseSlug);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return array{subject: string, text: string, html: ?string, login_url: string, buy_url: string}
+     */
+    public function composeForAutomation(string $template, array $user, string $courseSlug): array
+    {
+        $courseSlug = $this->resolveCourseSlug($courseSlug);
+        $course = (new CourseCatalog())->getAdmin($courseSlug);
+        if ($course === null) {
+            throw new \RuntimeException('Course not found');
+        }
+
+        return $this->buildMessage($template, $user, $course, $courseSlug);
+    }
+
+    /**
+     * @param array{subject: string, text: string, html: ?string, login_url: string, buy_url: string} $message
+     * @param list<array{url: string, label: string}> $links
+     * @return array{email_sent: bool, user_id: int, template: string, course_slug: string}
+     */
+    private function deliverComposed(
+        int $userId,
+        string $email,
+        string $template,
+        array $message,
+        array $links,
+        string $courseSlug,
+    ): array {
+
         $emailSent = EmailTracker::compose($userId, $email, $template, $message['subject'])
             ->deliver($message['text'], $message['html'], $links);
 
@@ -79,6 +111,50 @@ final class CabinetMail
             'template' => $template,
             'course_slug' => $courseSlug,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    public function sendAutomationMarketingTemplate(
+        string $template,
+        array $user,
+        string $courseSlug,
+        int $automationId,
+    ): bool {
+        if (!MarketingEmailDelivery::isMarketingTemplate($template)) {
+            throw new \InvalidArgumentException('Not a marketing automation template');
+        }
+        if (EmailTemplateCatalog::find($template) === null) {
+            return false;
+        }
+
+        $email = strtolower(trim((string)($user['email'] ?? '')));
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0 || $email === '') {
+            return false;
+        }
+
+        $courseSlug = $this->resolveCourseSlug($courseSlug);
+        $course = (new CourseCatalog())->getAdmin($courseSlug);
+        if ($course === null) {
+            return false;
+        }
+
+        $message = $this->buildMessage($template, $user, $course, $courseSlug);
+        $links = $this->trackedLinks($template, $message, $course);
+        $name = trim((string)($user['name'] ?? ''));
+        $listId = 'automation.' . $automationId;
+
+        return MarketingEmailDelivery::deliver(
+            $userId,
+            $email,
+            $template,
+            $message,
+            $links,
+            $listId,
+            $name,
+        );
     }
 
     private function resolveCourseSlug(?string $courseSlug): string
@@ -117,9 +193,13 @@ final class CabinetMail
             : wwm_base_url() . '/login?email=' . rawurlencode($email) . '&next=' . rawurlencode($nextPath);
 
         $expiresLabel = $this->demoExpiresLabel(wwm_pdo(), (int)$user['id'], $courseSlug);
-        $couponCode = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4'));
-        if ($couponCode === '') {
-            $couponCode = 'SPECWWM4';
+        if (MarketingEmailDelivery::isMarketingTemplate($template)) {
+            $couponCode = MarketingEmailDelivery::crosssellCouponCode();
+        } else {
+            $couponCode = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4'));
+            if ($couponCode === '') {
+                $couponCode = 'SPECWWM4';
+            }
         }
 
         $context = [
@@ -161,7 +241,12 @@ final class CabinetMail
      */
     private function trackedLinks(string $template, array $message, array $course): array
     {
-        $saleTemplates = ['sale_demo_discount_24h', 'sale_demo_discount_3h'];
+        $saleTemplates = [
+            'sale_demo_discount_24h',
+            'sale_demo_discount_3h',
+            'sale_crosssell_50_offer',
+            'sale_crosssell_50_reminder',
+        ];
         if (in_array($template, $saleTemplates, true)) {
             $buyUrl = trim((string)($message['buy_url'] ?? ''));
             if ($buyUrl !== '' && str_starts_with($buyUrl, 'https://')) {

@@ -79,6 +79,13 @@ final class PaymentWebhookController
                 $timeline['paid'],
                 $avoContactId > 0 ? $avoContactId : null
             );
+            if ($paymentRecorded) {
+                \Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded(
+                    $userId,
+                    $courseSlug,
+                    $timeline['paid']
+                );
+            }
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => 'invalid_email']);
         } catch (\RuntimeException $e) {

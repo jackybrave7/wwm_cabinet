@@ -5,12 +5,16 @@ namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
 use Wwm\Models\Access;
+use Wwm\Models\EmailAutomation;
 use Wwm\Models\EmailMessage;
 use Wwm\Models\Payment;
 use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
 use Wwm\Services\AccessPeriod;
+use Wwm\Services\AdminAccess;
 use Wwm\Services\AdminStudentListFilter;
+use Wwm\Services\BroadcastAudience;
+use Wwm\Models\EmailBroadcast;
 use Wwm\Services\CourseCatalog;
 use Wwm\Services\CourseWriter;
 use Wwm\Services\AvoContactName;
@@ -22,6 +26,18 @@ use Wwm\Services\StudentAttribution;
 final class AdminStudentController
 {
     private const STUDENTS_PER_PAGE = 50;
+
+    public function automationAudiencePreview(): void
+    {
+        Session::requireSuperAdmin();
+        $pdo = wwm_pdo();
+        $audience = EmailBroadcast::normalizeAudience((string)($_GET['audience'] ?? 'filtered'));
+        $filter = AdminStudentListFilter::fromBroadcastSource($_GET);
+        $count = BroadcastAudience::countForBroadcast($pdo, $audience, $filter);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['count' => $count], JSON_UNESCAPED_UNICODE);
+    }
 
     public function index(): void
     {
@@ -102,6 +118,7 @@ final class AdminStudentController
             'search' => $listFilter->search,
             'listFilter' => $listFilter,
             'filterCourses' => $publishedCourses,
+            'launchAutomations' => AdminAccess::canManageAdmins($user) ? EmailAutomation::listLaunchable($pdo) : [],
             'totalStudents' => $totalStudents,
             'page' => $page,
             'totalPages' => $totalPages,
@@ -122,6 +139,12 @@ final class AdminStudentController
                     (int)($_GET['total'] ?? 0)
                 ),
                 isset($_GET['created']) => 'Student created.',
+                isset($_GET['bulk_created']) => sprintf(
+                    'Automation launch: %d new enrollments, %d already in active run, %d failed.',
+                    (int)$_GET['bulk_created'],
+                    (int)($_GET['bulk_active'] ?? 0),
+                    (int)($_GET['bulk_failed'] ?? 0)
+                ),
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
@@ -130,6 +153,12 @@ final class AdminStudentController
                 'delete_admin' => 'Admin accounts cannot be deleted.',
                 'csrf' => 'Session expired. Please try again.',
                 'avo_disabled' => 'AVO integration is disabled in config.',
+                'filter_required' => 'Для запуска укажите условия в блоке фильтра аудитории.',
+                'bulk_none' => 'По выбранным условиям никого не найдено.',
+                'bulk_limit' => 'Слишком большая аудитория — сузьте фильтр.',
+                'bulk_inactive' => 'Выбранный процесс выключен (Active).',
+                'bulk_archived' => 'Процесс в архиве.',
+                'not_found' => 'Процесс не найден.',
                 default => null,
             },
             'avo_enabled' => (new AvoClient())->isEnabled(),

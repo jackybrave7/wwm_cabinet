@@ -45,14 +45,29 @@ final class EmailSampleSender
             }
 
             try {
+                if (MarketingEmailDelivery::isMarketingTemplate($id)) {
+                    $context['coupon_code'] = MarketingEmailDelivery::crosssellCouponCode();
+                }
                 $message = EmailTemplateRenderer::render($id, $context);
                 $subject = '[SAMPLE] ' . $message['subject'];
                 $links = $this->trackedLinks($id, $message, $context);
-                $userId = User::findByEmail(wwm_pdo(), $email);
-                $userIdInt = is_array($userId) ? (int)$userId['id'] : null;
+                $userRow = User::findByEmail(wwm_pdo(), $email);
+                $userIdInt = is_array($userRow) ? (int)$userRow['id'] : null;
 
-                $ok = EmailTracker::compose($userIdInt, $email, $id, $subject)
-                    ->deliver($message['text'], $message['html'], $links);
+                if (MarketingEmailDelivery::isMarketingTemplate($id) && $userIdInt !== null && $userIdInt > 0) {
+                    $ok = MarketingEmailDelivery::deliver(
+                        $userIdInt,
+                        $email,
+                        $id,
+                        ['subject' => $subject, 'text' => $message['text'], 'html' => $message['html']],
+                        $links,
+                        'sample.' . $id,
+                        $displayName,
+                    );
+                } else {
+                    $ok = EmailTracker::compose($userIdInt, $email, $id, $subject)
+                        ->deliver($message['text'], $message['html'], $links);
+                }
 
                 $results[] = [
                     'id' => $id,
@@ -82,7 +97,13 @@ final class EmailSampleSender
      */
     private function trackedLinks(string $templateId, array $message, array $context): array
     {
-        if (in_array($templateId, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
+        $saleIds = [
+            'sale_demo_discount_24h',
+            'sale_demo_discount_3h',
+            'sale_crosssell_50_offer',
+            'sale_crosssell_50_reminder',
+        ];
+        if (in_array($templateId, $saleIds, true)) {
             $buyUrl = trim((string)($context['buy_url'] ?? ''));
             if ($buyUrl !== '' && str_starts_with($buyUrl, 'https://')) {
                 return [['url' => $buyUrl, 'label' => 'Purchase course']];

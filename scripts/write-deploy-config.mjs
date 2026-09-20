@@ -96,7 +96,10 @@ return [
     'demo_hours' => ${Number(env('WWM_DEMO_HOURS', '48')) || 48},
     'magic_link_hours' => ${Number(env('WWM_MAGIC_LINK_HOURS', '72')) || 72},
 
-    'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '2'))},
+    'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '3'))},
+
+    'sale_coupon_code' => ${phpString(env('WWM_SALE_COUPON_CODE', 'SPECWWM4'))},
+    'crosssell_coupon_code' => ${phpString(env('WWM_CROSSSELL_COUPON_CODE', 'WWM5'))},
 
     'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},
 

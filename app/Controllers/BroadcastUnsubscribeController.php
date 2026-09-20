@@ -89,6 +89,6 @@ final class BroadcastUnsubscribeController
     private function performUnsubscribe(int $userId, string $email): void
     {
         EmailSuppression::suppress(wwm_pdo(), $email, $userId, 'unsubscribe');
-        wwm_log('broadcast unsubscribe user_id=' . $userId . ' email=' . $email);
+        wwm_log('marketing unsubscribe user_id=' . $userId . ' email=' . $email);
     }
 }

@@ -15,6 +15,7 @@ use Wwm\Controllers\BroadcastUnsubscribeController;
 use Wwm\Controllers\Admin\AdminSettingsController;
 use Wwm\Controllers\Admin\AdminStudentController;
 use Wwm\Controllers\Admin\AdminTeamController;
+use Wwm\Controllers\Admin\AdminGuideController;
 use Wwm\Auth\Session;
 use Wwm\Models\User;
 use Wwm\Services\AdminAccess;
@@ -178,6 +179,10 @@ final class Router
             (new AdminLessonController())->update($m[1], (int)$m[2]);
             return;
         }
+        if ($method === 'GET' && $path === '/admin/students/automation-audience-preview') {
+            (new AdminStudentController())->automationAudiencePreview();
+            return;
+        }
         if ($method === 'GET' && $path === '/admin/students') {
             (new AdminStudentController())->index();
             return;
@@ -281,6 +286,11 @@ final class Router
             return;
         }
 
+        if ($method === 'GET' && $path === '/admin/guide') {
+            (new AdminGuideController())->index();
+            return;
+        }
+
         if ($method === 'GET' && $path === '/admin/automations') {
             (new AdminAutomationController())->index();
             return;
@@ -289,8 +299,44 @@ final class Router
             (new AdminAutomationController())->runNow();
             return;
         }
+        if ($method === 'POST' && $path === '/admin/automations/create') {
+            (new AdminAutomationController())->create();
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/automations/(\d+)/step-events$#', $path, $m)) {
+            (new AdminAutomationController())->stepEvents((int)$m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/admin/automations/(\d+)/edit$#', $path, $m)) {
+            (new AdminAutomationController())->edit((int)$m[1]);
+            return;
+        }
         if ($method === 'GET' && preg_match('#^/admin/automations/(\d+)$#', $path, $m)) {
             (new AdminAutomationController())->edit((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll$#', $path, $m)) {
+            (new AdminAutomationController())->enrollStudent((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll-audience$#', $path, $m)) {
+            (new AdminAutomationController())->enrollAudience((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/duplicate$#', $path, $m)) {
+            (new AdminAutomationController())->duplicate((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/archive$#', $path, $m)) {
+            (new AdminAutomationController())->archive((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/unarchive$#', $path, $m)) {
+            (new AdminAutomationController())->unarchive((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/delete$#', $path, $m)) {
+            (new AdminAutomationController())->delete((int)$m[1]);
             return;
         }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)$#', $path, $m)) {

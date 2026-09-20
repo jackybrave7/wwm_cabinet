@@ -169,6 +169,8 @@ $sortIndicator = static function (string $column) use ($listFilter): string {
   </div>
 </details>
 
+<?php require __DIR__ . '/partials/students-automation-launch.php'; ?>
+
 <div class="admin-card">
   <table class="admin-table">
     <thead>

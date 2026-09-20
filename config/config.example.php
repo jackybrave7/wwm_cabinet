@@ -52,6 +52,11 @@ return [
         'import_goods_category_id' => 0,
     ],
 
+    // Demo funnel sale emails (AVO / demo automation)
+    'sale_coupon_code' => 'SPECWWM4',
+    // Post-purchase cross-sell automation (50% for 48h)
+    'crosssell_coupon_code' => 'WWM5',
+
     'demo_hours' => 48,
     'magic_link_hours' => 72,
 

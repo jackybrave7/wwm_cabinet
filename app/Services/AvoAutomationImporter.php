@@ -88,14 +88,6 @@ final class AvoAutomationImporter
      */
     public static function validateDefinition(array $definition): void
     {
-        if (empty($definition['nodes']) || !is_array($definition['nodes'])) {
-            throw new \InvalidArgumentException('Definition must include nodes object');
-        }
-        if (empty($definition['edges']) || !is_array($definition['edges'])) {
-            throw new \InvalidArgumentException('Definition must include edges array');
-        }
-        if (!isset($definition['nodes']['start'])) {
-            throw new \InvalidArgumentException('Definition must include start node');
-        }
+        AutomationDefinitionValidator::validate($definition);
     }
 }

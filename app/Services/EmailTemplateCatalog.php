@@ -83,6 +83,24 @@ final class EmailTemplateCatalog
                 'webhook' => true,
             ],
             [
+                'id' => 'sale_crosssell_50_offer',
+                'label' => 'Cross-sell — 50% off (2 days)',
+                'category' => 'Sales',
+                'description' => 'Post-purchase cross-sell offer (promo WWM5, 48 hours). Used by cabinet automations only.',
+                'trigger' => 'Email automation → send_template',
+                'has_html' => true,
+                'webhook' => false,
+            ],
+            [
+                'id' => 'sale_crosssell_50_reminder',
+                'label' => 'Cross-sell — 50% reminder (5h left)',
+                'category' => 'Sales',
+                'description' => 'Reminder 5 hours before cross-sell promo expires. Cabinet automations only.',
+                'trigger' => 'Email automation → send_template',
+                'has_html' => true,
+                'webhook' => false,
+            ],
+            [
                 'id' => 'magic',
                 'label' => 'Sign-in link',
                 'category' => 'Account',
@@ -163,8 +181,9 @@ final class EmailTemplateCatalog
                 => array_merge($common, $course),
             'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson'
                 => array_merge($common, array_diff($course, ['{{expires_label}}'])),
-            'sale_demo_discount_24h', 'sale_demo_discount_3h'
-                => ['{{name}}', '{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{buy_url}}', '{{coupon_code}}'],
+            'sale_demo_discount_24h', 'sale_demo_discount_3h',
+            'sale_crosssell_50_offer', 'sale_crosssell_50_reminder'
+                => ['{{name}}', '{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{buy_url}}', '{{coupon_code}}', '{{unsubscribe_url}}'],
             'magic' => ['{{name}}', '{{magic_link}}', '{{magic_link_hours}}'],
             'reset' => ['{{reset_link}}'],
             'admin_invite' => [

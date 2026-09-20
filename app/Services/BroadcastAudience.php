@@ -25,12 +25,24 @@ final class BroadcastAudience
 
     public static function countForBroadcast(PDO $pdo, string $audience, AdminStudentListFilter $filter): int
     {
+        return count(self::recipientUserIds($pdo, $audience, $filter));
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function recipientUserIds(PDO $pdo, string $audience, AdminStudentListFilter $filter): array
+    {
         $audience = EmailBroadcast::normalizeAudience($audience);
         if ($audience === 'filtered' || $filter->isActive()) {
-            return self::countMatching($pdo, $audience, $filter);
+            $rows = self::recipientsMatching($pdo, $audience, $filter);
+
+            return array_values(array_map(static fn (array $row): int => (int)$row['id'], $rows));
         }
 
-        return count(self::recipientsForPreset($pdo, $audience));
+        $rows = self::recipientsForPreset($pdo, $audience);
+
+        return array_values(array_map(static fn (array $row): int => (int)$row['id'], $rows));
     }
 
     /**

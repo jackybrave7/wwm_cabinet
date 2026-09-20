@@ -37,6 +37,24 @@ try {
     ok(false, 'canonical definition validates: ' . $e->getMessage());
 }
 
+$crossPath = WWM_ROOT . '/data/automations/post-purchase-cross-sell.v1.json';
+ok(is_readable($crossPath), 'post-purchase cross-sell definition exists');
+$crossDef = is_readable($crossPath) ? json_decode((string)file_get_contents($crossPath), true) : null;
+ok(is_array($crossDef), 'post-purchase JSON parses');
+try {
+    if (is_array($crossDef)) {
+        \Wwm\Services\AutomationDefinitionValidator::validate($crossDef);
+    }
+    ok(true, 'post-purchase definition validates');
+} catch (Throwable $e) {
+    ok(false, 'post-purchase definition validates: ' . $e->getMessage());
+}
+
+foreach (['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'] as $tpl) {
+    ok(\Wwm\Services\EmailTemplateCatalog::find($tpl) !== null, "template {$tpl} in catalog");
+    ok(\Wwm\Services\MarketingEmailDelivery::isMarketingTemplate($tpl), "template {$tpl} is marketing");
+}
+
 $converted = \Wwm\Services\AvoAutomationImporter::canonicalElkeDemoDefinition('elke-en');
 ok(isset($converted['nodes']['start']), 'canonicalElkeDemoDefinition has start node');
 
@@ -54,7 +72,15 @@ if ($avoSample !== '' && is_readable($avoSample)) {
 
 $pdo = wwm_pdo();
 \Wwm\Database::migrateIfNeeded($pdo);
-ok((int)$pdo->query('PRAGMA user_version')->fetchColumn() >= 23, 'schema >= 23 (automations tables)');
+ok((int)$pdo->query('PRAGMA user_version')->fetchColumn() >= 27, 'schema >= 27 (cross-sell seed)');
+
+$crossStmt = $pdo->prepare('SELECT id, entry_mode FROM email_automations WHERE slug = ? LIMIT 1');
+$crossStmt->execute(['post-purchase-cross-sell']);
+$crossRow = $crossStmt->fetch();
+ok(is_array($crossRow), 'post-purchase-cross-sell automation seeded');
+if (is_array($crossRow)) {
+    ok((string)$crossRow['entry_mode'] === \Wwm\Models\EmailAutomation::ENTRY_PAYMENT_ANY, 'cross-sell entry_mode is payment_any');
+}
 
 $tables = ['email_automations', 'email_automation_runs', 'email_automation_step_events'];
 foreach ($tables as $table) {
@@ -110,7 +136,38 @@ if ($run !== null) {
 
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => false]);
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$id]);
+
+$paySlug = 'test-payment-any-' . bin2hex(random_bytes(3));
+$payId = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $paySlug,
+    'title' => 'Payment any smoke',
+    'description' => 'test',
+    'course_slug' => '',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_PAYMENT_ANY,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$payUserId = \Wwm\Models\User::create($pdo, 'pay-once-' . bin2hex(random_bytes(3)) . '@example.com', 'x', 'Pay');
+\Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded($payUserId, 'elke-en', gmdate('c'));
+$cnt = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE automation_id = ? AND user_id = ?');
+$cnt->execute([$payId, $payUserId]);
+ok((int)$cnt->fetchColumn() === 1, 'payment_any enrolls on first payment');
+\Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded($payUserId, 'alvaro', gmdate('c'));
+$cnt->execute([$payId, $payUserId]);
+ok((int)$cnt->fetchColumn() === 1, 'payment_any does not re-enroll on second payment');
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$payId]);
+
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$payUserId]);
 
 echo PHP_EOL;
 if ($failed > 0) {

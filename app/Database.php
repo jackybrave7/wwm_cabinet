@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 24;
+    public const SCHEMA_VERSION = 27;
 
     public static function connect(string $path): PDO
     {
@@ -29,14 +29,11 @@ final class Database
 
     public static function migrateIfNeeded(PDO $pdo): void
     {
-        if (self::installedSchemaVersion($pdo) >= self::SCHEMA_VERSION) {
-            self::persistSchemaVersion($pdo);
-
-            return;
+        if (self::installedSchemaVersion($pdo) < self::SCHEMA_VERSION) {
+            self::migrate($pdo);
         }
-
-        self::migrate($pdo);
         self::persistSchemaVersion($pdo);
+        self::seedPostPurchaseCrossSellAutomation($pdo);
     }
 
     /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */
@@ -343,8 +340,81 @@ CREATE INDEX IF NOT EXISTS idx_automation_step_events_flow ON email_automation_s
 CREATE INDEX IF NOT EXISTS idx_automation_step_events_run ON email_automation_step_events(run_id);
 SQL);
 
+        self::ensureColumn($pdo, 'email_automations', 'archived_at', 'TEXT');
+        self::ensureColumn($pdo, 'email_automations', 'entry_mode', "TEXT NOT NULL DEFAULT 'demo_grant'");
+
         self::seedEmailAutomations($pdo);
+        self::seedPostPurchaseCrossSellAutomation($pdo);
         self::migrateEmailTemplatesLogo($pdo);
+    }
+
+    private static function seedPostPurchaseCrossSellAutomation(PDO $pdo): void
+    {
+        $path = WWM_ROOT . '/data/automations/post-purchase-cross-sell.v1.json';
+        if (!is_readable($path)) {
+            return;
+        }
+
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+
+        $decoded = json_decode($definition, true);
+        if (!is_array($decoded)) {
+            wwm_log('post-purchase cross-sell: invalid JSON in ' . $path);
+
+            return;
+        }
+
+        try {
+            \Wwm\Services\AutomationDefinitionValidator::validate($decoded);
+        } catch (\Throwable $e) {
+            wwm_log('post-purchase cross-sell: definition validation failed: ' . $e->getMessage());
+
+            return;
+        }
+
+        $slug = 'post-purchase-cross-sell';
+        $title = 'Post-purchase cross-sell (Elke → La Fe → Alvaro → Angus)';
+        $description = '30 days after any paid course: sequential 50% offers (WWM5, 48h) with 5h reminder; skips owned courses; marketing unsubscribe.';
+        $now = gmdate('c');
+
+        $stmt = $pdo->prepare('SELECT id FROM email_automations WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        $existingId = $stmt->fetchColumn();
+
+        if ($existingId) {
+            $pdo->prepare(
+                'UPDATE email_automations
+                 SET title = ?, description = ?, course_slug = ?, entry_mode = ?, definition_json = ?, updated_at = ?
+                 WHERE id = ?'
+            )->execute([
+                $title,
+                $description,
+                '',
+                'payment_any',
+                $definition,
+                $now,
+                (int)$existingId,
+            ]);
+
+            return;
+        }
+
+        $pdo->prepare(
+            'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+        )->execute([
+            $slug,
+            $title,
+            $description,
+            '',
+            'payment_any',
+            $definition,
+            $now,
+            $now,
+        ]);
     }
 
     private static function seedEmailAutomations(PDO $pdo): void

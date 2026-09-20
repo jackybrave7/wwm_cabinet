@@ -8,8 +8,10 @@ use Wwm\Models\EmailAutomation;
 use Wwm\Models\EmailAutomationRun;
 use Wwm\Models\EmailAutomationStepEvent;
 use Wwm\Models\User;
+use Wwm\Models\EmailSuppression;
 use Wwm\Services\EmailTemplateCatalog;
 use Wwm\Services\Mailer;
+use Wwm\Services\MarketingEmailDelivery;
 
 final class EmailAutomationRunner
 {
@@ -149,14 +151,30 @@ final class EmailAutomationRunner
                 }
             } elseif ($type === 'send_template') {
                 $template = (string)($node['template'] ?? '');
+                $templateCourse = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
                 if ($template !== '' && EmailTemplateCatalog::find($template) !== null) {
                     try {
-                        (new CabinetMail())->sendTemplate(
-                            $template,
-                            (string)$user['email'],
-                            trim((string)($user['name'] ?? '')) ?: null,
-                            $courseSlug
-                        );
+                        if (MarketingEmailDelivery::isMarketingTemplate($template)) {
+                            if (EmailSuppression::isSuppressed($pdo, (string)$user['email'])) {
+                                self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'suppressed');
+                                EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                                return;
+                            }
+                            (new CabinetMail())->sendAutomationMarketingTemplate(
+                                $template,
+                                $user,
+                                $templateCourse,
+                                (int)$automation['id']
+                            );
+                        } else {
+                            (new CabinetMail())->sendTemplate(
+                                $template,
+                                (string)$user['email'],
+                                trim((string)($user['name'] ?? '')) ?: null,
+                                $templateCourse
+                            );
+                        }
                     } catch (\Throwable $e) {
                         wwm_log('automation send_template ' . $template . ': ' . $e->getMessage());
                     }

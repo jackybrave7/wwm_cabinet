@@ -265,6 +265,66 @@ body.admin-body {
   text-underline-offset: 2px;
 }
 
+.admin-card--flush-table {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-card--flush-table .admin-table-wrap {
+  padding: 0 4px 4px;
+}
+
+.admin-table--courses {
+  min-width: 640px;
+  table-layout: fixed;
+}
+
+.admin-table--courses th {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-table--courses .col-course {
+  width: 42%;
+  min-width: 12rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.admin-table--courses .col-tight {
+  width: 4.5rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-table--courses .col-status {
+  width: 6.5rem;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.admin-table--courses .col-num {
+  text-align: right;
+}
+
+.admin-table--courses th.col-num {
+  text-align: right;
+}
+
+.admin-course-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
+.admin-table-badge {
+  margin: 0;
+  white-space: nowrap;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1611,6 +1671,23 @@ body.admin-body {
   padding: 20px;
 }
 
+.modal.admin-dialog {
+  z-index: 2147483646;
+}
+
+.admin-dialog-message {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink, #1a110a);
+}
+
+.modal-dialog .btn-danger {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+
 .modal.is-open { display: flex; }
 
 .modal-backdrop {
@@ -2017,6 +2094,14 @@ body.admin-body {
   flex-wrap: wrap;
 }
 
+.admin-table--automations .admin-table-actions-col {
+  min-width: 18rem;
+}
+
+.admin-table--automations td.admin-table-actions {
+  justify-content: flex-end;
+}
+
 .admin-pre {
   margin: 0;
   padding: 14px 16px;
@@ -2113,4 +2198,84 @@ body.admin-body {
   line-height: 1.45;
   width: 100%;
   min-height: 320px;
+}
+
+.admin-guide-layout {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .admin-guide-layout {
+    grid-template-columns: minmax(200px, 260px) 1fr;
+  }
+}
+
+.admin-guide-toc {
+  position: sticky;
+  top: 16px;
+}
+
+.admin-guide-toc-list {
+  margin: 12px 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.admin-guide-toc-list a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-guide-toc-list a:hover,
+.admin-guide-toc-list a.is-active {
+  color: var(--wwm-accent, #c45c26);
+  font-weight: 600;
+}
+
+.admin-guide-toc-note {
+  margin-top: 16px;
+  font-size: 0.82rem;
+}
+
+.admin-guide-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-guide-prose {
+  margin-top: 8px;
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.admin-guide-prose p {
+  margin: 0 0 12px;
+}
+
+.admin-guide-list {
+  margin: 0 0 14px;
+  padding-left: 1.25rem;
+}
+
+.admin-guide-list li {
+  margin-bottom: 8px;
+}
+
+.admin-guide-callout {
+  margin: 12px 0;
+}
+
+.admin-guide-section--focus {
+  outline: 2px solid var(--wwm-accent, #c45c26);
+  outline-offset: 2px;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: inherit;
 }

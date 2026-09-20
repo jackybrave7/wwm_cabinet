@@ -7,6 +7,16 @@ use PDO;
 
 final class EmailAutomationRun
 {
+    public static function hasAnyRun(PDO $pdo, int $automationId, int $userId): bool
+    {
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM email_automation_runs WHERE automation_id = ? AND user_id = ? LIMIT 1'
+        );
+        $stmt->execute([$automationId, $userId]);
+
+        return (bool)$stmt->fetchColumn();
+    }
+
     public static function findActive(PDO $pdo, int $automationId, int $userId): ?array
     {
         $stmt = $pdo->prepare(

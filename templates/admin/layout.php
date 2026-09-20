@@ -11,6 +11,14 @@
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/cabinet.css')) ?>">
   <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/admin.css')) ?>">
+  <?php
+    $automationFlowEditor = ($adminNav ?? '') === 'automations'
+      && preg_match('#^/admin/automations/\d+(/edit)?#', (string)($_SERVER['REQUEST_URI'] ?? ''));
+  ?>
+  <?php if ($automationFlowEditor): ?>
+  <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('vendor/drawflow/drawflow.min.css')) ?>">
+  <link rel="stylesheet" href="<?= wwm_escape(wwm_asset_url('css/admin-automation-flow.css')) ?>">
+  <?php endif; ?>
 </head>
 <body class="admin-body">
   <div class="admin-shell">
@@ -19,6 +27,7 @@
       <?= $content ?>
     </div>
   </div>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-dialog.js')) ?>" defer></script>
   <script src="<?= wwm_escape(wwm_asset_url('js/password-toggle.js')) ?>" defer></script>
   <script src="<?= wwm_escape(wwm_asset_url('js/admin-tabs.js')) ?>" defer></script>
   <script src="/assets/js/admin-lesson-sort.js" defer></script>
@@ -36,6 +45,13 @@
   <?php if ($broadcastForm): ?>
   <script src="<?= wwm_escape(wwm_asset_url('js/admin-broadcast-editor.js')) ?>" defer></script>
   <script src="<?= wwm_escape(wwm_asset_url('js/admin-broadcast-audience.js')) ?>" defer></script>
+  <?php endif; ?>
+  <?php if ($automationFlowEditor): ?>
+  <script src="<?= wwm_escape(wwm_asset_url('vendor/drawflow/drawflow.min.js')) ?>" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-automation-flow.js')) ?>" defer></script>
+  <?php endif; ?>
+  <?php if (($adminNav ?? '') === 'students'): ?>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-students-automation-launch.js')) ?>" defer></script>
   <?php endif; ?>
 </body>
 </html>

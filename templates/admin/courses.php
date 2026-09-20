@@ -6,16 +6,17 @@
   <a href="/admin/courses/new" class="btn btn-primary">+ Add course</a>
 </div>
 
-<div class="admin-card">
-  <table class="admin-table">
+<div class="admin-card admin-card--flush-table">
+  <div class="admin-table-wrap">
+  <table class="admin-table admin-table--courses">
     <thead>
       <tr>
-        <th>Course</th>
-        <th>Sections</th>
-        <th>Lessons</th>
-        <th class="col-num">Full access</th>
-        <th>Demo</th>
-        <th>Status</th>
+        <th class="col-course">Course</th>
+        <th class="col-tight col-num">Sections</th>
+        <th class="col-tight col-num">Lessons</th>
+        <th class="col-tight col-num" title="Students with full access">Paid</th>
+        <th class="col-tight">Demo</th>
+        <th class="col-status">Status</th>
       </tr>
     </thead>
     <tbody>
@@ -26,28 +27,29 @@
           $demoHours = (int)($course['demo_hours'] ?? 48);
         ?>
         <tr>
-          <td>
+          <td class="col-course">
             <strong><a class="admin-table-primary-link" href="/admin/courses/<?= wwm_escape($slug) ?>"><?= wwm_escape((string)($course['title'] ?? $slug)) ?></a></strong><br>
-            <span style="color:var(--mute);font-size:0.85rem">
+            <span class="field-hint admin-course-meta">
               <?= wwm_escape($slug) ?>
               <?php if (!empty($course['avo_goods_id'])): ?>
                 · id_goods <?= (int)$course['avo_goods_id'] ?>
               <?php endif; ?>
             </span>
           </td>
-          <td><?= (int)$row['sections'] ?></td>
-          <td><?= (int)$row['lessons'] ?></td>
-          <td class="col-num"><strong><?= (int)$row['paid'] ?></strong></td>
-          <td><?= $demoHours ?> h</td>
-          <td>
+          <td class="col-tight col-num"><?= (int)$row['sections'] ?></td>
+          <td class="col-tight col-num"><?= (int)$row['lessons'] ?></td>
+          <td class="col-tight col-num"><strong><?= (int)$row['paid'] ?></strong></td>
+          <td class="col-tight"><?= $demoHours ?> h</td>
+          <td class="col-status">
             <?php if ($row['published']): ?>
-              <span class="badge badge-paid" style="margin:0">Published</span>
+              <span class="badge badge-paid admin-table-badge">Published</span>
             <?php else: ?>
-              <span class="badge badge-draft" style="margin:0">Draft</span>
+              <span class="badge badge-draft admin-table-badge">Draft</span>
             <?php endif; ?>
           </td>
         </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
 </div>

@@ -64,4 +64,48 @@ final class EmailAutomationStepEvent
 
         return (int)$stmt->fetchColumn();
     }
+
+    /**
+     * @return list<array{
+     *   id: int,
+     *   user_id: int,
+     *   email: string,
+     *   name: string,
+     *   branch: ?string,
+     *   detail: ?string,
+     *   created_at: string
+     * }>
+     */
+    public static function listByNode(PDO $pdo, int $automationId, string $nodeId, int $limit = 300): array
+    {
+        $nodeId = trim($nodeId);
+        if ($nodeId === '') {
+            return [];
+        }
+        $limit = max(1, min(500, $limit));
+
+        $stmt = $pdo->prepare(
+            'SELECT e.id, e.user_id, e.branch, e.detail, e.created_at,
+                    u.email AS user_email, u.name AS user_name
+             FROM email_automation_step_events e
+             INNER JOIN users u ON u.id = e.user_id
+             WHERE e.automation_id = ? AND e.node_id = ?
+             ORDER BY e.created_at DESC
+             LIMIT ' . $limit
+        );
+        $stmt->execute([$automationId, $nodeId]);
+        $rows = $stmt->fetchAll() ?: [];
+
+        return array_map(static function (array $row): array {
+            return [
+                'id' => (int)$row['id'],
+                'user_id' => (int)$row['user_id'],
+                'email' => (string)($row['user_email'] ?? ''),
+                'name' => (string)($row['user_name'] ?? ''),
+                'branch' => isset($row['branch']) && $row['branch'] !== '' ? (string)$row['branch'] : null,
+                'detail' => isset($row['detail']) && $row['detail'] !== '' ? (string)$row['detail'] : null,
+                'created_at' => (string)($row['created_at'] ?? ''),
+            ];
+        }, $rows);
+    }
 }

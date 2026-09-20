@@ -1,24 +1,122 @@
 <?php
 $a = $automation ?? [];
 $id = (int)($a['id'] ?? 0);
-$def = json_decode((string)($a['definition_json'] ?? '{}'), true);
+$def = is_array($flowDefinition ?? null) ? $flowDefinition : json_decode((string)($a['definition_json'] ?? '{}'), true);
+if (!is_array($def)) {
+    $def = [];
+}
+$flowEditorConfig = is_array($flowEditorConfig ?? null) ? $flowEditorConfig : [];
 $nodes = is_array($def['nodes'] ?? null) ? $def['nodes'] : [];
 $edges = is_array($def['edges'] ?? null) ? $def['edges'] : [];
+$courseSlugFlow = (string)($a['course_slug'] ?? 'elke-en');
+$flowTitle = (string)($a['title'] ?? 'Flow');
+$isArchivedFlow = !empty($isArchivedFlow);
+$flowActiveRuns = (int)($flowActiveRuns ?? 0);
+$canDeleteFlow = empty($a['is_active']) && $flowActiveRuns === 0;
+$entryModeLabels = is_array($entryModeLabels ?? null) ? $entryModeLabels : [];
+$courseSlugList = is_array($courseSlugs ?? null) ? $courseSlugs : [];
+$currentEntryMode = \Wwm\Models\EmailAutomation::normalizeEntryMode((string)($a['entry_mode'] ?? ''));
+$currentCourseSlug = (string)($a['course_slug'] ?? '');
+$entryNeedsCourse = \Wwm\Models\EmailAutomation::entryModeRequiresCourseSlug($currentEntryMode);
 ?>
 <div class="admin-topbar">
   <div>
     <p class="badge badge-admin">Automation</p>
-    <h1 class="page-title page-title-sm"><?= wwm_escape((string)($a['title'] ?? 'Flow')) ?></h1>
+    <h1 class="page-title page-title-sm"><?= wwm_escape($flowTitle) ?></h1>
     <p class="field-hint"><code><?= wwm_escape((string)($a['slug'] ?? '')) ?></code></p>
   </div>
-  <a href="/admin/automations" class="btn btn-ghost btn-sm">← All flows</a>
+  <div class="admin-table-actions" style="justify-content:flex-end">
+    <form method="post" action="/admin/automations/<?= $id ?>/duplicate" class="inline-form" data-confirm="Создать копию этого процесса? Копия будет выключена.">
+      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+      <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+    </form>
+    <?php if ($isArchivedFlow): ?>
+      <form method="post" action="/admin/automations/<?= $id ?>/unarchive" class="inline-form" data-confirm="Восстановить процесс из архива?">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Restore</button>
+      </form>
+    <?php else: ?>
+      <form method="post" action="/admin/automations/<?= $id ?>/archive" class="inline-form" data-confirm="Отправить в архив? Процесс будет выключен.">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Archive</button>
+      </form>
+    <?php endif; ?>
+    <?php if ($canDeleteFlow): ?>
+      <form method="post" action="/admin/automations/<?= $id ?>/delete" class="inline-form" data-confirm-danger data-confirm="Удалить процесс безвозвратно вместе с историей запусков?">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      </form>
+    <?php endif; ?>
+    <a href="/admin/guide?section=automations" class="btn btn-ghost btn-sm">Инструкция</a>
+    <a href="/admin/automations" class="btn btn-ghost btn-sm">← All flows</a>
+  </div>
 </div>
 
-<?php if (empty($a['is_active'])): ?>
+<?php if ($isArchivedFlow): ?>
   <div class="alert alert-warning">
-    This flow is <strong>off</strong>. No students are enrolled and no steps run until you check <strong>Active</strong> below and save. AVO webhooks and demo email behave as today.
+    Процесс в <strong>архиве</strong> и не участвует в зачислении. Восстановите из архива или отредактируйте копию.
   </div>
 <?php endif; ?>
+
+<?php
+$flowIsActive = !empty($a['is_active']);
+?>
+<div
+  class="automation-active-panel<?= $flowIsActive ? ' is-on' : ' is-off' ?><?= $isArchivedFlow ? ' is-archived' : '' ?>"
+  id="automation-active-panel"
+>
+  <div class="automation-active-panel__main">
+    <p class="automation-active-panel__title" id="automation-active-panel-title">
+      <?= $flowIsActive ? 'Процесс включён' : 'Процесс выключен' ?>
+    </p>
+    <p class="automation-active-panel__hint field-hint" id="automation-active-panel-hint">
+      <?php if ($isArchivedFlow): ?>
+        В архиве зачисление и шаги не выполняются.
+      <?php elseif ($flowIsActive): ?>
+        Срабатывает выбранный тип входа (демо, оплата, ручной запуск). Не забудьте нажать <strong>Сохранить</strong> после изменений.
+      <?php else: ?>
+        Зачисления и шаги не идут, пока не включите и не сохраните. Для демо-воронки отключите дублирующий BP в AVO.
+      <?php endif; ?>
+    </p>
+  </div>
+  <label class="automation-active-switch" title="Включить или выключить процесс">
+    <span class="automation-active-switch__label" aria-hidden="true"><?= $flowIsActive ? 'Вкл' : 'Выкл' ?></span>
+    <input
+      type="checkbox"
+      name="is_active"
+      value="1"
+      form="automation-edit-form"
+      id="automation-is-active"
+      class="automation-active-switch__input"
+      <?= $flowIsActive ? ' checked' : '' ?>
+      <?= $isArchivedFlow ? ' disabled' : '' ?>
+    >
+    <span class="automation-active-switch__track" aria-hidden="true"></span>
+  </label>
+</div>
+<script>
+(function () {
+  const panel = document.getElementById('automation-active-panel');
+  const input = document.getElementById('automation-is-active');
+  const title = document.getElementById('automation-active-panel-title');
+  const hint = document.getElementById('automation-active-panel-hint');
+  const switchLabel = panel && panel.querySelector('.automation-active-switch__label');
+  if (!panel || !input || input.disabled) return;
+  const hints = {
+    on: 'Срабатывает выбранный тип входа (демо, оплата, ручной запуск). Не забудьте нажать Сохранить после изменений.',
+    off: 'Зачисления и шаги не идут, пока не включите и не сохраните. Для демо-воронки отключите дублирующий BP в AVO.',
+  };
+  function sync() {
+    const on = input.checked;
+    panel.classList.toggle('is-on', on);
+    panel.classList.toggle('is-off', !on);
+    if (title) title.textContent = on ? 'Процесс включён' : 'Процесс выключен';
+    if (hint) hint.textContent = on ? hints.on : hints.off;
+    if (switchLabel) switchLabel.textContent = on ? 'Вкл' : 'Выкл';
+  }
+  input.addEventListener('change', sync);
+})();
+</script>
 
 <?php if (!empty($message)): ?>
   <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
@@ -27,9 +125,18 @@ $edges = is_array($def['edges'] ?? null) ? $def['edges'] : [];
 $errors = [
     'csrf' => 'Session expired. Try again.',
     'invalid_json' => 'Definition JSON is not valid.',
-    'invalid_definition' => 'Definition must include start node, nodes, and edges.',
+    'invalid_definition' => 'Схема не прошла проверку: связи, параметры блоков или логика веток. Сохраните снова из редактора — перед отправкой покажется список замечаний.',
     'upload' => 'Could not read uploaded file.',
     'import' => 'AVO export could not be imported.',
+    'filter_required' => 'Для режима «По фильтру» задайте хотя бы одно условие отбора.',
+    'bulk_none' => 'По фильтру никого не найдено.',
+    'bulk_limit' => 'Слишком большая аудитория — сузьте фильтр или разбейте на части.',
+    'bulk_inactive' => 'Включите процесс (переключатель вверху) и сохраните перед запуском аудитории.',
+    'bulk_archived' => 'Процесс в архиве — восстановите или используйте другой.',
+    'enroll_email' => 'Укажите email ученика.',
+    'enroll_not_found' => 'Ученик с таким email не найден.',
+    'enroll_failed' => 'Не удалось зачислить (процесс выключен или в архиве).',
+    'course_required' => 'Для выбранного типа входа нужен course slug.',
 ];
 $err = (string)($error ?? '');
 if ($err !== '' && isset($errors[$err])): ?>
@@ -83,42 +190,55 @@ $nodesById = $nodes;
   <?php endif; ?>
 </div>
 
-<div class="admin-card" style="margin-bottom:16px">
-  <h2 class="admin-team-section-title">Flow overview</h2>
-  <p class="field-hint"><?= wwm_escape((string)($a['description'] ?? '')) ?></p>
-  <ol class="automation-step-list">
-    <?php
-    $order = [];
-    $seen = [];
-    $walk = static function (string $nodeId, array &$order, array &$seen) use ($def, &$walk): void {
-        if ($nodeId === '' || isset($seen[$nodeId])) {
-            return;
-        }
-        $seen[$nodeId] = true;
-        $order[] = $nodeId;
-        foreach ($def['edges'] ?? [] as $edge) {
-            if (!is_array($edge) || (string)($edge['from'] ?? '') !== $nodeId) {
-                continue;
-            }
-            $walk((string)($edge['to'] ?? ''), $order, $seen);
-        }
-    };
-    $walk('start', $order, $seen);
-    foreach ($order as $nodeId):
-        $node = $nodes[$nodeId] ?? null;
-        if (!is_array($node)) {
-            continue;
-        }
-        $label = (string)($node['label'] ?? $nodeId);
-        $type = (string)($node['type'] ?? '');
-    ?>
-      <li><strong><?= wwm_escape($nodeId) ?></strong> — <?= wwm_escape($type) ?>: <?= wwm_escape($label) ?></li>
-    <?php endforeach; ?>
-  </ol>
-</div>
+<form method="post" action="/admin/automations/<?= $id ?>" class="admin-card automation-flow-editor" id="automation-edit-form">
+  <h2 class="admin-team-section-title">Визуальный редактор сценария</h2>
+  <div id="automation-flow-shell" class="automation-flow-shell">
+  <p class="field-hint">Тяните от кружка на блоке к кружку другого блока. Линию можно переназначить: клик по линии → «Удалить связь» или Delete, затем проведите новую. Колёсико — масштаб, перетаскивание пустого поля — сдвиг схемы.</p>
+  <div class="automation-flow-toolbar">
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-undo" disabled title="Ctrl+Z">Отменить</button>
+    <span class="automation-flow-zoom-wrap" title="Ctrl + колёсико мыши на схеме">
+      <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-zoom-out" aria-label="Уменьшить">−</button>
+      <input type="range" id="automation-flow-zoom-slider" class="automation-flow-zoom-slider" min="50" max="160" step="5" value="100" aria-label="Масштаб схемы">
+      <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-zoom-in" aria-label="Увеличить">+</button>
+      <span id="automation-flow-zoom-label" class="automation-flow-zoom-label">100%</span>
+    </span>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-zoom-reset" title="Сбросить масштаб и центр">Сброс</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-goto-start">К старту</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-layout">Разложить блоки</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-remove-connection" disabled>Удалить связь</button>
+    <button type="button" class="btn btn-primary btn-sm" id="automation-flow-save">Сохранить</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-fullscreen">На весь экран</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-sync-json">JSON из схемы</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="automation-flow-reload-json">Схема из JSON</button>
+  </div>
+  <details class="automation-flow-json-drawer" id="automation-flow-json-drawer">
+    <summary>JSON сценария</summary>
+    <p class="field-hint">В полноэкранном режиме правьте JSON здесь; «Схема из JSON» читает это поле.</p>
+    <textarea id="automation-flow-json-inline" class="admin-code-textarea automation-flow-json-inline" rows="14" spellcheck="false" aria-label="Definition JSON"></textarea>
+  </details>
+  <div
+    id="automation-flow-app"
+    data-course-slug="<?= wwm_escape($courseSlugFlow) ?>"
+  >
+    <div class="automation-flow-workspace">
+      <div class="automation-flow-palette-wrap">
+        <h3>Блоки</h3>
+        <div id="automation-flow-palette" aria-label="Palette"></div>
+      </div>
+      <div id="drawflow" class="automation-flow-canvas"></div>
+      <div class="automation-flow-props-wrap">
+        <h3>Свойства</h3>
+        <div id="automation-flow-props">
+          <p class="field-hint">Выберите блок на схеме.</p>
+        </div>
+      </div>
+    </div>
+    <script type="application/json" id="automation-flow-config"><?= wwm_json_for_script($flowEditorConfig) ?></script>
+    <script type="application/json" id="automation-flow-definition"><?= wwm_json_for_script($def) ?></script>
+  </div>
+  </div>
 
-<form method="post" action="/admin/automations/<?= $id ?>" class="admin-card">
-  <h2 class="admin-team-section-title">Settings</h2>
+  <h2 class="admin-team-section-title" style="margin-top:24px">Settings</h2>
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
   <label class="field">
@@ -132,20 +252,62 @@ $nodesById = $nodes;
   </label>
 
   <label class="field">
-    <span class="field-label">Course slug</span>
-    <input type="text" name="course_slug" value="<?= wwm_escape((string)($a['course_slug'] ?? '')) ?>" pattern="[a-z0-9\-]+" required>
+    <span class="field-label">Тип входа в процесс</span>
+    <select name="entry_mode" id="automation-entry-mode">
+      <?php foreach ($entryModeLabels as $mode => $modeLabel): ?>
+        <option value="<?= wwm_escape($mode) ?>"<?= $currentEntryMode === $mode ? ' selected' : '' ?>><?= wwm_escape($modeLabel) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <span class="field-hint">Демо по курсу — как раньше через AVO; вручную и после оплаты — для допродаж и общих цепочек.</span>
   </label>
 
-  <label class="field field-checkbox">
-    <input type="checkbox" name="is_active" value="1"<?= !empty($a['is_active']) ? ' checked' : '' ?>>
-    <span><strong>Active</strong> — when enabled, new demo grants start this flow and cron sends scheduled emails. Leave unchecked until you are ready to replace the AVO business process.</span>
+  <label class="field" id="automation-settings-course-wrap">
+    <span class="field-label">Курс</span>
+    <?php if ($courseSlugList !== []): ?>
+      <select name="course_slug" id="automation-settings-course">
+        <option value=""<?= $currentCourseSlug === '' ? ' selected' : '' ?>>— не привязан —</option>
+        <?php foreach ($courseSlugList as $slug): ?>
+          <option value="<?= wwm_escape($slug) ?>"<?= $currentCourseSlug === $slug ? ' selected' : '' ?>><?= wwm_escape($slug) ?></option>
+        <?php endforeach; ?>
+        <?php if ($currentCourseSlug !== '' && !in_array($currentCourseSlug, $courseSlugList, true)): ?>
+          <option value="<?= wwm_escape($currentCourseSlug) ?>" selected><?= wwm_escape($currentCourseSlug) ?> (сохранённый)</option>
+        <?php endif; ?>
+      </select>
+    <?php else: ?>
+      <input type="text" name="course_slug" id="automation-settings-course" value="<?= wwm_escape($currentCourseSlug) ?>" pattern="[a-z0-9\-]*">
+    <?php endif; ?>
+    <span class="field-hint" id="automation-settings-course-hint">Для демо-воронки и «оплата курса» — выберите slug из списка.</span>
   </label>
 
-  <label class="field">
-    <span class="field-label">Definition (JSON)</span>
-    <span class="field-hint">Nodes, edges, delays (seconds), templates, conditions. Saved as the live business process.</span>
-    <textarea name="definition_json" rows="28" class="admin-code-textarea" spellcheck="false"><?= wwm_textarea_raw((string)($definitionPretty ?? '')) ?></textarea>
-  </label>
+  <script>
+  (function () {
+    const mode = document.getElementById('automation-entry-mode');
+    const course = document.getElementById('automation-settings-course');
+    const hint = document.getElementById('automation-settings-course-hint');
+    if (!mode || !course) return;
+    const needs = { demo_grant: true, payment_course: true, manual: false, payment_any: false };
+    function sync() {
+      const key = mode.value;
+      const required = !!needs[key];
+      course.required = required;
+      if (hint) {
+        hint.textContent = required
+          ? 'Обязательно для этого типа входа.'
+          : 'Необязательно — контекст для писем и условий в схеме.';
+      }
+    }
+    mode.addEventListener('change', sync);
+    sync();
+  })();
+  </script>
+
+  <details class="automation-flow-advanced">
+    <summary>Definition (JSON) — для опытных</summary>
+    <label class="field">
+      <span class="field-hint">Nodes, edges, delays (seconds), templates, conditions. При сохранении формы подставляется из схемы выше.</span>
+      <textarea name="definition_json" rows="20" class="admin-code-textarea" spellcheck="false"><?= wwm_textarea_raw((string)($definitionPretty ?? '')) ?></textarea>
+    </label>
+  </details>
 
   <div class="admin-form-footer">
     <button type="submit" class="btn btn-primary">Save</button>

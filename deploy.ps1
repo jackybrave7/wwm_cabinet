@@ -32,8 +32,18 @@ $paths = @(
     'templates',
     'public',
     'data/courses',
+    'data/automations',
+    'data/admin-guide.php',
+    'config/config.example.php',
     '.github/workflows/deploy.yml',
     'scripts/write-deploy-config.mjs',
+    'scripts/migrate.php',
+    'scripts/run-email-automations.php',
+    'scripts/test-email-automations.php',
+    'scripts/build-post-purchase-cross-sell-automation.php',
+    'scripts/seed-post-purchase-cross-sell-automation.php',
+    'scripts/send-all-email-samples.php',
+    'scripts/audit-email-placeholders.php',
     'scripts/bl-school',
     'scripts/sync-elke-kinescope.php',
     'start-local.ps1',
@@ -55,7 +65,7 @@ if (-not $pending) {
         Write-Host 'No deploy paths changed. Unstaged local changes:' -ForegroundColor Yellow
         git status --short
         Write-Host ''
-        Write-Host 'Tip: deploy includes app/, templates/, public/, data/courses/, .github/workflows/, deploy scripts.' -ForegroundColor DarkGray
+        Write-Host 'Tip: deploy includes app/, templates/, public/, data/courses/, data/automations/, .github/workflows/, deploy scripts.' -ForegroundColor DarkGray
         Write-Host 'Local-only files (config.php, *.bak, data/.schema_version) are not included.' -ForegroundColor DarkGray
         exit 1
     }

@@ -268,6 +268,81 @@ final class EmailTemplateDrafts
                     ])
                 ),
             ],
+            'sale_crosssell_50_offer' => [
+                'subject' => '{{name}}, 50% off {{course_title}} — code {{coupon_code}} (48 hours)',
+                'text' => implode("\n", [
+                    'Hi {{name}},',
+                    '',
+                    'You might enjoy another course from our masters: "{{course_title}}".',
+                    '',
+                    'For the next 48 hours you have 50% off full access.',
+                    '',
+                    'Your coupon code: {{coupon_code}}',
+                    '',
+                    'Get the course:',
+                    '{{buy_url}}',
+                    '',
+                    'Questions? support@worldwatercolormasters.art',
+                    '',
+                    'Unsubscribe from marketing emails: {{unsubscribe_url}}',
+                    '',
+                    'World Watercolor Masters',
+                ]),
+                'html' => self::layoutDraft(
+                    '50% off for 48 hours',
+                    implode('', [
+                        self::paragraph('Hi {{name}},'),
+                        self::paragraph(
+                            'Discover <span style="font-weight:700;">{{course_title}}</span> — '
+                            . 'a full video course from World Watercolor Masters.'
+                        ),
+                        self::paragraph(
+                            'For the next <strong>48 hours</strong> you have an exclusive <strong>50% discount</strong> on full access.'
+                        ),
+                        self::couponBoxDraft('Valid 48 hours — use at checkout'),
+                        self::button('{{buy_url}}', 'Get the course — save 50%'),
+                        self::supportBlock(),
+                        self::paragraph(
+                            '<span style="font-size:12px;color:#666;">'
+                            . '<a href="{{unsubscribe_url}}">Unsubscribe</a> from marketing emails.</span>'
+                        ),
+                    ])
+                ),
+            ],
+            'sale_crosssell_50_reminder' => [
+                'subject' => '{{name}}, last hours: 50% off {{course_title}} ({{coupon_code}})',
+                'text' => implode("\n", [
+                    'Hi {{name}},',
+                    '',
+                    'Your 50% discount on "{{course_title}}" ends in about 5 hours.',
+                    '',
+                    'Coupon code: {{coupon_code}}',
+                    '',
+                    '{{buy_url}}',
+                    '',
+                    'Unsubscribe: {{unsubscribe_url}}',
+                    '',
+                    'World Watercolor Masters',
+                ]),
+                'html' => self::layoutDraft(
+                    '5 hours left on your 50% off',
+                    implode('', [
+                        self::paragraph('Hi {{name}},'),
+                        self::paragraph(
+                            'Quick reminder: your <strong>50% discount</strong> on '
+                            . '<span style="font-weight:700;">{{course_title}}</span> '
+                            . 'expires in about <strong>5 hours</strong>.'
+                        ),
+                        self::couponBoxDraft('Code expires soon'),
+                        self::button('{{buy_url}}', 'Use {{coupon_code}} now'),
+                        self::supportBlock(),
+                        self::paragraph(
+                            '<span style="font-size:12px;color:#666;">'
+                            . '<a href="{{unsubscribe_url}}">Unsubscribe</a> from marketing emails.</span>'
+                        ),
+                    ])
+                ),
+            ],
             'magic' => [
                 'subject' => 'Your sign-in link — World Watercolor Masters',
                 'text' => implode("\n", [

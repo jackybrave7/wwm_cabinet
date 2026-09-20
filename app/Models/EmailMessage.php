@@ -302,6 +302,8 @@ final class EmailMessage
             'reminder_demo_expiring' => 'Reminder — expiring',
             'sale_demo_discount_24h' => 'Sale — 40% off (24h)',
             'sale_demo_discount_3h' => 'Sale — final reminder (3h)',
+            'sale_crosssell_50_offer' => 'Cross-sell — 50% off (2d)',
+            'sale_crosssell_50_reminder' => 'Cross-sell — 50% reminder (5h)',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }

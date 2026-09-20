@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Post-purchase cross-sell (50% / WWM5)",
+    "description": "30d after purchase; Elke→La Fe→Alvaro→Angus; skip owned; WWM5 48h + 5h reminder",
+    "entry_mode": "payment_any"
+  },
+  "nodes": {
+    "start": {
+      "type": "trigger",
+      "label": "Entry: after any course purchase"
+    },
+    "wait_30d": {
+      "type": "delay",
+      "seconds": 2592000,
+      "label": "Wait 30 days after purchase"
+    },
+    "end_done": {
+      "type": "end",
+      "label": "End — cross-sell sequence finished"
+    },
+    "cond_elke_en": {
+      "type": "condition",
+      "condition": "has_paid_course",
+      "course_slug": "elke-en",
+      "label": "Elke — already purchased?"
+    },
+    "offer_elke_en": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_offer",
+      "course_slug": "elke-en",
+      "label": "Elke — 50% offer (WWM5, 48h)"
+    },
+    "wait43_elke_en": {
+      "type": "delay",
+      "seconds": 154800,
+      "label": "Elke — wait until 5h before promo ends"
+    },
+    "reminder_elke_en": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_reminder",
+      "course_slug": "elke-en",
+      "label": "Elke — reminder (5h left)"
+    },
+    "wait5_elke_en": {
+      "type": "delay",
+      "seconds": 18000,
+      "label": "Elke — promo window closed"
+    },
+    "gap31_elke_en": {
+      "type": "delay",
+      "seconds": 2678400,
+      "label": "Wait 31 days before next course offer"
+    },
+    "cond_la_fe": {
+      "type": "condition",
+      "condition": "has_paid_course",
+      "course_slug": "la-fe",
+      "label": "La Fe — already purchased?"
+    },
+    "offer_la_fe": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_offer",
+      "course_slug": "la-fe",
+      "label": "La Fe — 50% offer (WWM5, 48h)"
+    },
+    "wait43_la_fe": {
+      "type": "delay",
+      "seconds": 154800,
+      "label": "La Fe — wait until 5h before promo ends"
+    },
+    "reminder_la_fe": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_reminder",
+      "course_slug": "la-fe",
+      "label": "La Fe — reminder (5h left)"
+    },
+    "wait5_la_fe": {
+      "type": "delay",
+      "seconds": 18000,
+      "label": "La Fe — promo window closed"
+    },
+    "gap31_la_fe": {
+      "type": "delay",
+      "seconds": 2678400,
+      "label": "Wait 31 days before next course offer"
+    },
+    "cond_alvaro": {
+      "type": "condition",
+      "condition": "has_paid_course",
+      "course_slug": "alvaro",
+      "label": "Alvaro — already purchased?"
+    },
+    "offer_alvaro": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_offer",
+      "course_slug": "alvaro",
+      "label": "Alvaro — 50% offer (WWM5, 48h)"
+    },
+    "wait43_alvaro": {
+      "type": "delay",
+      "seconds": 154800,
+      "label": "Alvaro — wait until 5h before promo ends"
+    },
+    "reminder_alvaro": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_reminder",
+      "course_slug": "alvaro",
+      "label": "Alvaro — reminder (5h left)"
+    },
+    "wait5_alvaro": {
+      "type": "delay",
+      "seconds": 18000,
+      "label": "Alvaro — promo window closed"
+    },
+    "gap31_alvaro": {
+      "type": "delay",
+      "seconds": 2678400,
+      "label": "Wait 31 days before next course offer"
+    },
+    "cond_angus": {
+      "type": "condition",
+      "condition": "has_paid_course",
+      "course_slug": "angus",
+      "label": "Angus — already purchased?"
+    },
+    "offer_angus": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_offer",
+      "course_slug": "angus",
+      "label": "Angus — 50% offer (WWM5, 48h)"
+    },
+    "wait43_angus": {
+      "type": "delay",
+      "seconds": 154800,
+      "label": "Angus — wait until 5h before promo ends"
+    },
+    "reminder_angus": {
+      "type": "send_template",
+      "template": "sale_crosssell_50_reminder",
+      "course_slug": "angus",
+      "label": "Angus — reminder (5h left)"
+    },
+    "wait5_angus": {
+      "type": "delay",
+      "seconds": 18000,
+      "label": "Angus — promo window closed"
+    }
+  },
+  "edges": [
+    {
+      "from": "start",
+      "to": "wait_30d"
+    },
+    {
+      "from": "wait_30d",
+      "to": "cond_elke_en"
+    },
+    {
+      "from": "cond_elke_en",
+      "to": "cond_la_fe",
+      "branch": "yes"
+    },
+    {
+      "from": "cond_elke_en",
+      "to": "offer_elke_en",
+      "branch": "no"
+    },
+    {
+      "from": "offer_elke_en",
+      "to": "wait43_elke_en"
+    },
+    {
+      "from": "wait43_elke_en",
+      "to": "reminder_elke_en"
+    },
+    {
+      "from": "reminder_elke_en",
+      "to": "wait5_elke_en"
+    },
+    {
+      "from": "wait5_elke_en",
+      "to": "gap31_elke_en"
+    },
+    {
+      "from": "gap31_elke_en",
+      "to": "cond_la_fe"
+    },
+    {
+      "from": "gap31_elke_en",
+      "to": "cond_la_fe"
+    },
+    {
+      "from": "cond_la_fe",
+      "to": "cond_alvaro",
+      "branch": "yes"
+    },
+    {
+      "from": "cond_la_fe",
+      "to": "offer_la_fe",
+      "branch": "no"
+    },
+    {
+      "from": "offer_la_fe",
+      "to": "wait43_la_fe"
+    },
+    {
+      "from": "wait43_la_fe",
+      "to": "reminder_la_fe"
+    },
+    {
+      "from": "reminder_la_fe",
+      "to": "wait5_la_fe"
+    },
+    {
+      "from": "wait5_la_fe",
+      "to": "gap31_la_fe"
+    },
+    {
+      "from": "gap31_la_fe",
+      "to": "cond_alvaro"
+    },
+    {
+      "from": "gap31_la_fe",
+      "to": "cond_alvaro"
+    },
+    {
+      "from": "cond_alvaro",
+      "to": "cond_angus",
+      "branch": "yes"
+    },
+    {
+      "from": "cond_alvaro",
+      "to": "offer_alvaro",
+      "branch": "no"
+    },
+    {
+      "from": "offer_alvaro",
+      "to": "wait43_alvaro"
+    },
+    {
+      "from": "wait43_alvaro",
+      "to": "reminder_alvaro"
+    },
+    {
+      "from": "reminder_alvaro",
+      "to": "wait5_alvaro"
+    },
+    {
+      "from": "wait5_alvaro",
+      "to": "gap31_alvaro"
+    },
+    {
+      "from": "gap31_alvaro",
+      "to": "cond_angus"
+    },
+    {
+      "from": "gap31_alvaro",
+      "to": "cond_angus"
+    },
+    {
+      "from": "cond_angus",
+      "to": "end_done",
+      "branch": "yes"
+    },
+    {
+      "from": "cond_angus",
+      "to": "offer_angus",
+      "branch": "no"
+    },
+    {
+      "from": "offer_angus",
+      "to": "wait43_angus"
+    },
+    {
+      "from": "wait43_angus",
+      "to": "reminder_angus"
+    },
+    {
+      "from": "reminder_angus",
+      "to": "wait5_angus"
+    },
+    {
+      "from": "wait5_angus",
+      "to": "end_done"
+    }
+  ]
+}
