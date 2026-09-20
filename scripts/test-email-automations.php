@@ -113,13 +113,12 @@ $email = 'automation-test-' . bin2hex(random_bytes(3)) . '@example.com';
 $userId = \Wwm\Models\User::create($pdo, $email, 'test-pass-123', 'Automation Tester');
 
 \Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userId, 'elke-en');
-$inactiveRun = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE user_id = ?');
-$inactiveRun->execute([$userId]);
-ok((int)$inactiveRun->fetchColumn() === 0, 'inactive automation does not enroll on demo');
+$cntForFlow = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE automation_id = ? AND user_id = ?');
+$cntForFlow->execute([$id, $userId]);
+ok((int)$cntForFlow->fetchColumn() === 0, 'inactive automation does not enroll on demo');
 
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => true]);
 \Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userId, 'elke-en');
-$cntForFlow = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE automation_id = ? AND user_id = ?');
 $cntForFlow->execute([$id, $userId]);
 ok((int)$cntForFlow->fetchColumn() === 1, 'active automation enrolls once');
 
@@ -151,6 +150,47 @@ ok((int)$cntForFlow->fetchColumn() === 1, 'demo grant also enrolls second matchi
 \Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userIdB, 'alvaro');
 $cntForFlow->execute([$idB, $userIdB]);
 ok((int)$cntForFlow->fetchColumn() === 1, 'other course does not re-enroll demo flow');
+
+$slugGate = 'test-automation-gate-' . bin2hex(random_bytes(3));
+$idGate = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $slugGate,
+    'title' => 'Test gate order',
+    'description' => 'must start at start, not gate_paid_any_1',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_DEMO_GRANT,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'grant_demo' => ['type' => 'grant_demo', 'label' => 'Grant', 'skip_if_demo_active' => true],
+            'gate_paid_any_1' => ['type' => 'condition', 'condition' => 'has_paid_any', 'label' => 'Paid?'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'grant_demo'],
+            ['from' => 'grant_demo', 'to' => 'gate_paid_any_1'],
+            ['from' => 'gate_paid_any_1', 'to' => 'end', 'branch' => 'no'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$userIdGate = \Wwm\Models\User::create($pdo, 'automation-gate-' . bin2hex(random_bytes(3)) . '@example.com', 'test-pass-123', 'Gate');
+\Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userIdGate, 'elke-en');
+$gateRun = \Wwm\Models\EmailAutomationRun::findActive($pdo, $idGate, $userIdGate);
+ok($gateRun !== null && (string)$gateRun['current_node_id'] === 'start', 'demo enroll starts at start, not gate_paid_any_1');
+if ($gateRun !== null) {
+    \Wwm\Services\EmailAutomationRunner::processRun($pdo, $gateRun);
+    $byNode = [];
+    foreach (\Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $idGate) as $stat) {
+        $byNode[(string)$stat['node_id']] = (int)$stat['unique_users'];
+    }
+    $grantN = $byNode['grant_demo'] ?? 0;
+    $gateN = $byNode['gate_paid_any_1'] ?? 0;
+    ok($grantN >= $gateN && $grantN > 0, 'later gate does not outcount grant_demo');
+}
+\Wwm\Models\EmailAutomation::update($pdo, $idGate, ['is_active' => false]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$idGate]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userIdGate]);
 
 $run = \Wwm\Models\EmailAutomationRun::findActive($pdo, $id, $userId);
 ok($run !== null, 'active run exists');

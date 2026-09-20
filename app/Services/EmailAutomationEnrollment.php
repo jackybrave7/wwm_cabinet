@@ -194,26 +194,40 @@ final class EmailAutomationEnrollment
     }
 
     /**
+     * First block only: trigger / start / node with no incoming edge.
+     * Never jump to a mid-flow condition (e.g. gate_paid_any_1).
+     *
      * @param array<string, mixed> $def
      */
     private static function resolveEntryNodeId(array $def): ?string
     {
         $nodes = $def['nodes'] ?? [];
-        if (!is_array($nodes)) {
+        if (!is_array($nodes) || $nodes === []) {
             return null;
         }
 
-        foreach (['gate_paid_any_1', 'start'] as $candidate) {
-            if (isset($nodes[$candidate])) {
-                return $candidate;
-            }
+        if (isset($nodes['start']) && is_array($nodes['start'])) {
+            return 'start';
         }
 
         foreach ($nodes as $nodeId => $node) {
-            if (!is_array($node)) {
+            if (is_array($node) && (string)($node['type'] ?? '') === 'trigger') {
+                return (string)$nodeId;
+            }
+        }
+
+        $incoming = [];
+        foreach ($def['edges'] ?? [] as $edge) {
+            if (!is_array($edge)) {
                 continue;
             }
-            if ((string)($node['type'] ?? '') === 'trigger') {
+            $to = (string)($edge['to'] ?? '');
+            if ($to !== '') {
+                $incoming[$to] = true;
+            }
+        }
+        foreach ($nodes as $nodeId => $node) {
+            if (is_array($node) && !isset($incoming[(string)$nodeId])) {
                 return (string)$nodeId;
             }
         }
