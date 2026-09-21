@@ -176,33 +176,32 @@ $idGate = \Wwm\Models\EmailAutomation::create($pdo, [
 ]);
 $userIdGate = \Wwm\Models\User::create($pdo, 'automation-gate-' . bin2hex(random_bytes(3)) . '@example.com', 'test-pass-123', 'Gate');
 \Wwm\Services\EmailAutomationEnrollment::onDemoGranted($userIdGate, 'elke-en');
-$gateRun = \Wwm\Models\EmailAutomationRun::findActive($pdo, $idGate, $userIdGate);
-ok($gateRun !== null && (string)$gateRun['current_node_id'] === 'start', 'demo enroll starts at start, not gate_paid_any_1');
-if ($gateRun !== null) {
-    \Wwm\Services\EmailAutomationRunner::processRun($pdo, $gateRun);
-    $byNode = [];
-    foreach (\Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $idGate) as $stat) {
-        $byNode[(string)$stat['node_id']] = (int)$stat['unique_users'];
-    }
-    $grantN = $byNode['grant_demo'] ?? 0;
-    $gateN = $byNode['gate_paid_any_1'] ?? 0;
-    ok($grantN >= $gateN && $grantN > 0, 'later gate does not outcount grant_demo');
+$gateRun = \Wwm\Models\EmailAutomationRun::findActive($pdo, $idGate, $userIdGate)
+    ?? $pdo->query('SELECT * FROM email_automation_runs WHERE automation_id = ' . (int)$idGate . ' AND user_id = ' . (int)$userIdGate . ' ORDER BY id DESC LIMIT 1')->fetch();
+ok(is_array($gateRun), 'demo enroll creates a run');
+$firstEv = $pdo->prepare(
+    'SELECT node_id FROM email_automation_step_events WHERE run_id = ? ORDER BY id ASC LIMIT 1'
+);
+$firstEv->execute([(int)($gateRun['id'] ?? 0)]);
+ok((string)$firstEv->fetchColumn() === 'start', 'demo enroll starts at start, not gate_paid_any_1');
+$byNode = [];
+foreach (\Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $idGate) as $stat) {
+    $byNode[(string)$stat['node_id']] = (int)$stat['unique_users'];
 }
+$grantN = $byNode['grant_demo'] ?? 0;
+$gateN = $byNode['gate_paid_any_1'] ?? 0;
+ok($grantN >= $gateN && $grantN > 0, 'later gate does not outcount grant_demo');
 \Wwm\Models\EmailAutomation::update($pdo, $idGate, ['is_active' => false]);
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$idGate]);
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userIdGate]);
 
-$run = \Wwm\Models\EmailAutomationRun::findActive($pdo, $id, $userId);
-ok($run !== null, 'active run exists');
-if ($run !== null) {
-    \Wwm\Services\EmailAutomationRunner::processRun($pdo, $run);
-    $stats = \Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $id);
-    ok($stats !== [], 'step statistics recorded after runner');
-    $runAfter = $pdo->prepare('SELECT current_node_id, status FROM email_automation_runs WHERE id = ?');
-    $runAfter->execute([(int)$run['id']]);
-    $row = $runAfter->fetch();
-    ok(is_array($row) && (string)$row['status'] === 'active' || (string)$row['status'] === 'completed', 'run progressed or completed');
-}
+$runStmt = $pdo->prepare('SELECT id, current_node_id, status FROM email_automation_runs WHERE automation_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1');
+$runStmt->execute([$id, $userId]);
+$run = $runStmt->fetch();
+ok(is_array($run), 'run exists after enroll');
+$stats = \Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $id);
+ok($stats !== [], 'step statistics recorded after enroll');
+ok(is_array($run) && in_array((string)$run['status'], ['active', 'completed'], true), 'run progressed or completed');
 
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => false]);
 \Wwm\Models\EmailAutomation::update($pdo, $idB, ['is_active' => false]);

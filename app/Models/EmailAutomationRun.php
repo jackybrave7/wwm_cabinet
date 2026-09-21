@@ -55,6 +55,15 @@ final class EmailAutomationRun
         return $stmt->fetchAll() ?: [];
     }
 
+    public static function find(PDO $pdo, int $id): ?array
+    {
+        $stmt = $pdo->prepare('SELECT * FROM email_automation_runs WHERE id = ?');
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+
+        return is_array($row) ? $row : null;
+    }
+
     public static function findActive(PDO $pdo, int $automationId, int $userId): ?array
     {
         $stmt = $pdo->prepare(

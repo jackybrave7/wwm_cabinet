@@ -193,6 +193,6 @@ $listErr = (string)($_GET['error'] ?? '');
     </table>
   </div>
   <?php if (!$archivedView): ?>
-  <p class="field-hint" style="margin-top:16px">Cron: <code>php scripts/run-email-automations.php</code> every 5–15 minutes.</p>
+  <p class="field-hint" style="margin-top:16px">После входа ученик сразу идёт до первой паузы. Дальше cron: <code>php scripts/run-email-automations.php</code> каждые 5–15 минут.</p>
   <?php endif; ?>
 </div>

@@ -49,6 +49,7 @@
   <?php if ($automationFlowEditor): ?>
   <script src="<?= wwm_escape(wwm_asset_url('vendor/drawflow/drawflow.min.js')) ?>" defer></script>
   <script src="<?= wwm_escape(wwm_asset_url('js/admin-automation-flow.js')) ?>" defer></script>
+  <script src="<?= wwm_escape(wwm_asset_url('js/admin-student-suggest.js')) ?>" defer></script>
   <?php endif; ?>
   <?php if (($adminNav ?? '') === 'students'): ?>
   <script src="<?= wwm_escape(wwm_asset_url('js/admin-students-automation-launch.js')) ?>" defer></script>

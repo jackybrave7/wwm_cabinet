@@ -60,7 +60,13 @@
 
   const editor = new Drawflow(canvas);
   editor.reroute = true;
-  editor.curvature = 0.4;
+  editor.curvature = 0.35;
+  editor.createCurvature = function (x1, y1, x2, y2, curvature) {
+    const dy = Math.abs(y2 - y1);
+    const c1y = y1 + dy * curvature;
+    const c2y = y2 - dy * curvature;
+    return ' M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + c1y + ' ' + x2 + ' ' + c2y + ' ' + x2 + ' ' + y2;
+  };
   editor.start();
 
   (function setupCanvasPanWithRightMouse() {

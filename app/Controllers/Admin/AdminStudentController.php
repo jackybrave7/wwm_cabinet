@@ -29,6 +29,18 @@ final class AdminStudentController
 {
     private const STUDENTS_PER_PAGE = 50;
 
+    public function searchSuggest(): void
+    {
+        Session::requireAdminStudents();
+        $q = trim((string)($_GET['q'] ?? ''));
+        $items = mb_strlen($q) < 3
+            ? []
+            : User::searchSuggest(wwm_pdo(), $q, 12);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['items' => $items], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
     public function automationAudiencePreview(): void
     {
         Session::requireSuperAdmin();

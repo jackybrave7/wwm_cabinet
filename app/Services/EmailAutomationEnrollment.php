@@ -6,6 +6,7 @@ namespace Wwm\Services;
 use Wwm\Models\EmailAutomation;
 use Wwm\Models\EmailAutomationRun;
 use Wwm\Models\EmailAutomationStepEvent;
+use Wwm\Services\EmailAutomationRunner;
 
 final class EmailAutomationEnrollment
 {
@@ -189,6 +190,11 @@ final class EmailAutomationEnrollment
             $entry,
             $detail
         ));
+
+        $run = EmailAutomationRun::find($pdo, $runId);
+        if ($run !== null) {
+            EmailAutomationRunner::processRun($pdo, $run);
+        }
 
         return $runId;
     }

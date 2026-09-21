@@ -173,6 +173,7 @@ $formatRunAt = static function (?string $iso): string {
   <p class="field-hint">
     Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
     Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют во все <strong>включённые</strong> процессы с типом входа «демо» и тем же slug курса.
+    Сразу после входа ученик проходит блоки до первой паузы; дальше шаги снимает cron каждые 5–15 минут.
   </p>
   <?php if ($flowRuns === []): ?>
     <p class="field-hint">Пока никого нет. Если демо уже выдано вручную — зачислите email ниже (процесс должен быть включён).</p>
@@ -215,9 +216,10 @@ $formatRunAt = static function (?string $iso): string {
   <?php if (!$isArchivedFlow): ?>
   <form method="post" action="/admin/automations/<?= $id ?>/enroll" class="admin-filter-grid" style="margin-top:16px">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-    <label class="field">
+    <label class="field admin-student-suggest" data-student-suggest>
       <span class="field-label">Зачислить по email</span>
-      <input type="email" name="student_email" required placeholder="student@example.com" autocomplete="off">
+      <input type="text" name="student_email" required placeholder="Имя или email, от 3 символов" autocomplete="off" spellcheck="false" inputmode="email">
+      <ul class="admin-student-suggest__list" hidden></ul>
     </label>
     <div class="field" style="align-self:flex-end">
       <button type="submit" class="btn btn-ghost">Добавить в начало</button>
@@ -274,43 +276,50 @@ $formatRunAt = static function (?string $iso): string {
   </div>
   </div>
 
-  <h2 class="admin-team-section-title" style="margin-top:24px">Settings</h2>
-  <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+  <div class="automation-settings">
+    <h2 class="admin-team-section-title">Настройки</h2>
+    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
-  <label class="field">
-    <span class="field-label">Title</span>
-    <input type="text" name="title" value="<?= wwm_escape((string)($a['title'] ?? '')) ?>" required>
-  </label>
+    <div class="automation-settings__grid">
+      <label class="field">
+        <span class="field-label">Название</span>
+        <input type="text" name="title" value="<?= wwm_escape((string)($a['title'] ?? '')) ?>" required>
+      </label>
+      <label class="field">
+        <span class="field-label">Описание</span>
+        <textarea name="description" rows="3"><?= wwm_escape((string)($a['description'] ?? '')) ?></textarea>
+      </label>
+    </div>
 
-  <label class="field">
-    <span class="field-label">Description</span>
-    <textarea name="description" rows="2"><?= wwm_escape((string)($a['description'] ?? '')) ?></textarea>
-  </label>
+    <input type="hidden" name="entry_mode" id="automation-entry-mode" value="<?= wwm_escape($currentEntryMode) ?>">
+    <input type="hidden" name="course_slug" id="automation-settings-course" value="<?= wwm_escape($currentCourseSlug) ?>">
+    <p class="field-hint automation-settings__hint" id="automation-entry-settings-hint">Тип входа и курс процесса настраиваются в блоке <strong>«Старт»</strong> на схеме (свойства справа).</p>
 
-  <input type="hidden" name="entry_mode" id="automation-entry-mode" value="<?= wwm_escape($currentEntryMode) ?>">
-  <input type="hidden" name="course_slug" id="automation-settings-course" value="<?= wwm_escape($currentCourseSlug) ?>">
-  <p class="field-hint" id="automation-entry-settings-hint">Тип входа и курс процесса настраиваются в блоке <strong>«Старт»</strong> на схеме (свойства справа).</p>
+    <details class="automation-flow-advanced">
+      <summary>Definition (JSON) — для опытных</summary>
+      <label class="field">
+        <span class="field-hint">Nodes, edges, delays (seconds), templates, conditions. При сохранении формы подставляется из схемы выше.</span>
+        <textarea name="definition_json" rows="20" class="admin-code-textarea" spellcheck="false"><?= wwm_textarea_raw((string)($definitionPretty ?? '')) ?></textarea>
+      </label>
+    </details>
 
-  <details class="automation-flow-advanced">
-    <summary>Definition (JSON) — для опытных</summary>
-    <label class="field">
-      <span class="field-hint">Nodes, edges, delays (seconds), templates, conditions. При сохранении формы подставляется из схемы выше.</span>
-      <textarea name="definition_json" rows="20" class="admin-code-textarea" spellcheck="false"><?= wwm_textarea_raw((string)($definitionPretty ?? '')) ?></textarea>
-    </label>
-  </details>
-
-  <div class="admin-form-footer">
-    <button type="submit" class="btn btn-primary">Save</button>
+    <div class="admin-form-footer">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+    </div>
   </div>
 </form>
 
-<form method="post" action="/admin/automations/<?= $id ?>/import-avo" enctype="multipart/form-data" class="admin-card" style="margin-top:16px">
-  <h2 class="admin-team-section-title">Import AVO export</h2>
-  <p class="field-hint">Upload JSON from AVO business process export. Maps to the canonical Elke demo funnel; then edit JSON here.</p>
+<form method="post" action="/admin/automations/<?= $id ?>/import-avo" enctype="multipart/form-data" class="admin-card automation-import-avo">
+  <h2 class="admin-team-section-title">Импорт AVO</h2>
+  <p class="field-hint">JSON экспорта бизнес-процесса из AVO. После загрузки схема появится в редакторе — проверьте и сохраните.</p>
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-  <label class="field">
-    <span class="field-label">AVO JSON file</span>
-    <input type="file" name="avo_export" accept=".json,application/json" required>
-  </label>
-  <button type="submit" class="btn btn-ghost">Import</button>
+  <div class="automation-import-avo__row">
+    <label class="field">
+      <span class="field-label">Файл JSON</span>
+      <input type="file" name="avo_export" accept=".json,application/json" required>
+    </label>
+    <div class="automation-import-avo__actions">
+      <button type="submit" class="btn btn-ghost">Импортировать</button>
+    </div>
+  </div>
 </form>

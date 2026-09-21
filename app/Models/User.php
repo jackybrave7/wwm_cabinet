@@ -351,6 +351,42 @@ final class User
     }
 
     /**
+     * @return list<array{id: int, email: string, name: string}>
+     */
+    public static function searchSuggest(PDO $pdo, string $query, int $limit = 12): array
+    {
+        $query = trim($query);
+        if (mb_strlen($query) < 3) {
+            return [];
+        }
+        $limit = max(1, min(20, $limit));
+        $contains = '%' . $query . '%';
+        $prefix = $query . '%';
+        $stmt = $pdo->prepare(
+            'SELECT id, email, name FROM users
+             WHERE email LIKE ? OR name LIKE ?
+             ORDER BY
+               CASE
+                 WHEN email LIKE ? THEN 0
+                 WHEN name LIKE ? THEN 1
+                 ELSE 2
+               END,
+               email ASC
+             LIMIT ' . $limit
+        );
+        $stmt->execute([$contains, $contains, $prefix, $prefix]);
+        $rows = $stmt->fetchAll() ?: [];
+
+        return array_map(static function (array $row): array {
+            return [
+                'id' => (int)$row['id'],
+                'email' => (string)($row['email'] ?? ''),
+                'name' => (string)($row['name'] ?? ''),
+            ];
+        }, $rows);
+    }
+
+    /**
      * @return array{rows: list<array<string, mixed>>, total: int}
      */
     public static function paginate(PDO $pdo, ?string $search, int $page, int $perPage): array

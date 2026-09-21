@@ -179,6 +179,10 @@ final class Router
             (new AdminLessonController())->update($m[1], (int)$m[2]);
             return;
         }
+        if ($method === 'GET' && $path === '/admin/students/search') {
+            (new AdminStudentController())->searchSuggest();
+            return;
+        }
         if ($method === 'GET' && $path === '/admin/students/automation-audience-preview') {
             (new AdminStudentController())->automationAudiencePreview();
             return;
