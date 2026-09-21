@@ -657,11 +657,29 @@ body.automation-flow-rmb-pan .drawflow-node {
   color: #94a3b8;
 }
 
+.automation-node-people.modal {
+  z-index: 2147483646;
+}
+
+.automation-flow-shell .automation-node-people.modal,
+.automation-flow-shell.is-fullscreen .automation-node-people.modal,
+.automation-flow-shell:fullscreen .automation-node-people.modal,
+.automation-flow-shell:-webkit-full-screen .automation-node-people.modal {
+  position: absolute;
+  z-index: 500;
+}
+
 .automation-node-people .modal-dialog {
   width: min(840px, 100%);
   max-height: min(80vh, 720px);
   display: flex;
   flex-direction: column;
+}
+
+.automation-flow-shell.is-fullscreen .automation-node-people .modal-dialog,
+.automation-flow-shell:fullscreen .automation-node-people .modal-dialog,
+.automation-flow-shell:-webkit-full-screen .automation-node-people .modal-dialog {
+  max-height: min(78vh, 680px);
 }
 
 .automation-node-people__close {

@@ -323,6 +323,58 @@ body.admin-body {
   font-size: 0.85rem;
 }
 
+.admin-course-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-course-thumb,
+.admin-cover-preview {
+  display: block;
+  flex: 0 0 auto;
+  background-color: #ebe4d8;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.admin-course-thumb {
+  width: 72px;
+  height: 45px;
+  border-radius: 6px;
+  border: 1px solid #e4ddd2;
+  overflow: hidden;
+}
+
+.admin-course-thumb img,
+.admin-cover-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-cover-preview {
+  width: 100%;
+  max-width: 280px;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  border: 1px solid #e4ddd2;
+}
+
+.admin-course-thumb--placeholder,
+.admin-cover-preview--placeholder,
+.course-card-cover--placeholder {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='50' viewBox='0 0 80 50' fill='none'><rect width='80' height='50' rx='6' fill='%23ddd4c6'/><circle cx='24' cy='17' r='6' fill='%23cbb9a4'/><path d='M8 38l15-15 9 9 13-15 19 21H8z' fill='%23c4b49c'/></svg>");
+  background-size: 56% auto;
+}
+
+.admin-course-thumb--placeholder {
+  background-size: 36px 22px;
+}
+
 .admin-table-badge {
   margin: 0;
   white-space: nowrap;

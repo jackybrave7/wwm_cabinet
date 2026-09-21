@@ -19,14 +19,11 @@
       <?php foreach ($courses as $course): ?>
         <?php $cover = wwm_course_cover_url((string)($course['cover_image'] ?? '')); ?>
         <a class="course-card" href="/c/<?= wwm_escape((string)$course['slug']) ?>">
-          <?php if ($cover !== null): ?>
-            <div
-              class="course-card-cover"
-              role="img"
-              aria-label="<?= wwm_escape((string)$course['title']) ?>"
-              style="background-image: url('<?= wwm_escape($cover) ?>')"
-            ></div>
-          <?php endif; ?>
+          <div
+            class="course-card-cover<?= $cover === null ? ' course-card-cover--placeholder' : '' ?>"
+            role="img"
+            aria-label="<?= wwm_escape((string)$course['title']) ?>"
+          ><?php if ($cover !== null): ?><img src="<?= wwm_escape($cover) ?>" alt="" onerror="this.parentElement.classList.add('course-card-cover--placeholder'); this.remove();"><?php endif; ?></div>
           <div class="course-card-body">
             <p class="course-card-label">
               <?php if (!empty($course['access']['has_paid'])): ?>

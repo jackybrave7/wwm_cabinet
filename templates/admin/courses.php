@@ -25,9 +25,17 @@
           $course = $row['course'];
           $slug = (string)($course['slug'] ?? '');
           $demoHours = (int)($course['demo_hours'] ?? 48);
+          $cover = wwm_course_cover_url((string)($course['cover_image'] ?? ''));
         ?>
         <tr>
           <td class="col-course">
+            <div class="admin-course-cell">
+              <span
+                class="admin-course-thumb<?= $cover === null ? ' admin-course-thumb--placeholder' : '' ?>"
+                role="img"
+                aria-hidden="true"
+              ><?php if ($cover !== null): ?><img src="<?= wwm_escape($cover) ?>" alt="" onerror="this.parentElement.classList.add('admin-course-thumb--placeholder'); this.remove();"><?php endif; ?></span>
+              <div>
             <strong><a class="admin-table-primary-link" href="/admin/courses/<?= wwm_escape($slug) ?>"><?= wwm_escape((string)($course['title'] ?? $slug)) ?></a></strong><br>
             <span class="field-hint admin-course-meta">
               <?= wwm_escape($slug) ?>
@@ -35,6 +43,8 @@
                 · id_goods <?= (int)$course['avo_goods_id'] ?>
               <?php endif; ?>
             </span>
+              </div>
+            </div>
           </td>
           <td class="col-tight col-num"><?= (int)$row['sections'] ?></td>
           <td class="col-tight col-num"><?= (int)$row['lessons'] ?></td>

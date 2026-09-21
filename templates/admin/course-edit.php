@@ -85,8 +85,18 @@ $webhooksEnabled = !empty($webhooksEnabled);
           </label>
           <label class="field">
             <span>Cover image URL</span>
-            <input type="url" name="cover_image" value="<?= wwm_escape((string)($course['cover_image'] ?? '')) ?>">
+            <input type="url" name="cover_image" id="course-cover-url" value="<?= wwm_escape((string)($course['cover_image'] ?? '')) ?>" placeholder="https://…">
           </label>
+        </div>
+        <?php $coverPreview = wwm_course_cover_url((string)($course['cover_image'] ?? '')); ?>
+        <div class="field">
+          <span>Cover preview</span>
+          <div
+            id="course-cover-preview"
+            class="admin-cover-preview<?= $coverPreview === null ? ' admin-cover-preview--placeholder' : '' ?>"
+            role="img"
+            aria-label="Course cover preview"
+          ><?php if ($coverPreview !== null): ?><img src="<?= wwm_escape($coverPreview) ?>" alt="" onerror="this.parentElement.classList.add('admin-cover-preview--placeholder'); this.remove();"><?php endif; ?></div>
         </div>
         <label class="field">
           <span>Landing / buy URL</span>
@@ -226,3 +236,34 @@ $webhooksEnabled = !empty($webhooksEnabled);
 <?php endif; ?>
 
 <p style="margin-top:8px"><a href="/admin/courses">← Back to courses</a></p>
+<script>
+(function () {
+  var input = document.getElementById('course-cover-url');
+  var preview = document.getElementById('course-cover-preview');
+  if (!input || !preview) {
+    return;
+  }
+  function syncCoverPreview() {
+    var url = (input.value || '').trim();
+    var ok = /^https:\/\//i.test(url);
+    preview.innerHTML = '';
+    preview.classList.toggle('admin-cover-preview--placeholder', !ok);
+    if (!ok) {
+      return;
+    }
+    var img = document.createElement('img');
+    img.alt = '';
+    img.src = url;
+    img.onerror = function () {
+      preview.classList.add('admin-cover-preview--placeholder');
+      img.remove();
+    };
+    img.onload = function () {
+      preview.classList.remove('admin-cover-preview--placeholder');
+    };
+    preview.appendChild(img);
+  }
+  input.addEventListener('input', syncCoverPreview);
+  input.addEventListener('change', syncCoverPreview);
+})();
+</script>

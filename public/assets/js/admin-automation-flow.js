@@ -865,9 +865,17 @@
     return Array.from(seen.values());
   }
 
+  function peopleModalHost() {
+    return shell || document.body;
+  }
+
   function ensurePeopleModal() {
     let el = document.getElementById('automation-node-people');
+    const host = peopleModalHost();
     if (el) {
+      if (el.parentNode !== host) {
+        host.appendChild(el);
+      }
       return el;
     }
     el = document.createElement('div');
@@ -884,7 +892,7 @@
       + '<thead><tr><th>Имя</th><th>Email</th><th class="col-date">Дата</th></tr></thead>'
       + '<tbody></tbody></table></div>'
       + '</div>';
-    document.body.appendChild(el);
+    host.appendChild(el);
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-people-close]')) {
         el.classList.remove('is-open');
@@ -1475,6 +1483,10 @@
     document.body.classList.add('automation-flow-body-lock');
     fullscreenOn = true;
     updateFullscreenButton();
+    const peopleModal = document.getElementById('automation-node-people');
+    if (peopleModal && peopleModal.parentNode !== shell) {
+      shell.appendChild(peopleModal);
+    }
   }
 
   function requestBrowserFullscreen() {
