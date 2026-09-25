@@ -3,16 +3,18 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Api;
 
+use Wwm\Models\EmailMessage;
 use Wwm\Services\AvoContactName;
-use Wwm\Services\AvoUtmResolver;
 use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\CabinetMail;
 use Wwm\Services\DemoAccess;
 use Wwm\Services\EmailTemplateCatalog;
-use Wwm\Services\StudentAttribution;
 
 final class MailWebhookController
 {
+    /** AVO retries a slow HTTP step minutes later. Same template must not go out again in that window. */
+    private const DUPLICATE_WINDOW_SECONDS = 6 * 3600;
+
     public function send(): void
     {
         WebhookAuth::requireDemo();
@@ -40,6 +42,21 @@ final class MailWebhookController
             wwm_json_response(400, ['ok' => false, 'error' => 'unknown_template']);
         }
 
+        if (EmailMessage::hasRecentSent(wwm_pdo(), $email, $template, self::DUPLICATE_WINDOW_SECONDS)) {
+            wwm_log(sprintf(
+                'mail webhook duplicate skipped template=%s email=%s',
+                $template,
+                strtolower($email)
+            ));
+            wwm_json_response(200, [
+                'ok' => true,
+                'email_sent' => false,
+                'duplicate' => true,
+                'template' => $template,
+                'course_slug' => $courseSlug,
+            ]);
+        }
+
         try {
             $result = (new CabinetMail())->sendTemplate(
                 $template,
@@ -48,15 +65,6 @@ final class MailWebhookController
                 $courseSlug,
                 $avoContactId > 0 ? $avoContactId : null
             );
-            if (isset($result['user_id'])) {
-                StudentAttribution::recordForUser(
-                    wwm_pdo(),
-                    (int)$result['user_id'],
-                    false,
-                    (new AvoUtmResolver())->resolve($payload),
-                    false
-                );
-            }
         } catch (\InvalidArgumentException $e) {
             wwm_json_response(400, ['ok' => false, 'error' => $e->getMessage()]);
         } catch (\RuntimeException $e) {

@@ -49,6 +49,29 @@ final class EmailMessage
         $stmt->execute([$messageId, $token, $targetUrl, $label]);
     }
 
+    /**
+     * True when this address already got this template with status sent inside the window.
+     * Used by /api/mail so an AVO retry does not send a second copy.
+     */
+    public static function hasRecentSent(PDO $pdo, string $email, string $type, int $withinSeconds): bool
+    {
+        $email = strtolower(trim($email));
+        $type = trim($type);
+        if ($email === '' || $type === '' || $withinSeconds < 1) {
+            return false;
+        }
+
+        $since = gmdate('c', time() - $withinSeconds);
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM email_messages
+             WHERE to_email = ? AND email_type = ? AND status = \'sent\' AND sent_at >= ?
+             LIMIT 1'
+        );
+        $stmt->execute([$email, $type, $since]);
+
+        return (bool)$stmt->fetchColumn();
+    }
+
     public static function markStatus(PDO $pdo, int $messageId, bool $sent, ?string $error = null): void
     {
         $stmt = $pdo->prepare(
