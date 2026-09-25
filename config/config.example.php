@@ -39,7 +39,8 @@ return [
     'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro', 'angus', 'la-fe', 'votsmush', 'nono'],
 
     // Legacy payments without Tilda amount: estimate USD as RUB / this rate in admin UI.
-    'payment_usd_rub_fallback_rate' => 100.0,
+    // When Tilda USD is missing: estimate from RUB using CBR rate on payment date, else this fallback.
+    'payment_usd_rub_fallback_rate' => 85.0,
 
     // AVO API: assign contact tags on login / demo lesson open (for autofunnel conditions)
     'avo' => [

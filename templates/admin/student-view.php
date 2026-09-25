@@ -215,7 +215,7 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
                   <span class="payment-amount-secondary field-hint">
                     <?= wwm_escape($amountLines['secondary']) ?>
                     <?php if ($amountLines['estimated']): ?>
-                      <span class="payment-amount-est" title="USD estimated from RUB using fallback rate">~</span>
+                      <span class="payment-amount-est" title="USD estimated from RUB (CBR rate on payment date, or fallback)">~</span>
                     <?php endif; ?>
                   </span>
                 <?php endif; ?>

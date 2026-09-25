@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Models;
 
 use PDO;
+use Wwm\Services\CbrUsdRubRates;
 
 final class Payment
 {
@@ -191,7 +192,6 @@ final class Payment
         $rub = self::positiveFloat($pay['amount'] ?? null);
         $original = self::positiveFloat($pay['amount_original'] ?? null);
         $currencyOriginal = strtoupper(trim((string)($pay['currency_original'] ?? '')));
-        $fx = self::positiveFloat($pay['fx_rate'] ?? null);
 
         if ($original !== null && $currencyOriginal !== '') {
             $primary = self::formatMoney($original, $currencyOriginal);
@@ -201,7 +201,7 @@ final class Payment
         }
 
         if ($rub !== null) {
-            $rate = $fx ?? self::fallbackUsdRubRate();
+            $rate = CbrUsdRubRates::rubPerUsdForPayment($pay);
             $estimatedUsd = $rate > 0 ? $rub / $rate : null;
             if ($estimatedUsd !== null && $estimatedUsd > 0) {
                 return [
@@ -239,6 +239,8 @@ final class Payment
      */
     public static function aggregateRevenue(array $rows): array
     {
+        CbrUsdRubRates::warmCacheForPayments($rows);
+
         $rubTotal = 0.0;
         $count = 0;
         $tildaByCurrency = [];
@@ -259,9 +261,9 @@ final class Payment
                 continue;
             }
 
-            $fx = self::positiveFloat($pay['fx_rate'] ?? null) ?? self::fallbackUsdRubRate();
-            if ($fx > 0) {
-                $tildaByCurrency['USD'] = ($tildaByCurrency['USD'] ?? 0.0) + ($rub / $fx);
+            $fx = CbrUsdRubRates::rubPerUsdForPayment($pay);
+            $tildaByCurrency['USD'] = ($tildaByCurrency['USD'] ?? 0.0) + ($rub / $fx);
+            if (self::positiveFloat($pay['amount_original'] ?? null) === null) {
                 $estimatedCount++;
             }
         }
@@ -332,13 +334,6 @@ final class Payment
             '' => $formatted,
             default => $formatted . ' ' . $code,
         };
-    }
-
-    private static function fallbackUsdRubRate(): float
-    {
-        $rate = (float)(wwm_config()['payment_usd_rub_fallback_rate'] ?? 0);
-
-        return $rate > 0 ? $rate : 100.0;
     }
 
     private static function positiveFloat(mixed $value): ?float

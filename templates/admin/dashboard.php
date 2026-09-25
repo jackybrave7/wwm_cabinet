@@ -155,7 +155,7 @@ $customToVal = (string)($customTo ?? '');
     <?php if ($periodRevenueRub !== ''): ?>
       <span class="admin-stat-note payment-amount-secondary"><?= wwm_escape($periodRevenueRub) ?></span>
     <?php endif; ?>
-    <span class="admin-stat-note"><?= (int)($periodRevenue['payment_count'] ?? 0) ?> payment<?= (int)($periodRevenue['payment_count'] ?? 0) === 1 ? '' : 's' ?><?php if ((int)($periodRevenue['tilda_estimated_count'] ?? 0) > 0): ?> · ~USD from RUB on older rows<?php endif; ?></span>
+    <span class="admin-stat-note"><?= (int)($periodRevenue['payment_count'] ?? 0) ?> payment<?= (int)($periodRevenue['payment_count'] ?? 0) === 1 ? '' : 's' ?><?php if ((int)($periodRevenue['tilda_estimated_count'] ?? 0) > 0): ?> · ~USD from RUB (CBR date rate)<?php endif; ?></span>
   </div>
 </div>
 
