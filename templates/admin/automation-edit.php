@@ -144,6 +144,7 @@ $errors = [
     'enroll_email' => 'Укажите email ученика.',
     'enroll_not_found' => 'Ученик с таким email не найден.',
     'enroll_failed' => 'Не удалось зачислить (процесс выключен или в архиве).',
+    'cancel_failed' => 'Не удалось снять: запуск не найден или уже не активен.',
     'course_required' => 'Для выбранного типа входа нужен course slug.',
 ];
 $err = (string)($error ?? '');
@@ -174,6 +175,7 @@ $formatRunAt = static function (?string $iso): string {
     Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
     Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют во все <strong>включённые</strong> процессы с типом входа «демо» и тем же slug курса.
     Сразу после входа ученик проходит блоки до первой паузы; дальше шаги снимает cron каждые 5–15 минут.
+    <strong>Убрать</strong> — снять с активного запуска (письма останавливаются).
   </p>
   <?php if ($flowRuns === []): ?>
     <p class="field-hint">Пока никого нет. Если демо уже выдано вручную — зачислите email ниже (процесс должен быть включён).</p>
@@ -186,6 +188,7 @@ $formatRunAt = static function (?string $iso): string {
             <th>Статус</th>
             <th>Сейчас на блоке</th>
             <th class="col-date">Зачислен</th>
+            <th class="col-tight"></th>
           </tr>
         </thead>
         <tbody>
@@ -193,9 +196,10 @@ $formatRunAt = static function (?string $iso): string {
             <?php
               $runStatus = (string)($run['status'] ?? '');
               $badge = $runStatus === 'active' ? 'badge-paid' : ($runStatus === 'completed' ? 'badge-demo' : 'badge-draft');
-              $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : $runStatus);
+              $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : ($runStatus === 'cancelled' ? 'Снят' : $runStatus));
               $runName = trim((string)($run['name'] ?? ''));
               $runEmail = (string)($run['email'] ?? '');
+              $runId = (int)($run['id'] ?? 0);
             ?>
             <tr>
               <td>
@@ -207,6 +211,14 @@ $formatRunAt = static function (?string $iso): string {
               <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
               <td><?= wwm_escape($nodeLabel((string)($run['current_node_id'] ?? ''))) ?></td>
               <td class="col-date"><?= wwm_escape($formatRunAt(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
+              <td class="col-tight">
+                <?php if ($runStatus === 'active' && $runId > 0): ?>
+                  <form method="post" action="/admin/automations/<?= $id ?>/runs/<?= $runId ?>/cancel" class="inline-form" data-confirm="Снять ученика с процесса? Письма и паузы больше не пойдут. Зачислить снова можно вручную (для оплаты — нет).">
+                    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                    <button type="submit" class="btn btn-ghost btn-sm">Убрать</button>
+                  </form>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>

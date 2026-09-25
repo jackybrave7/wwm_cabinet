@@ -203,6 +203,41 @@ $stats = \Wwm\Models\EmailAutomationStepEvent::statsByNode($pdo, $id);
 ok($stats !== [], 'step statistics recorded after enroll');
 ok(is_array($run) && in_array((string)$run['status'], ['active', 'completed'], true), 'run progressed or completed');
 
+$cancelUserId = \Wwm\Models\User::create($pdo, 'automation-cancel-' . bin2hex(random_bytes(3)) . '@example.com', 'test-pass-123', 'Cancel');
+$cancelFlowId = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => 'test-cancel-' . bin2hex(random_bytes(3)),
+    'title' => 'Cancel smoke',
+    'description' => 'test',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_MANUAL,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'wait' => ['type' => 'delay', 'seconds' => 86400, 'label' => 'Wait'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'wait'],
+            ['from' => 'wait', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$cancelRunId = \Wwm\Services\EmailAutomationEnrollment::enrollManual($cancelFlowId, $cancelUserId, 'elke-en');
+ok($cancelRunId !== null, 'manual enroll for cancel test');
+$held = \Wwm\Models\EmailAutomationRun::findActive($pdo, $cancelFlowId, $cancelUserId);
+ok(is_array($held) && (string)$held['status'] === 'active', 'cancel-test run is active on delay');
+ok(\Wwm\Services\EmailAutomationEnrollment::cancelRun((int)$cancelRunId, $cancelFlowId, $cancelUserId), 'admin can cancel active run');
+ok(\Wwm\Models\EmailAutomationRun::findActive($pdo, $cancelFlowId, $cancelUserId) === null, 'cancelled run is no longer active');
+ok(!\Wwm\Services\EmailAutomationEnrollment::cancelRun((int)$cancelRunId, $cancelFlowId, $cancelUserId), 'second cancel is a no-op');
+$reEnroll = \Wwm\Services\EmailAutomationEnrollment::enrollManual($cancelFlowId, $cancelUserId, 'elke-en');
+ok($reEnroll !== null && (int)$reEnroll === (int)$cancelRunId, 'manual flow restarts the same run after cancel');
+ok(\Wwm\Models\EmailAutomationRun::findActive($pdo, $cancelFlowId, $cancelUserId) !== null, 'restarted run is active');
+\Wwm\Models\EmailAutomation::update($pdo, $cancelFlowId, ['is_active' => false]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$cancelFlowId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$cancelUserId]);
+
 \Wwm\Models\EmailAutomation::update($pdo, $id, ['is_active' => false]);
 \Wwm\Models\EmailAutomation::update($pdo, $idB, ['is_active' => false]);
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$id]);

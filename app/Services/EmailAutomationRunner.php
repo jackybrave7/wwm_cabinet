@@ -88,19 +88,12 @@ final class EmailAutomationRunner
             }
 
             if ($type === 'delay') {
-                $seconds = max(0, (int)($node['seconds'] ?? 0));
-                $next = self::nextNode($def, $nodeId, 'next');
+                $next = self::handleDelay($pdo, $run, $def, $nodeId, $node);
                 if ($next === null) {
-                    EmailAutomationRun::complete($pdo, (int)$run['id']);
-
                     return;
                 }
-                $wakeAt = gmdate('c', time() + $seconds);
-                self::logStep($pdo, $run, $nodeId, $type, 'scheduled', 'until=' . $wakeAt);
-                EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, $wakeAt);
-                wwm_log(sprintf('automation delay run=%d sleep=%ds until=%s', (int)$run['id'], $seconds, $wakeAt));
-
-                return;
+                $nodeId = $next;
+                continue;
             }
 
             if ($type === 'condition') {
@@ -298,6 +291,62 @@ final class EmailAutomationRunner
         $engagement = (new StudentEngagement())->forEmail((string)$user['email'], $courseSlug);
 
         return !empty($engagement['demo_lesson_opened']);
+    }
+
+    /**
+     * Stay on the delay node until next_run_at. Return next node id after wake, or null to stop.
+     *
+     * @param array<string, mixed> $run
+     * @param array<string, mixed> $def
+     * @param array<string, mixed> $node
+     */
+    private static function handleDelay(\PDO $pdo, array &$run, array $def, string $nodeId, array $node): ?string
+    {
+        $next = self::nextNode($def, $nodeId, 'next');
+        if ($next === null) {
+            EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+            return null;
+        }
+
+        $context = EmailAutomationRun::context($run);
+        $armed = is_array($context['delay_until'] ?? null) ? $context['delay_until'] : [];
+        $until = (string)($armed[$nodeId] ?? '');
+        $wakeTs = $until !== '' ? strtotime($until) : false;
+        $dueTs = strtotime((string)($run['next_run_at'] ?? ''));
+        $now = time();
+
+        if ($until !== '') {
+            $stillSleeping = ($wakeTs !== false && $wakeTs > $now)
+                && ($dueTs === false || $dueTs > $now);
+            if ($stillSleeping) {
+                return null;
+            }
+
+            unset($armed[$nodeId]);
+            $context['delay_until'] = $armed;
+            $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+            $run['current_node_id'] = $next;
+            $run['next_run_at'] = gmdate('c');
+            self::logStep($pdo, $run, $nodeId, 'delay', 'done', $until !== '' ? 'until=' . $until : null);
+            EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, $run['next_run_at'], $context);
+            wwm_log(sprintf('automation delay done run=%d node=%s', (int)$run['id'], $nodeId));
+
+            return $next;
+        }
+
+        $seconds = max(0, (int)($node['seconds'] ?? 0));
+        $wakeAt = gmdate('c', $now + $seconds);
+        $armed[$nodeId] = $wakeAt;
+        $context['delay_until'] = $armed;
+        $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $run['current_node_id'] = $nodeId;
+        $run['next_run_at'] = $wakeAt;
+        self::logStep($pdo, $run, $nodeId, 'delay', 'scheduled', 'until=' . $wakeAt);
+        EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $nodeId, $wakeAt, $context);
+        wwm_log(sprintf('automation delay run=%d sleep=%ds until=%s', (int)$run['id'], $seconds, $wakeAt));
+
+        return null;
     }
 
     /**

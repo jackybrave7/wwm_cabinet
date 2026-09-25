@@ -10,6 +10,9 @@
     <div class="alert alert-success"><?= wwm_escape($message) ?></div>
   <?php else: ?>
     <p class="lede">Enter your email and we will send a reset link.</p>
+    <p class="form-hint" style="margin-top:0;margin-bottom:16px">
+      <a href="/help/recover-access">Step-by-step guide with screenshots</a> (reset link, spam folder, change password)
+    </p>
     <form method="post" action="/forgot" class="form">
       <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
       <label class="field">
@@ -19,5 +22,8 @@
       <button type="submit" class="btn btn-primary btn-block">Send link</button>
     </form>
   <?php endif; ?>
-  <p class="form-footer"><a href="/login">Back to sign in</a></p>
+  <p class="form-footer">
+    <a href="/help/recover-access">Recover access guide</a>
+    · <a href="/login">Back to sign in</a>
+  </p>
 </section>

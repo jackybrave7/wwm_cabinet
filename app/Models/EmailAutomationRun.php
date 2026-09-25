@@ -76,6 +76,18 @@ final class EmailAutomationRun
         return is_array($row) ? $row : null;
     }
 
+    public static function findForUser(PDO $pdo, int $automationId, int $userId): ?array
+    {
+        $stmt = $pdo->prepare(
+            'SELECT * FROM email_automation_runs
+             WHERE automation_id = ? AND user_id = ? LIMIT 1'
+        );
+        $stmt->execute([$automationId, $userId]);
+        $row = $stmt->fetch();
+
+        return is_array($row) ? $row : null;
+    }
+
     /**
      * @param array<string, mixed> $context
      */
@@ -87,9 +99,13 @@ final class EmailAutomationRun
         string $startNodeId,
         array $context = []
     ): int {
-        $existing = self::findActive($pdo, $automationId, $userId);
+        $existing = self::findForUser($pdo, $automationId, $userId);
         if ($existing !== null) {
-            return (int)$existing['id'];
+            if ((string)($existing['status'] ?? '') === 'active') {
+                return (int)$existing['id'];
+            }
+
+            return self::restart($pdo, (int)$existing['id'], $courseSlug, $startNodeId, $context);
         }
 
         $now = gmdate('c');
@@ -114,6 +130,36 @@ final class EmailAutomationRun
     }
 
     /**
+     * @param array<string, mixed> $context
+     */
+    public static function restart(
+        PDO $pdo,
+        int $runId,
+        string $courseSlug,
+        string $startNodeId,
+        array $context = []
+    ): int {
+        $now = gmdate('c');
+        $contextJson = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $pdo->prepare(
+            'UPDATE email_automation_runs
+             SET course_slug = ?, status = \'active\', current_node_id = ?, next_run_at = ?,
+                 context_json = ?, enrolled_at = ?, completed_at = NULL, updated_at = ?
+             WHERE id = ?'
+        )->execute([
+            $courseSlug,
+            $startNodeId,
+            $now,
+            $contextJson,
+            $now,
+            $now,
+            $runId,
+        ]);
+
+        return $runId;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public static function dueRuns(PDO $pdo, int $limit = 50): array
@@ -132,15 +178,30 @@ final class EmailAutomationRun
         return $stmt->fetchAll() ?: [];
     }
 
+    /**
+     * @param array<string, mixed>|null $context
+     */
     public static function saveProgress(
         PDO $pdo,
         int $runId,
         string $currentNodeId,
-        ?string $nextRunAt
+        ?string $nextRunAt,
+        ?array $context = null
     ): void {
+        if ($context === null) {
+            $pdo->prepare(
+                'UPDATE email_automation_runs SET current_node_id = ?, next_run_at = ?, updated_at = ? WHERE id = ?'
+            )->execute([$currentNodeId, $nextRunAt, gmdate('c'), $runId]);
+
+            return;
+        }
+
+        $contextJson = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
         $pdo->prepare(
-            'UPDATE email_automation_runs SET current_node_id = ?, next_run_at = ?, updated_at = ? WHERE id = ?'
-        )->execute([$currentNodeId, $nextRunAt, gmdate('c'), $runId]);
+            'UPDATE email_automation_runs
+             SET current_node_id = ?, next_run_at = ?, context_json = ?, updated_at = ?
+             WHERE id = ?'
+        )->execute([$currentNodeId, $nextRunAt, $contextJson, gmdate('c'), $runId]);
     }
 
     public static function complete(PDO $pdo, int $runId): void
@@ -151,11 +212,15 @@ final class EmailAutomationRun
         )->execute([$now, $now, $runId]);
     }
 
-    public static function cancel(PDO $pdo, int $runId): void
+    public static function cancel(PDO $pdo, int $runId): bool
     {
-        $pdo->prepare(
-            'UPDATE email_automation_runs SET status = \'cancelled\', next_run_at = NULL, updated_at = ? WHERE id = ?'
-        )->execute([gmdate('c'), $runId]);
+        $stmt = $pdo->prepare(
+            'UPDATE email_automation_runs SET status = \'cancelled\', next_run_at = NULL, updated_at = ?
+             WHERE id = ? AND status = \'active\''
+        );
+        $stmt->execute([gmdate('c'), $runId]);
+
+        return $stmt->rowCount() > 0;
     }
 
     /**

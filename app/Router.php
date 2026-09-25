@@ -67,6 +67,10 @@ final class Router
             (new AuthController())->forgot();
             return;
         }
+        if ($method === 'GET' && $path === '/help/recover-access') {
+            (new AuthController())->showRecoverAccessHelp();
+            return;
+        }
         if ($method === 'GET' && $path === '/reset') {
             (new AuthController())->showReset();
             return;
@@ -203,6 +207,10 @@ final class Router
             (new AdminStudentController())->show((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/automation-runs/(\d+)/cancel$#', $path, $m)) {
+            (new AdminStudentController())->cancelAutomationRun((int)$m[1], (int)$m[2]);
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/access$#', $path, $m)) {
             (new AdminStudentController())->grantAccess((int)$m[1]);
             return;
@@ -321,6 +329,10 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll$#', $path, $m)) {
             (new AdminAutomationController())->enrollStudent((int)$m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/runs/(\d+)/cancel$#', $path, $m)) {
+            (new AdminAutomationController())->cancelRun((int)$m[1], (int)$m[2]);
             return;
         }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll-audience$#', $path, $m)) {

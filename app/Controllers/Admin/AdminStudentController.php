@@ -352,6 +352,7 @@ final class AdminStudentController
                 : null,
             'email_messages' => EmailMessage::forUser($pdo, $id),
             'automation_runs' => EmailAutomationRun::listForUser($pdo, $id),
+            'can_manage_automations' => is_array($admin) && AdminAccess::isSuperAdmin($admin),
             'payments' => Payment::forUser($pdo, $id),
             'message' => match ($_GET['created'] ?? '') {
                 '1' => 'Student created.',
@@ -361,15 +362,31 @@ final class AdminStudentController
                 'avo_name' => 'Name updated from AVO.',
                 'avo_name_utm' => 'Name, AVO tags, and UTM synced.',
                 'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — check cabinet.log.',
+                'automation_cancelled' => 'Ученик снят с процесса. Письма и паузы больше не идут.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
                 'csrf' => 'Session expired. Please try again.',
                 'course' => 'Course not found.',
                 'period' => 'Invalid access period or date.',
+                'automation_cancel' => 'Не удалось снять с процесса: запуск не найден или уже не активен.',
                 default => null,
             },
         ]);
+    }
+
+    public function cancelAutomationRun(int $id, int $runId): void
+    {
+        Session::requireSuperAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students/' . $id . '?error=csrf');
+        }
+
+        if (!EmailAutomationEnrollment::cancelRun($runId, null, $id)) {
+            wwm_redirect('/admin/students/' . $id . '?error=automation_cancel');
+        }
+
+        wwm_redirect('/admin/students/' . $id . '?created=automation_cancelled');
     }
 
     public function grantAccess(int $id): void

@@ -283,6 +283,20 @@ final class AdminAutomationController
         wwm_redirect('/admin/automations/' . $id . '/edit?enrolled=1');
     }
 
+    public function cancelRun(int $id, int $runId): void
+    {
+        Session::requireSuperAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=csrf');
+        }
+
+        if (!EmailAutomationEnrollment::cancelRun($runId, $id)) {
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=cancel_failed');
+        }
+
+        wwm_redirect('/admin/automations/' . $id . '/edit?cancelled=1');
+    }
+
     public function importAvo(int $id): void
     {
         Session::requireSuperAdmin();
@@ -474,6 +488,9 @@ final class AdminAutomationController
         }
         if (!empty($_GET['enrolled'])) {
             return 'Ученик добавлен в процесс (или уже был в активном run).';
+        }
+        if (!empty($_GET['cancelled'])) {
+            return 'Ученик снят с процесса. Письма и паузы больше не идут.';
         }
         if (isset($_GET['ran'])) {
             return 'Processed ' . (int)$_GET['ran'] . ' automation run(s).';

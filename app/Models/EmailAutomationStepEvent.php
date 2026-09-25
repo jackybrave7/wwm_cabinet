@@ -40,6 +40,7 @@ final class EmailAutomationStepEvent
                     MAX(created_at) AS last_at
              FROM email_automation_step_events
              WHERE automation_id = ?
+               AND (branch IS NULL OR branch <> \'scheduled\')
              GROUP BY node_id, node_type
              ORDER BY hits DESC, node_id ASC'
         );
@@ -90,6 +91,7 @@ final class EmailAutomationStepEvent
              FROM email_automation_step_events e
              INNER JOIN users u ON u.id = e.user_id
              WHERE e.automation_id = ? AND e.node_id = ?
+               AND (e.branch IS NULL OR e.branch <> \'scheduled\')
              ORDER BY e.created_at DESC
              LIMIT ' . $limit
         );

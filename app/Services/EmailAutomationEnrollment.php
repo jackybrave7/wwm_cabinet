@@ -82,6 +82,53 @@ final class EmailAutomationEnrollment
     }
 
     /**
+     * Stop an active run. History stays; cron will not continue.
+     * Demo/manual can enroll again (same run restarts from the first block);
+     * payment flows still refuse a second run.
+     */
+    public static function cancelRun(
+        int $runId,
+        ?int $expectedAutomationId = null,
+        ?int $expectedUserId = null
+    ): bool {
+        $pdo = wwm_pdo();
+        $run = EmailAutomationRun::find($pdo, $runId);
+        if ($run === null || (string)($run['status'] ?? '') !== 'active') {
+            return false;
+        }
+        if ($expectedAutomationId !== null && (int)$run['automation_id'] !== $expectedAutomationId) {
+            return false;
+        }
+        if ($expectedUserId !== null && (int)$run['user_id'] !== $expectedUserId) {
+            return false;
+        }
+
+        if (!EmailAutomationRun::cancel($pdo, $runId)) {
+            return false;
+        }
+
+        EmailAutomationStepEvent::record($pdo, [
+            'automation_id' => (int)$run['automation_id'],
+            'run_id' => $runId,
+            'user_id' => (int)$run['user_id'],
+            'node_id' => (string)($run['current_node_id'] ?? ''),
+            'node_type' => 'run',
+            'branch' => 'cancelled',
+            'detail' => 'admin',
+        ]);
+
+        wwm_log(sprintf(
+            'automation cancelled automation_id=%d run_id=%d user_id=%d node=%s',
+            (int)$run['automation_id'],
+            $runId,
+            (int)$run['user_id'],
+            (string)($run['current_node_id'] ?? '')
+        ));
+
+        return true;
+    }
+
+    /**
      * @param list<int> $userIds
      * @return array{created: int, already_active: int, failed: int, total: int}
      */

@@ -320,6 +320,9 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
               <th>Статус</th>
               <th>Блок</th>
               <th class="col-date">Зачислен</th>
+              <?php if (!empty($can_manage_automations)): ?>
+                <th class="col-tight"></th>
+              <?php endif; ?>
             </tr>
           </thead>
           <tbody>
@@ -327,7 +330,8 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
               <?php
                 $runStatus = (string)($run['status'] ?? '');
                 $badge = $runStatus === 'active' ? 'badge-paid' : ($runStatus === 'completed' ? 'badge-demo' : 'badge-draft');
-                $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : $runStatus);
+                $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : ($runStatus === 'cancelled' ? 'Снят' : $runStatus));
+                $runId = (int)($run['id'] ?? 0);
               ?>
               <tr>
                 <td>
@@ -337,6 +341,16 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
                 <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
                 <td><?= wwm_escape((string)($run['current_node_id'] ?? '—')) ?></td>
                 <td class="col-date"><?= wwm_escape($formatDate(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
+                <?php if (!empty($can_manage_automations)): ?>
+                  <td class="col-tight">
+                    <?php if ($runStatus === 'active' && $runId > 0): ?>
+                      <form method="post" action="/admin/students/<?= $id ?>/automation-runs/<?= $runId ?>/cancel" class="inline-form" data-confirm="Снять ученика с процесса? Письма и паузы больше не пойдут.">
+                        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                        <button type="submit" class="btn btn-ghost btn-sm">Убрать</button>
+                      </form>
+                    <?php endif; ?>
+                  </td>
+                <?php endif; ?>
               </tr>
             <?php endforeach; ?>
           </tbody>

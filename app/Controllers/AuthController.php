@@ -191,6 +191,13 @@ final class AuthController
         ]);
     }
 
+    public function showRecoverAccessHelp(): void
+    {
+        wwm_render('help-recover-access', [
+            'pageTitle' => 'Recover account access — World Watercolor Masters',
+        ]);
+    }
+
     public function forgot(): void
     {
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
