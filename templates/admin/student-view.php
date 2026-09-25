@@ -206,10 +206,20 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
             <tr>
               <td class="col-date"><?= $paidAt !== '' ? wwm_escape($formatDate($paidAt)) : '—' ?></td>
               <td><code><?= wwm_escape((string)($pay['course_slug'] ?? '')) ?></code></td>
-              <td class="col-status"><?= wwm_escape(\Wwm\Models\Payment::formatAmount(
-                  isset($pay['amount']) ? (float)$pay['amount'] : null,
-                  (string)($pay['currency'] ?? '')
-              )) ?></td>
+              <td class="col-status payment-amount-cell">
+                <?php
+                  $amountLines = \Wwm\Models\Payment::amountDisplayLines($pay);
+                ?>
+                <span class="payment-amount-primary"><?= wwm_escape($amountLines['primary']) ?></span>
+                <?php if ($amountLines['secondary'] !== null): ?>
+                  <span class="payment-amount-secondary field-hint">
+                    <?= wwm_escape($amountLines['secondary']) ?>
+                    <?php if ($amountLines['estimated']): ?>
+                      <span class="payment-amount-est" title="USD estimated from RUB using fallback rate">~</span>
+                    <?php endif; ?>
+                  </span>
+                <?php endif; ?>
+              </td>
               <td class="admin-cell-muted"><?= wwm_escape((string)($pay['avo_account_id'] ?? '')) ?></td>
               <td class="col-subject"><?= $utmParts !== [] ? wwm_escape(implode(' · ', $utmParts)) : '—' ?></td>
             </tr>

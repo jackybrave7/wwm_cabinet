@@ -344,6 +344,11 @@ SQL);
         self::ensureColumn($pdo, 'email_automations', 'archived_at', 'TEXT');
         self::ensureColumn($pdo, 'email_automations', 'entry_mode', "TEXT NOT NULL DEFAULT 'demo_grant'");
 
+        self::ensureColumn($pdo, 'payments', 'amount_original', 'REAL');
+        self::ensureColumn($pdo, 'payments', 'currency_original', "TEXT NOT NULL DEFAULT ''");
+        self::ensureColumn($pdo, 'payments', 'fx_rate', 'REAL');
+        \Wwm\Models\PaymentPricingPending::ensureTable($pdo);
+
         self::seedEmailAutomations($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::migrateEmailTemplatesLogo($pdo);

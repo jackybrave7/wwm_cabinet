@@ -31,14 +31,19 @@ final class PaymentRecorder
 
         $utm = StudentAttribution::utmFromAvoPayload($payload);
         $adSnapshot = self::adSnapshotJson($payload);
+        $pricing = Payment::pricingFromPayload($payload);
+        $amountRub = $pricing['amount_rub'] ?? self::amount($payload);
 
         return Payment::upsert($pdo, [
             'user_id' => $userId,
             'avo_account_id' => $accountId,
             'course_slug' => $courseSlug,
             'id_goods' => self::idGoods($payload),
-            'amount' => self::amount($payload),
-            'currency' => self::currency($payload),
+            'amount' => $amountRub,
+            'currency' => $amountRub !== null ? 'RUB' : self::currency($payload),
+            'amount_original' => $pricing['amount_original'],
+            'currency_original' => $pricing['currency_original'],
+            'fx_rate' => $pricing['fx_rate'],
             'source' => $source !== '' ? $source : 'avo',
             'ordered_at' => $orderedAt,
             'paid_at' => $paidAt,

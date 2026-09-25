@@ -176,6 +176,26 @@ body.admin-body {
   flex-wrap: wrap;
 }
 
+.payment-amount-cell {
+  line-height: 1.35;
+}
+
+.payment-amount-primary {
+  display: block;
+  font-weight: 600;
+}
+
+.payment-amount-secondary {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85rem;
+}
+
+.payment-amount-est {
+  opacity: 0.75;
+  cursor: help;
+}
+
 .admin-card {
   background: #fff;
   border: 1px solid var(--line);

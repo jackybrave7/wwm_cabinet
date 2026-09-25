@@ -38,6 +38,9 @@ return [
     // Paid webhook: send access email from robot@ for these slugs (international WWM).
     'paid_email_slugs' => ['elke-en', 'elke-de', 'alvaro', 'angus', 'la-fe', 'votsmush', 'nono'],
 
+    // Legacy payments without Tilda amount: estimate USD as RUB / this rate in admin UI.
+    'payment_usd_rub_fallback_rate' => 100.0,
+
     // AVO API: assign contact tags on login / demo lesson open (for autofunnel conditions)
     'avo' => [
         'enabled' => false,
