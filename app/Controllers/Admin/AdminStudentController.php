@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Wwm\Controllers\Admin;
 
+use Wwm\Auth\Password;
 use Wwm\Auth\Session;
 use Wwm\Models\Access;
 use Wwm\Models\EmailAutomation;
@@ -24,6 +25,7 @@ use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\AvoClient;
 use Wwm\Services\AvoContactTimeline;
 use Wwm\Services\StudentAttribution;
+use Wwm\Services\StudentLoginCredentialsMail;
 
 final class AdminStudentController
 {
@@ -363,6 +365,7 @@ final class AdminStudentController
                 'avo_name_utm' => 'Name, AVO tags, and UTM synced.',
                 'avo_tags' => 'AVO tags synced. UTM could not be resolved from AVO API — check cabinet.log.',
                 'automation_cancelled' => 'Ученик снят с процесса. Письма и паузы больше не идут.',
+                'login_mail' => 'Письмо с данными для входа отправлено.',
                 default => null,
             },
             'error' => match ($_GET['error'] ?? '') {
@@ -370,9 +373,39 @@ final class AdminStudentController
                 'course' => 'Course not found.',
                 'period' => 'Invalid access period or date.',
                 'automation_cancel' => 'Не удалось снять с процесса: запуск не найден или уже не активен.',
+                'login_mail' => 'Не удалось отправить письмо. Проверьте SMTP и cabinet.log.',
                 default => null,
             },
         ]);
+    }
+
+    public function sendLoginCredentials(int $id): void
+    {
+        Session::requireAdminStudents();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students/' . $id . '?error=csrf');
+        }
+
+        $pdo = wwm_pdo();
+        if (User::findById($pdo, $id) === null) {
+            http_response_code(404);
+            return;
+        }
+
+        $resetPassword = ($_POST['reset_password'] ?? '1') === '1';
+        $plainPassword = null;
+        if ($resetPassword) {
+            $plainPassword = Password::generateReadable(8);
+            User::updatePassword($pdo, $id, $plainPassword);
+        }
+
+        if (!StudentLoginCredentialsMail::send($pdo, $id, $plainPassword)) {
+            wwm_redirect('/admin/students/' . $id . '?error=login_mail');
+        }
+
+        wwm_log(sprintf('admin sent login credentials user_id=%d reset=%s', $id, $resetPassword ? 'yes' : 'no'));
+        wwm_redirect('/admin/students/' . $id . '?created=login_mail');
     }
 
     public function cancelAutomationRun(int $id, int $runId): void

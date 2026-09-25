@@ -128,6 +128,15 @@ final class EmailTemplateCatalog
                 'webhook' => false,
             ],
             [
+                'id' => 'login_credentials',
+                'label' => 'Student sign-in details',
+                'category' => 'Account',
+                'description' => 'Cabinet login email with password help and recover-access guide.',
+                'trigger' => 'Admin → Student profile → Send sign-in details',
+                'has_html' => true,
+                'webhook' => false,
+            ],
+            [
                 'id' => 'test',
                 'label' => 'SMTP test',
                 'category' => 'System',
@@ -195,6 +204,17 @@ final class EmailTemplateCatalog
                 '{{password_line}}',
                 '{{permissions_list}}',
                 '{{forgot_url}}',
+            ],
+            'login_credentials' => [
+                '{{name}}',
+                '{{email}}',
+                '{{base_url}}',
+                '{{login_url}}',
+                '{{password}}',
+                '{{password_line}}',
+                '{{forgot_url}}',
+                '{{recover_help_url}}',
+                '{{account_url}}',
             ],
             'test' => ['{{base_url}}'],
             default => $common,
@@ -272,9 +292,16 @@ final class EmailTemplateCatalog
         if ($passwordLine === '' && $id === 'admin_invite') {
             $passwordLine = 'Use your existing account password.';
         }
+        if ($passwordLine === '' && $id === 'login_credentials') {
+            $passwordLine = $password !== ''
+                ? 'Password: ' . $password
+                : 'Password: use the reset link below if you forgot it.';
+        }
         if ($permissionsList === '' && $id === 'admin_invite') {
             $permissionsList = 'Administrator';
         }
+        $recoverHelpUrl = trim((string)($context['recover_help_url'] ?? wwm_base_url() . '/help/recover-access'));
+        $accountUrl = trim((string)($context['account_url'] ?? wwm_base_url() . '/account'));
         if ($expiresLabel === '' && in_array($id, ['demo'], true)) {
             $expiresLabel = gmdate('M j, Y H:i', time() + 48 * 3600) . ' UTC';
         }
@@ -300,6 +327,8 @@ final class EmailTemplateCatalog
             'permissions_list' => $permissionsList,
             'password_line' => $passwordLine,
             'forgot_url' => $forgotUrl,
+            'recover_help_url' => $recoverHelpUrl,
+            'account_url' => $accountUrl,
         ]);
     }
 

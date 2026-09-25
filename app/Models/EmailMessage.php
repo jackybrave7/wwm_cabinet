@@ -295,6 +295,7 @@ final class EmailMessage
             'demo' => 'Demo access',
             'magic' => 'Sign-in link',
             'reset' => 'Password reset',
+            'login_credentials' => 'Sign-in details',
             'test' => 'Test email',
             'broadcast' => 'Marketing broadcast',
             'reminder_demo_no_login' => 'Reminder — no login',

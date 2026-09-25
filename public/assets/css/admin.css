@@ -169,6 +169,13 @@ body.admin-body {
   flex-wrap: wrap;
 }
 
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .admin-card {
   background: #fff;
   border: 1px solid var(--line);

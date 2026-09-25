@@ -211,6 +211,10 @@ final class Router
             (new AdminStudentController())->cancelAutomationRun((int)$m[1], (int)$m[2]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/send-login-credentials$#', $path, $m)) {
+            (new AdminStudentController())->sendLoginCredentials((int)$m[1]);
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/access$#', $path, $m)) {
             (new AdminStudentController())->grantAccess((int)$m[1]);
             return;

@@ -364,6 +364,44 @@ final class EmailTemplateDrafts
                 'text' => "Open this link to set a new password (valid 1 hour):\n\n{{reset_link}}\n",
                 'html' => null,
             ],
+            'login_credentials' => [
+                'subject' => 'Your WWM sign-in details',
+                'text' => implode("\n", [
+                    'Hello {{name}},',
+                    '',
+                    'Here are your sign-in details for the World Watercolor Masters student cabinet.',
+                    '',
+                    'Sign in (your email may be prefilled):',
+                    '{{login_url}}',
+                    '',
+                    'Manual sign-in: {{base_url}}/login',
+                    'Email: {{email}}',
+                    '{{password_line}}',
+                    '',
+                    'Forgot or want to change your password?',
+                    '- Not signed in: request a reset at {{forgot_url}}',
+                    '- Step-by-step guide (screenshots): {{recover_help_url}}',
+                    '- Already signed in: open Account → {{account_url}}',
+                    '',
+                    'Questions? support@worldwatercolormasters.art',
+                    '',
+                    'World Watercolor Masters',
+                ]),
+                'html' => self::adminLayoutDraft(
+                    'Your sign-in details',
+                    implode('', [
+                        self::paragraph('Hello {{name}},'),
+                        self::paragraph(
+                            'Here are your sign-in details for the <strong>World Watercolor Masters</strong> student cabinet '
+                            . 'at <strong>my.worldwatercolormasters.art</strong>.'
+                        ),
+                        self::button('{{login_url}}', 'Sign in to your cabinet'),
+                        self::studentLoginCredentialsBoxDraft(),
+                        self::studentPasswordHelpDraft(),
+                        self::supportBlock(),
+                    ])
+                ),
+            ],
             'admin_invite' => [
                 'subject' => 'Your administrator access — World Watercolor Masters',
                 'text' => implode("\n", [
@@ -443,6 +481,34 @@ final class EmailTemplateDrafts
             . '<tr><td class="pad" style="padding:0 40px 24px;background:#ffffff;">' . $bodyHtml . '</td></tr>'
             . self::footerRow()
             . '</table></td></tr></table></body></html>';
+    }
+
+    private static function studentLoginCredentialsBoxDraft(): string
+    {
+        return '<!-- credentials:start -->'
+            . '<div style="margin-top:8px;padding:20px 24px;background:#faf6f0;border-radius:8px;border:1px solid #e5e5e5;">'
+            . '<p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a110a;text-transform:uppercase;'
+            . 'letter-spacing:0.04em;">Sign-in details</p>'
+            . '<p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2a2a2a;">'
+            . '<strong>Email:</strong> {{email}}</p>'
+            . '<p style="margin:0;font-size:16px;line-height:1.5;color:#2a2a2a;">{{password_line}}</p>'
+            . '</div><!-- credentials:end -->';
+    }
+
+    private static function studentPasswordHelpDraft(): string
+    {
+        return '<div style="margin:20px 0 0;padding:16px 20px;background:#fff8f6;border-radius:8px;border:1px solid #f0d8d3;">'
+            . '<p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#1a110a;">Forgot or want to change your password?</p>'
+            . '<p style="margin:0 0 8px;font-size:15px;line-height:1.55;color:#2a2a2a;">'
+            . '<strong>Not signed in:</strong> request a reset at '
+            . '<a href="{{forgot_url}}" style="color:#b81e16;text-decoration:underline;">{{forgot_url}}</a>. '
+            . 'See our <a href="{{recover_help_url}}" style="color:#b81e16;text-decoration:underline;">step-by-step guide</a> '
+            . 'with screenshots (spam folder, expired links, and more).</p>'
+            . '<p style="margin:0;font-size:15px;line-height:1.55;color:#2a2a2a;">'
+            . '<strong>Already signed in:</strong> open '
+            . '<a href="{{account_url}}" style="color:#b81e16;text-decoration:underline;">Account</a> '
+            . 'in the top menu and update your password anytime.</p>'
+            . '</div>';
     }
 
     private static function adminCredentialsBoxDraft(): string
