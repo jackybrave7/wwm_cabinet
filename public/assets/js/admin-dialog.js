@@ -24,7 +24,7 @@
       + '<h2 id="admin-dialog-title"></h2>'
       + '<p class="admin-dialog-message" id="admin-dialog-message"></p>'
       + '<div class="modal-actions">'
-      + '<button type="button" class="btn btn-ghost" data-admin-dialog-cancel>Отмена</button>'
+      + '<button type="button" class="btn btn-ghost" data-admin-dialog-cancel>Cancel</button>'
       + '<button type="button" class="btn btn-primary" data-admin-dialog-ok>OK</button>'
       + '</div></div>'
     );
@@ -73,18 +73,18 @@
     pendingMode = mode;
 
     if (titleEl) {
-      titleEl.textContent = o.title || (mode === 'alert' ? 'Сообщение' : 'Подтвердите действие');
+      titleEl.textContent = o.title || (mode === 'alert' ? 'Notice' : 'Confirm action');
     }
     if (messageEl) {
       messageEl.textContent = o.message || '';
     }
     if (okBtn) {
-      okBtn.textContent = o.confirmLabel || (mode === 'alert' ? 'Понятно' : 'Подтвердить');
+      okBtn.textContent = o.confirmLabel || (mode === 'alert' ? 'OK' : 'Confirm');
       okBtn.className = 'btn ' + (o.danger ? 'btn-danger' : 'btn-primary');
     }
     if (cancelBtn) {
       cancelBtn.style.display = mode === 'alert' ? 'none' : '';
-      cancelBtn.textContent = o.cancelLabel || 'Отмена';
+      cancelBtn.textContent = o.cancelLabel || 'Cancel';
     }
 
     root.classList.add('is-open');
@@ -118,10 +118,10 @@
     }
     e.preventDefault();
     wwmAdminConfirm({
-      title: form.getAttribute('data-confirm-title') || 'Подтвердите действие',
+      title: form.getAttribute('data-confirm-title') || 'Confirm action',
       message: msg,
       danger: form.hasAttribute('data-confirm-danger'),
-      confirmLabel: form.getAttribute('data-confirm-ok') || 'Подтвердить',
+      confirmLabel: form.getAttribute('data-confirm-ok') || 'Confirm',
     }).then((ok) => {
       if (!ok) {
         return;

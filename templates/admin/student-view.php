@@ -55,10 +55,10 @@ $progressCourseCount = count($courseBlocksList);
   </div>
   <div class="admin-topbar-actions">
     <form method="post" action="/admin/students/<?= $id ?>/send-login-credentials" class="inline-form"
-          data-confirm="Отправить письмо с данными для входа на <?= wwm_escape((string)$student['email']) ?>? Будет установлен новый пароль и отправлен в письме.">
+          data-confirm="Send sign-in details to <?= wwm_escape((string)$student['email']) ?>? A new password will be set and included in the email.">
       <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
       <input type="hidden" name="reset_password" value="1">
-      <button type="submit" class="btn btn-primary btn-sm">Отправить данные для входа</button>
+      <button type="submit" class="btn btn-primary btn-sm">Send sign-in details</button>
     </form>
     <a href="/admin/students" class="btn btn-ghost">← All students</a>
   </div>
@@ -311,23 +311,23 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
 <details class="admin-card admin-expander"<?= $automationRuns !== [] ? ' open' : '' ?>>
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
-      <h2>Процессы</h2>
-      <span class="field-hint"><?= $automationRuns === [] ? 'Не в автоматизациях' : count($automationRuns) . ' зачисл.' ?></span>
+      <h2>Automations</h2>
+      <span class="field-hint"><?= $automationRuns === [] ? 'Not enrolled' : count($automationRuns) . ' run' . (count($automationRuns) === 1 ? '' : 's') ?></span>
     </span>
     <span class="admin-expander-chevron" aria-hidden="true">▼</span>
   </summary>
   <div class="admin-expander-body">
     <?php if ($automationRuns === []): ?>
-      <p class="field-hint">Ученик ещё не попадал в email-процессы. Демо или оплата зачисляют только если процесс включён и курс совпадает.</p>
+      <p class="field-hint">This student is not in any email automation yet. Demo or paid access enrolls them only when a matching active process exists.</p>
     <?php else: ?>
       <div class="admin-table-wrap admin-table-wrap--profile">
         <table class="admin-table admin-table-compact admin-table--profile">
           <thead>
             <tr>
-              <th>Процесс</th>
-              <th>Статус</th>
-              <th>Блок</th>
-              <th class="col-date">Зачислен</th>
+              <th>Process</th>
+              <th>Status</th>
+              <th>Node</th>
+              <th class="col-date">Enrolled</th>
               <?php if (!empty($can_manage_automations)): ?>
                 <th class="col-tight"></th>
               <?php endif; ?>
@@ -338,7 +338,7 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
               <?php
                 $runStatus = (string)($run['status'] ?? '');
                 $badge = $runStatus === 'active' ? 'badge-paid' : ($runStatus === 'completed' ? 'badge-demo' : 'badge-draft');
-                $statusLabel = $runStatus === 'active' ? 'В процессе' : ($runStatus === 'completed' ? 'Завершён' : ($runStatus === 'cancelled' ? 'Снят' : $runStatus));
+                $statusLabel = $runStatus === 'active' ? 'Active' : ($runStatus === 'completed' ? 'Completed' : ($runStatus === 'cancelled' ? 'Removed' : $runStatus));
                 $runId = (int)($run['id'] ?? 0);
               ?>
               <tr>
@@ -352,9 +352,9 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
                 <?php if (!empty($can_manage_automations)): ?>
                   <td class="col-tight">
                     <?php if ($runStatus === 'active' && $runId > 0): ?>
-                      <form method="post" action="/admin/students/<?= $id ?>/automation-runs/<?= $runId ?>/cancel" class="inline-form" data-confirm="Снять ученика с процесса? Письма и паузы больше не пойдут.">
+                      <form method="post" action="/admin/students/<?= $id ?>/automation-runs/<?= $runId ?>/cancel" class="inline-form" data-confirm="Remove this student from the process? No further emails or delays will run.">
                         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-                        <button type="submit" class="btn btn-ghost btn-sm">Убрать</button>
+                        <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
                       </form>
                     <?php endif; ?>
                   </td>

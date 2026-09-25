@@ -365,11 +365,12 @@ final class EmailTemplateDrafts
                 'html' => null,
             ],
             'login_credentials' => [
-                'subject' => 'Your WWM sign-in details',
+                'subject' => 'Your new WWM sign-in details',
                 'text' => implode("\n", [
                     'Hello {{name}},',
                     '',
-                    'Here are your sign-in details for the World Watercolor Masters student cabinet.',
+                    'A World Watercolor Masters administrator has reset your cabinet password — most likely because you asked for help signing in.',
+                    'Your new sign-in details are below.',
                     '',
                     'Sign in (your email may be prefilled):',
                     '{{login_url}}',
@@ -392,8 +393,10 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
-                            'Here are your sign-in details for the <strong>World Watercolor Masters</strong> student cabinet '
-                            . 'at <strong>my.worldwatercolormasters.art</strong>.'
+                            'A <strong>World Watercolor Masters</strong> administrator has reset your cabinet password '
+                            . '— most likely because you asked for help signing in. '
+                            . 'Use the <strong>new</strong> details below to sign in at '
+                            . '<strong>my.worldwatercolormasters.art</strong>.'
                         ),
                         self::button('{{login_url}}', 'Sign in to your cabinet'),
                         self::studentLoginCredentialsBoxDraft(),
