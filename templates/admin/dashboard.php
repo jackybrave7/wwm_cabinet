@@ -16,6 +16,10 @@ $metrikaDeferred = !empty($metrikaDeferred);
 $periodDemos = (int)($periodTotals['demo_grants'] ?? 0);
 $periodPaid = (int)($periodTotals['paid_grants'] ?? 0);
 $demoToPaidPct = $periodDemos > 0 ? round(100 * $periodPaid / $periodDemos, 2) : null;
+$lifetimeRevenue = is_array($snapshot['revenue'] ?? null) ? $snapshot['revenue'] : [];
+$periodRevenue = is_array($periodTotals['revenue'] ?? null) ? $periodTotals['revenue'] : [];
+$lifetimeRevenueRub = \Wwm\Models\Payment::formatRevenueRub($lifetimeRevenue);
+$periodRevenueRub = \Wwm\Models\Payment::formatRevenueRub($periodRevenue);
 ?>
 <div id="admin-dashboard" data-admin-dashboard data-period="<?= wwm_escape((string)($period ?? '7d')) ?>" data-group="<?= wwm_escape((string)($group ?? 'day')) ?>" data-date-from="<?= wwm_escape((string)($customFrom ?? '')) ?>" data-date-to="<?= wwm_escape((string)($customTo ?? '')) ?>" data-metrika-deferred="<?= $metrikaDeferred ? '1' : '0' ?>" data-chart-max="<?= (int)$chartMax ?>">
 <div class="admin-topbar">
@@ -91,7 +95,7 @@ $customToVal = (string)($customTo ?? '');
 <div class="alert alert-warning" id="admin-dashboard-metrika-error" style="margin-top:14px;display:none"></div>
 
 <h2 class="admin-section-title">Overall</h2>
-<div class="admin-stats admin-stats--4">
+<div class="admin-stats admin-stats--5">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Students</span>
     <strong class="admin-stat-value"><?= (int)($snapshot['students_total'] ?? 0) ?></strong>
@@ -112,11 +116,19 @@ $customToVal = (string)($customTo ?? '');
     <strong class="admin-stat-value<?= $metrikaDeferred ? ' admin-stat-value--loading' : '' ?>" data-dash-lifetime-visits><?= $metrikaDeferred ? '…' : '—' ?></strong>
     <span class="admin-stat-note" data-dash-lifetime-conv><?= $metrikaDeferred ? 'since 2018 · loading Metrika…' : 'since 2018 · configure Metrika in Analytics' ?></span>
   </div>
+  <div class="admin-stat-card">
+    <span class="admin-stat-label">Revenue (all time)</span>
+    <strong class="admin-stat-value"><?= wwm_escape(\Wwm\Models\Payment::formatRevenuePrimary($lifetimeRevenue)) ?></strong>
+    <?php if ($lifetimeRevenueRub !== ''): ?>
+      <span class="admin-stat-note payment-amount-secondary"><?= wwm_escape($lifetimeRevenueRub) ?></span>
+    <?php endif; ?>
+    <span class="admin-stat-note"><?= (int)($lifetimeRevenue['payment_count'] ?? 0) ?> payment<?= (int)($lifetimeRevenue['payment_count'] ?? 0) === 1 ? '' : 's' ?> · Tilda + AVO RUB</span>
+  </div>
 </div>
 
 <h2 class="admin-section-title">Selected period</h2>
-<p class="field-hint" style="margin:-4px 0 10px">Purchases = live sales only (webhooks/admin), unique AVO order per day. Demo = new student registrations with demo access (same date as Students list).</p>
-<div class="admin-stats admin-stats--4">
+<p class="field-hint" style="margin:-4px 0 10px">Purchases = live sales only (webhooks/admin), unique AVO order per day. Revenue = sum from Payments log (Tilda currency + RUB). Demo = new student registrations with demo access (same date as Students list).</p>
+<div class="admin-stats admin-stats--5">
   <div class="admin-stat-card">
     <span class="admin-stat-label">Visits</span>
     <strong class="admin-stat-value admin-stat-value--loading" data-dash-period-visits><?= $metrikaDeferred ? '…' : '—' ?></strong>
@@ -136,6 +148,14 @@ $customToVal = (string)($customTo ?? '');
     <span class="admin-stat-label">Purchases</span>
     <strong class="admin-stat-value"><?= (int)($periodTotals['paid_grants'] ?? 0) ?></strong>
     <span class="admin-stat-note" data-dash-period-conv-paid><?= $metrikaDeferred ? 'visit → paid …' : 'visit → paid —' ?> · demo → paid <?= wwm_dash_pct($demoToPaidPct) ?></span>
+  </div>
+  <div class="admin-stat-card">
+    <span class="admin-stat-label">Revenue</span>
+    <strong class="admin-stat-value"><?= wwm_escape(\Wwm\Models\Payment::formatRevenuePrimary($periodRevenue)) ?></strong>
+    <?php if ($periodRevenueRub !== ''): ?>
+      <span class="admin-stat-note payment-amount-secondary"><?= wwm_escape($periodRevenueRub) ?></span>
+    <?php endif; ?>
+    <span class="admin-stat-note"><?= (int)($periodRevenue['payment_count'] ?? 0) ?> payment<?= (int)($periodRevenue['payment_count'] ?? 0) === 1 ? '' : 's' ?><?php if ((int)($periodRevenue['tilda_estimated_count'] ?? 0) > 0): ?> · ~USD from RUB on older rows<?php endif; ?></span>
   </div>
 </div>
 

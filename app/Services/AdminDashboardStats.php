@@ -6,6 +6,7 @@ namespace Wwm\Services;
 use DateTimeImmutable;
 use DateTimeZone;
 use PDO;
+use Wwm\Models\Payment;
 use Wwm\Models\User;
 
 final class AdminDashboardStats
@@ -107,11 +108,16 @@ final class AdminDashboardStats
         $coursesDir = WWM_ROOT . '/data/courses';
         $courseFiles = is_dir($coursesDir) ? (glob($coursesDir . '/*.json') ?: []) : [];
 
+        $tz = new DateTimeZone(self::REPORT_TZ);
+        $from = $this->earliestActivity($tz);
+        $to = new DateTimeImmutable('now', $tz);
+
         return [
             'students_total' => $this->countStudents(),
             'paid_students_total' => $this->adminStats->totalPaidStudents(),
             'demo_active_total' => $this->adminStats->totalDemoActive(),
             'courses_total' => count($courseFiles),
+            'revenue' => $this->revenueTotals($from, $to),
         ];
     }
 
@@ -124,7 +130,37 @@ final class AdminDashboardStats
             'new_students' => $this->countStudents($from, $to),
             'demo_grants' => $this->countGrants('demo', $from, $to),
             'paid_grants' => $this->countGrants('paid', $from, $to),
+            'revenue' => $this->revenueTotals($from, $to),
         ];
+    }
+
+    /**
+     * @return array{
+     *   payment_count: int,
+     *   rub_total: float,
+     *   tilda_total: float,
+     *   tilda_currency: string,
+     *   tilda_estimated_count: int,
+     *   has_mixed_tilda_currencies: bool
+     * }
+     */
+    public function revenueTotals(DateTimeImmutable $from, DateTimeImmutable $to): array
+    {
+        $paidAt = $this->paymentEventAtSql();
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM payments
+             WHERE (' . $paidAt . ') >= ? AND (' . $paidAt . ') <= ?
+             ORDER BY (' . $paidAt . ') ASC'
+        );
+        $stmt->execute([$from->format('c'), $to->format('c')]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return Payment::aggregateRevenue($rows);
+    }
+
+    private function paymentEventAtSql(): string
+    {
+        return "COALESCE(NULLIF(paid_at, ''), NULLIF(ordered_at, ''), created_at)";
     }
 
     /**

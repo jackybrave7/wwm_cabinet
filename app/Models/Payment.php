@@ -226,6 +226,99 @@ final class Payment
         return self::formatMoney($amount, $currency !== '' && !str_starts_with($currency, 'id:') ? $currency : '');
     }
 
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array{
+     *   payment_count: int,
+     *   rub_total: float,
+     *   tilda_total: float,
+     *   tilda_currency: string,
+     *   tilda_estimated_count: int,
+     *   has_mixed_tilda_currencies: bool
+     * }
+     */
+    public static function aggregateRevenue(array $rows): array
+    {
+        $rubTotal = 0.0;
+        $count = 0;
+        $tildaByCurrency = [];
+        $estimatedCount = 0;
+
+        foreach ($rows as $pay) {
+            $rub = self::positiveFloat($pay['amount'] ?? null);
+            if ($rub === null) {
+                continue;
+            }
+            $rubTotal += $rub;
+            $count++;
+
+            $original = self::positiveFloat($pay['amount_original'] ?? null);
+            $currencyOriginal = strtoupper(trim((string)($pay['currency_original'] ?? '')));
+            if ($original !== null && $currencyOriginal !== '') {
+                $tildaByCurrency[$currencyOriginal] = ($tildaByCurrency[$currencyOriginal] ?? 0.0) + $original;
+                continue;
+            }
+
+            $fx = self::positiveFloat($pay['fx_rate'] ?? null) ?? self::fallbackUsdRubRate();
+            if ($fx > 0) {
+                $tildaByCurrency['USD'] = ($tildaByCurrency['USD'] ?? 0.0) + ($rub / $fx);
+                $estimatedCount++;
+            }
+        }
+
+        $primaryCurrency = 'USD';
+        $tildaTotal = $tildaByCurrency['USD'] ?? 0.0;
+        $mixed = count($tildaByCurrency) > 1
+            || (count($tildaByCurrency) === 1 && !isset($tildaByCurrency['USD']));
+
+        if ($mixed && $tildaByCurrency !== []) {
+            $primaryCurrency = (string)array_key_first($tildaByCurrency);
+            $tildaTotal = (float)($tildaByCurrency[$primaryCurrency] ?? 0.0);
+        }
+
+        return [
+            'payment_count' => $count,
+            'rub_total' => round($rubTotal, 2),
+            'tilda_total' => round($tildaTotal, 2),
+            'tilda_currency' => $primaryCurrency,
+            'tilda_estimated_count' => $estimatedCount,
+            'has_mixed_tilda_currencies' => $mixed,
+        ];
+    }
+
+    /**
+     * @param array{
+     *   payment_count: int,
+     *   rub_total: float,
+     *   tilda_total: float,
+     *   tilda_currency: string,
+     *   tilda_estimated_count: int,
+     *   has_mixed_tilda_currencies: bool
+     * } $agg
+     */
+    public static function formatRevenuePrimary(array $agg): string
+    {
+        if (($agg['payment_count'] ?? 0) === 0 || ($agg['tilda_total'] ?? 0) <= 0) {
+            return '—';
+        }
+
+        $prefix = ($agg['tilda_estimated_count'] ?? 0) > 0 ? '~' : '';
+
+        return $prefix . self::formatMoney((float)$agg['tilda_total'], (string)($agg['tilda_currency'] ?? 'USD'));
+    }
+
+    /**
+     * @param array{rub_total: float, payment_count: int} $agg
+     */
+    public static function formatRevenueRub(array $agg): string
+    {
+        if (($agg['payment_count'] ?? 0) === 0 || ($agg['rub_total'] ?? 0) <= 0) {
+            return '';
+        }
+
+        return self::formatMoney((float)$agg['rub_total'], 'RUB');
+    }
+
     public static function formatMoney(float $amount, string $currency): string
     {
         $formatted = number_format($amount, 2, '.', ' ');
