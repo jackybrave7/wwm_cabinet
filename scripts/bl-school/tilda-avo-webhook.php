@@ -9,8 +9,9 @@ declare(strict_types=1);
  *   URL: https://bl-school.com/api/tilda-avo-webhook.php?token=YOUR_SECRET
  *   ☑ Передавать данные товаров массивами
  *   ☑ Передавать externalid
- *   ☑ Отправлять после оплаты (бесплатные заказы с купоном 100%
- *     Tilda обычно помечает как оплаченные сама — webhook тоже должен уйти)
+ *   ☑ Отправлять после оплаты (бесплатные / 100% купон — тоже должны слать webhook)
+ *   ☑ Передавать externalid = id_goods AVO в каталоге Tilda (SKU товара)
+ *   В config: accept_free_orders true; при пустых товарах на $0 — default_goods_id или form_goods_map
  *
  * Ответ для Tilda: тело "ok" (иначе будут ретраи).
  */
@@ -43,6 +44,7 @@ $config = require $configPath;
 require_once __DIR__ . '/lib/AwoApi.php';
 require_once __DIR__ . '/lib/CbrRates.php';
 require_once __DIR__ . '/lib/TildaPayload.php';
+require_once __DIR__ . '/lib/TildaOrderEnrich.php';
 require_once __DIR__ . '/lib/TildaUtm.php';
 require_once __DIR__ . '/lib/ProcessedOrders.php';
 
@@ -83,6 +85,7 @@ $dryRun = !empty($config['allow_dry_run']) && isset($_GET['dry_run']);
 
 try {
     $order = TildaPayload::parse($_POST);
+    $order = TildaOrderEnrich::apply($order, $_POST, $config);
 } catch (Throwable $e) {
     http_response_code(400);
     $logger('parse error: ' . $e->getMessage());
@@ -116,7 +119,7 @@ if ($isFree && !$acceptFreeOrders) {
     exit;
 }
 
-if ($order['products'] === [] && $order['amount'] <= 0) {
+if ($order['products'] === [] && $order['amount'] <= 0 && !$isFree) {
     http_response_code(400);
     $logger('empty order for ' . $order['email']);
     echo 'empty order';
@@ -125,7 +128,10 @@ if ($order['products'] === [] && $order['amount'] <= 0) {
 
 if ($isFree && $order['products'] === []) {
     http_response_code(422);
-    $logger('free order without products email=' . $order['email']);
+    $logger(
+        'free order without products email=' . $order['email']
+        . ' — set default_goods_id or form_goods_map in tilda-avo.config.php; enable Tilda product arrays'
+    );
     echo 'free order needs products';
     exit;
 }
@@ -143,6 +149,18 @@ if ($existingProcessed !== null) {
         implode(',', $idempotencyKeys),
         (string)($existingProcessed['id_account'] ?? '')
     ));
+    $dupAccountId = (int)($existingProcessed['id_account'] ?? 0);
+    if ($dupAccountId > 0) {
+        notifyWwmCabinetForProcessedTildaOrder(
+            $config,
+            $order,
+            $dupAccountId,
+            0,
+            $existingProcessed,
+            ['rate' => 0.0],
+            $logger
+        );
+    }
     echo 'ok';
     exit;
 }
@@ -357,6 +375,18 @@ if ($claim['status'] === 'exists') {
         (string)$claim['key'],
         (string)(($claim['record']['id_account'] ?? ''))
     ));
+    $dupAccountId = (int)($claim['record']['id_account'] ?? 0);
+    if ($dupAccountId > 0) {
+        notifyWwmCabinetForProcessedTildaOrder(
+            $config,
+            $order,
+            $dupAccountId,
+            0,
+            is_array($claim['record'] ?? null) ? $claim['record'] : [],
+            $fx,
+            $logger
+        );
+    }
     echo 'ok';
     exit;
 }
@@ -369,6 +399,18 @@ if ($claim['status'] === 'busy') {
             'duplicate skipped (busy→done): id_account=%s',
             (string)($waited['id_account'] ?? '')
         ));
+        $dupAccountId = (int)($waited['id_account'] ?? 0);
+        if ($dupAccountId > 0) {
+            notifyWwmCabinetForProcessedTildaOrder(
+                $config,
+                $order,
+                $dupAccountId,
+                0,
+                $waited,
+                $fx,
+                $logger
+            );
+        }
         echo 'ok';
         exit;
     }
@@ -414,6 +456,22 @@ try {
             'promocode' => $order['promocode'] ?? '',
             'reused' => true,
         ]);
+        $primaryGoodsId = (int)($lines[0]['id_goods'] ?? 0);
+        notifyWwmCabinetForProcessedTildaOrder(
+            $config,
+            $order,
+            $reusedAccountId,
+            0,
+            [
+                'amount_orig' => $order['amount'],
+                'currency' => $order['currency'],
+                'amount_rub' => $accountSum,
+            ],
+            $fx,
+            $logger,
+            $primaryGoodsId
+        );
+
         $logger(sprintf(
             'ok reused account=%d email=%s %s %s → %s RUB%s',
             $reusedAccountId,
@@ -508,21 +566,17 @@ try {
         'promocode' => $order['promocode'] ?? '',
     ]);
 
-    if (is_readable(__DIR__ . '/lib/WwmCabinetPricing.php')) {
-        require_once __DIR__ . '/lib/WwmCabinetPricing.php';
-        $primaryGoodsId = (int)($lines[0]['id_goods'] ?? 0);
-        if (function_exists('wwm_notify_cabinet_payment_pricing') && $primaryGoodsId > 0) {
-            wwm_notify_cabinet_payment_pricing($config, [
-                'email' => $order['email'],
-                'id_account' => $idAccount,
-                'id_goods' => $primaryGoodsId,
-                'amount_original' => (float)$order['amount'],
-                'currency_original' => (string)$order['currency'],
-                'amount_rub' => (float)$accountSum,
-                'fx_rate' => (float)$fx['rate'],
-            ], $logger);
-        }
-    }
+    $primaryGoodsId = (int)($lines[0]['id_goods'] ?? 0);
+    notifyWwmCabinetForProcessedTildaOrder(
+        $config,
+        $order,
+        $idAccount,
+        $idContact,
+        [],
+        $fx,
+        $logger,
+        $primaryGoodsId
+    );
 
     $logger(sprintf(
         'ok account=%d email=%s %s %s → %s RUB (rate %s on %s)%s%s',
@@ -547,6 +601,86 @@ try {
     $logger('exception after claim: ' . $e->getMessage());
     echo 'avo exception';
     exit;
+}
+
+/**
+ * @param array<string, mixed> $config
+ * @param array<string, mixed> $order
+ * @param array<string, mixed> $processedMeta
+ * @param array{rate?: float} $fx
+ * @param callable(string): void $logger
+ */
+function notifyWwmCabinetForProcessedTildaOrder(
+    array $config,
+    array $order,
+    int $idAccount,
+    int $idContact,
+    array $processedMeta,
+    array $fx,
+    callable $logger,
+    int $primaryGoodsId = 0
+): void {
+    if ($idAccount <= 0) {
+        return;
+    }
+    if (!is_readable(__DIR__ . '/lib/WwmCabinetPricing.php')) {
+        $logger('cabinet notify skipped: lib/WwmCabinetPricing.php missing on server');
+        return;
+    }
+    require_once __DIR__ . '/lib/WwmCabinetPricing.php';
+    if (!function_exists('wwm_notify_cabinet_after_avo_order')) {
+        return;
+    }
+
+    if ($primaryGoodsId <= 0) {
+        $primaryGoodsId = resolvePrimaryGoodsIdForTildaOrder($order, $config);
+    }
+    if ($primaryGoodsId <= 0) {
+        $logger('cabinet notify skipped: cannot resolve id_goods for ' . (string)($order['email'] ?? ''));
+        return;
+    }
+
+    $amountRub = (float)($processedMeta['amount_rub'] ?? 0);
+    if ($amountRub <= 0) {
+        $amountRub = (float)($order['amount'] ?? 0);
+    }
+
+    wwm_notify_cabinet_after_avo_order($config, [
+        'email' => (string)($order['email'] ?? ''),
+        'name' => (string)($order['name'] ?? ''),
+        'id_account' => $idAccount,
+        'id_goods' => $primaryGoodsId,
+        'id_contact' => $idContact,
+        'amount_original' => (float)($processedMeta['amount_orig'] ?? $order['amount'] ?? 0),
+        'currency_original' => (string)($processedMeta['currency'] ?? $order['currency'] ?? ''),
+        'amount_rub' => $amountRub,
+        'fx_rate' => (float)($fx['rate'] ?? 0),
+    ], $logger);
+}
+
+/**
+ * @param array<string, mixed> $config
+ * @param array<string, mixed> $order
+ */
+function resolvePrimaryGoodsIdForTildaOrder(array $order, array $config): int
+{
+    $productMap = is_array($config['product_map'] ?? null) ? $config['product_map'] : [];
+    $defaultGoodsId = $config['default_goods_id'] ?? null;
+    $products = is_array($order['products'] ?? null) ? $order['products'] : [];
+    foreach ($products as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
+        $goodsId = resolveGoodsId($p, $productMap, $defaultGoodsId);
+        if ($goodsId !== null && $goodsId > 0) {
+            return $goodsId;
+        }
+    }
+    if (is_numeric($defaultGoodsId)) {
+        return (int)$defaultGoodsId;
+    }
+
+    return 0;
 }
 
 /**
