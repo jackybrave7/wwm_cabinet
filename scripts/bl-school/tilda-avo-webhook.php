@@ -44,8 +44,16 @@ $config = require $configPath;
 require_once __DIR__ . '/lib/AwoApi.php';
 require_once __DIR__ . '/lib/CbrRates.php';
 require_once __DIR__ . '/lib/TildaPayload.php';
-require_once __DIR__ . '/lib/TildaOrderEnrich.php';
+if (is_readable(__DIR__ . '/lib/TildaOrderEnrich.php')) {
+    require_once __DIR__ . '/lib/TildaOrderEnrich.php';
+}
 require_once __DIR__ . '/lib/TildaUtm.php';
+if (!is_readable(__DIR__ . '/lib/ProcessedOrders.php')) {
+    http_response_code(503);
+    error_log('tilda-avo-webhook: missing lib/ProcessedOrders.php');
+    echo 'not configured';
+    exit;
+}
 require_once __DIR__ . '/lib/ProcessedOrders.php';
 
 $logger = static function (string $message) use ($config): void {
@@ -85,7 +93,9 @@ $dryRun = !empty($config['allow_dry_run']) && isset($_GET['dry_run']);
 
 try {
     $order = TildaPayload::parse($_POST);
-    $order = TildaOrderEnrich::apply($order, $_POST, $config);
+    if (class_exists('TildaOrderEnrich', false)) {
+        $order = TildaOrderEnrich::apply($order, $_POST, $config);
+    }
 } catch (Throwable $e) {
     http_response_code(400);
     $logger('parse error: ' . $e->getMessage());
@@ -150,7 +160,12 @@ if ($existingProcessed !== null) {
         (string)($existingProcessed['id_account'] ?? '')
     ));
     $dupAccountId = (int)($existingProcessed['id_account'] ?? 0);
-    if ($dupAccountId > 0) {
+    if ($dupAccountId <= 0) {
+        $logger(
+            'duplicate record without id_account — reprocessing keys='
+            . implode(',', $idempotencyKeys)
+        );
+    } else {
         notifyWwmCabinetForProcessedTildaOrder(
             $config,
             $order,
@@ -160,9 +175,9 @@ if ($existingProcessed !== null) {
             ['rate' => 0.0],
             $logger
         );
+        echo 'ok';
+        exit;
     }
-    echo 'ok';
-    exit;
 }
 
 try {
@@ -726,6 +741,26 @@ function isTildaWebhookPing(array $post): bool
  * } $order
  * @return list<string>
  */
+/**
+ * Tilda часто шлёт tranid = имя ПС ("stripe"), а не id транзакции — не использовать как общий ключ.
+ */
+function isGenericTildaTranId(string $tranid): bool
+{
+    $t = strtolower(trim($tranid));
+    if ($t === '') {
+        return true;
+    }
+    $generic = [
+        'stripe', 'paypal', 'applepay', 'googlepay', 'card',
+        'robokassa', 'yookassa', 'yandex', 'tinkoff', 'sberbank', 'bank', 'cash',
+    ];
+    if (in_array($t, $generic, true)) {
+        return true;
+    }
+    // Реальный payment id обычно длиннее (ch_…, pi_…, цифры Tilda).
+    return strlen($t) < 12 && !ctype_digit($t);
+}
+
 function buildTildaIdempotencyKeys(array $order): array
 {
     $keys = [];
@@ -742,7 +777,10 @@ function buildTildaIdempotencyKeys(array $order): array
 
     $add('tilda:order:', (string)($order['order_id'] ?? ''));
     $add('tilda:payment:', (string)($order['payment_id'] ?? ''));
-    $add('tilda:tran:', (string)($order['tranid'] ?? ''));
+    $tranid = trim((string)($order['tranid'] ?? ''));
+    if ($tranid !== '' && !isGenericTildaTranId($tranid)) {
+        $add('tilda:tran:', $tranid);
+    }
 
     $productBits = [];
     foreach ($order['products'] as $p) {
