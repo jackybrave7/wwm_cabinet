@@ -310,11 +310,13 @@ final class EmailAutomation
 
      */
 
-    public static function blankDefinition(string $courseSlug = ''): array
+    public static function blankDefinition(string $courseSlug = '', string $entryMode = self::ENTRY_DEMO_GRANT): array
 
     {
 
         $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: '';
+
+        $entryMode = self::normalizeEntryMode($entryMode);
 
 
 
@@ -325,6 +327,8 @@ final class EmailAutomation
                 'version' => 1,
 
                 'course_slug' => $courseSlug,
+
+                'entry_mode' => $entryMode,
 
             ],
 
@@ -337,6 +341,10 @@ final class EmailAutomation
                     'label' => 'Start',
 
                     'node_id' => 'start',
+
+                    'entry_mode' => $entryMode,
+
+                    'process_course_slug' => $courseSlug,
 
                 ],
 
@@ -472,7 +480,7 @@ final class EmailAutomation
 
         $slug = self::uniqueSlug($pdo, $title);
 
-        $definition = self::blankDefinition($courseSlug);
+        $definition = self::blankDefinition($courseSlug, $entryMode);
 
 
 

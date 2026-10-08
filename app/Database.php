@@ -34,7 +34,8 @@ final class Database
         }
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
-        self::syncElkeDemoAutomationDefinition($pdo);
+        // Do not rewrite elke-en-demo-subscription from the repo JSON on every request:
+        // that wiped admin entry_mode / Start-block edits after Save.
     }
 
     /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */

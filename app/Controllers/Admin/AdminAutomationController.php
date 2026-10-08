@@ -239,6 +239,25 @@ final class AdminAutomationController
             return;
         }
 
+        // Keep Start block / meta aligned with the persisted entry settings.
+        if (isset($definition['nodes']) && is_array($definition['nodes'])) {
+            foreach ($definition['nodes'] as $nodeId => $node) {
+                if (!is_array($node)) {
+                    continue;
+                }
+                if ((string)($node['type'] ?? '') !== 'trigger' && (string)$nodeId !== 'start') {
+                    continue;
+                }
+                $definition['nodes'][$nodeId]['entry_mode'] = $entryMode;
+                $definition['nodes'][$nodeId]['process_course_slug'] = $courseSlug;
+            }
+        }
+        if (!isset($definition['meta']) || !is_array($definition['meta'])) {
+            $definition['meta'] = [];
+        }
+        $definition['meta']['entry_mode'] = $entryMode;
+        $definition['meta']['course_slug'] = $courseSlug;
+
         EmailAutomation::update($pdo, $id, [
             'title' => trim((string)($_POST['title'] ?? $row['title'])),
             'description' => trim((string)($_POST['description'] ?? '')),
