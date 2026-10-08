@@ -2,9 +2,9 @@
   "version": 1,
   "meta": {
     "title": "Elke demo funnel (subscription ENG)",
-    "description": "48h demo access; reminders during the window; 40% offer after demo ends. flow_revision 2.",
+    "description": "48h demo access; reminders during the window; 40% coupon for 24h after demo ends (final mail at 3h left). flow_revision 3.",
     "course_slug": "elke-en",
-    "flow_revision": 2
+    "flow_revision": 3
   },
   "nodes": {
     "start": {
@@ -90,7 +90,12 @@
     "mail_sale_24h": {
       "type": "send_template",
       "template": "sale_demo_discount_24h",
-      "label": "40% offer after demo (24h)"
+      "label": "40% coupon after demo (valid 24h)"
+    },
+    "wait_coupon_21h": {
+      "type": "delay",
+      "seconds": 75600,
+      "label": "Pause 21 hours (coupon still valid)"
     },
     "gate_paid_any_3": {
       "type": "condition",
@@ -100,7 +105,7 @@
     "mail_final_3h": {
       "type": "send_template",
       "template": "sale_demo_discount_3h",
-      "label": "Final 3h reminder"
+      "label": "Final reminder — 3h left on coupon"
     },
     "gate_paid_course": {
       "type": "condition",
@@ -138,7 +143,8 @@
     { "from": "wait_after_expiring", "to": "gate_paid_any_2" },
     { "from": "gate_paid_any_2", "to": "end_ok", "branch": "yes" },
     { "from": "gate_paid_any_2", "to": "mail_sale_24h", "branch": "no" },
-    { "from": "mail_sale_24h", "to": "gate_paid_any_3" },
+    { "from": "mail_sale_24h", "to": "wait_coupon_21h" },
+    { "from": "wait_coupon_21h", "to": "gate_paid_any_3" },
     { "from": "gate_paid_any_3", "to": "end_ok", "branch": "yes" },
     { "from": "gate_paid_any_3", "to": "mail_final_3h", "branch": "no" },
     { "from": "mail_final_3h", "to": "gate_paid_course" },
