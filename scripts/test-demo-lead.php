@@ -49,6 +49,9 @@ ok(($utm['utm_source'] ?? '') === 'ig' && ($utm['utm_medium'] ?? '') === 'cpc' &
 $js = \Wwm\Services\DemoLeadEmbed::script('elke-en', 'https://my.worldwatercolormasters.art/demo/elke-en', $copy, false, false);
 ok(str_contains($js, 'elke-en') && !str_contains($js, '{$cfg}'), 'embed script interpolated');
 ok(str_contains($js, 'href$='), 'hash link selector');
+ok(str_contains($js, 'insideTildaPopup') && str_contains($js, 'forceInline'), 'inline/tilda mode in embed');
+$jsInline = \Wwm\Services\DemoLeadEmbed::script('elke-en', 'https://my.worldwatercolormasters.art/demo/elke-en', $copy, false, false, true);
+ok(str_contains($jsInline, '"forceInline":true'), 'force inline flag');
 
 $mode = \Wwm\Models\EmailAutomation::normalizeEntryMode('demo_form');
 ok($mode === \Wwm\Models\EmailAutomation::ENTRY_DEMO_FORM, 'demo_form entry mode');

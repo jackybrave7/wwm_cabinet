@@ -118,11 +118,23 @@ curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name
 
 На Tilda вместо скрипта AVO — кнопка со ссылкой `#wwm-demo` и блок:
 
+**Вариант A — внутри Tilda Zero Block `#popup:demo`** (как старый AVO без `popup=1`):
+
 ```html
-<script src="https://my.worldwatercolormasters.art/demo/elke-en/embed.js" async></script>
+<script src="https://my.worldwatercolormasters.art/demo/elke-en/embed.js?inline=1"></script>
 ```
 
-`?button=1` рисует кнопку рядом со скриптом, `?open=1` открывает окно сразу. Текст формы — поле `demo_lead` в JSON курса. Elke DE: `/demo/elke-de`.
+Кнопки могут остаться с `#popup:demo`. Скрипт сам рисует форму в попапе (без `async` — иначе Tilda иногда теряет место вставки).
+
+**Вариант B — свой оверлей кабинета** (скрипт внизу страницы, не в Zero Block):
+
+```html
+<script src="https://my.worldwatercolormasters.art/demo/elke-en/embed.js"></script>
+```
+
+Кнопки: ссылка `#wwm-demo`. `?button=1` рисует кнопку рядом со скриптом, `?open=1` открывает окно сразу.
+
+Текст формы — поле `demo_lead` в JSON курса. Elke DE: `/demo/elke-de`.
 
 **Локальный тест** (без HTTP):
 

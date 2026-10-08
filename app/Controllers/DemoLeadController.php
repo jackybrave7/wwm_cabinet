@@ -132,11 +132,13 @@ final class DemoLeadController
             $postUrl,
             DemoLead::copy($course),
             (string)($_GET['button'] ?? '') === '1',
-            (string)($_GET['open'] ?? '') === '1'
+            (string)($_GET['open'] ?? '') === '1',
+            (string)($_GET['inline'] ?? '') === '1'
         );
 
         header('Content-Type: application/javascript; charset=utf-8');
-        header('Cache-Control: public, max-age=300');
+        // Short cache: Tilda embeds need fast updates after deploy.
+        header('Cache-Control: public, max-age=60');
         header('X-Content-Type-Options: nosniff');
         echo $js;
     }
