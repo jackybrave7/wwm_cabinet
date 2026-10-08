@@ -7,6 +7,16 @@
     "avo_training_id": 146,
     "cover_image": "https://f1.autoweboffice.com/userdata/bl-school/training/launchpro_g1668170383.jpg",
     "demo_hours": 48,
+    "demo_lead": {
+        "kicker": "Not sure yet?",
+        "title": "48 hours of access — free.",
+        "text": "Watch the first parts of both lessons. Evaluate Elke's style and the English dub. If it's not what you expected — just close the tab. No card required.",
+        "email_placeholder": "Email",
+        "name_placeholder": "Your name",
+        "button": "Send me the demo",
+        "note": "We send course updates occasionally · Unsubscribe anytime",
+        "success": "Check your email — the demo link is on its way."
+    },
     "paid_email": true,
     "sections": [
         {

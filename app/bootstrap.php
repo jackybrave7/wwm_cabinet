@@ -51,7 +51,9 @@ Wwm\Database::migrateIfNeeded($pdo);
 if (PHP_SAPI !== 'cli') {
     $requestPath = wwm_request_path();
     $requestMethod = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-    $isApiRoute = str_starts_with($requestPath, '/api/') || str_starts_with($requestPath, '/t/');
+    $isApiRoute = str_starts_with($requestPath, '/api/')
+        || str_starts_with($requestPath, '/t/')
+        || str_ends_with($requestPath, '/embed.js');
 
     session_name('wwm_cabinet');
     session_set_cookie_params([
@@ -88,6 +90,9 @@ function wwm_session_needs_write(): bool
         return true;
     }
     if (str_starts_with($path, '/admin')) {
+        return true;
+    }
+    if (preg_match('#^/demo/[a-z0-9\-]+$#', $path)) {
         return true;
     }
     foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {

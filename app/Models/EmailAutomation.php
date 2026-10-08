@@ -24,6 +24,8 @@ final class EmailAutomation
 
     public const ENTRY_PAYMENT_COURSE = 'payment_course';
 
+    public const ENTRY_DEMO_FORM = 'demo_form';
+
 
 
     /**
@@ -45,6 +47,8 @@ final class EmailAutomation
             self::ENTRY_PAYMENT_ANY => 'После любой оплаты',
 
             self::ENTRY_PAYMENT_COURSE => 'После оплаты выбранного курса',
+
+            self::ENTRY_DEMO_FORM => 'Cabinet demo form (this course)',
 
         ];
 
@@ -68,6 +72,8 @@ final class EmailAutomation
 
             self::ENTRY_PAYMENT_COURSE,
 
+            self::ENTRY_DEMO_FORM,
+
         ];
 
 
@@ -82,7 +88,7 @@ final class EmailAutomation
 
     {
 
-        return in_array($entryMode, [self::ENTRY_DEMO_GRANT, self::ENTRY_PAYMENT_COURSE], true);
+        return in_array($entryMode, [self::ENTRY_DEMO_GRANT, self::ENTRY_PAYMENT_COURSE, self::ENTRY_DEMO_FORM], true);
 
     }
 

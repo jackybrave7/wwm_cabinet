@@ -12,6 +12,8 @@ use Wwm\Services\StudentAttribution;
 
 final class DemoAccess
 {
+    public const SOURCE_CABINET_FORM = 'cabinet_form';
+
     /**
      * @return array{
      *   user_id: int,
@@ -32,7 +34,9 @@ final class DemoAccess
         ?string $sourceRef = null,
         array $utm = [],
         ?int $avoContactId = null,
-        ?string $avoOrderedAt = null
+        ?string $avoOrderedAt = null,
+        bool $captureVisitor = false,
+        bool $emailIfExisting = false
     ): array {
         $email = strtolower(trim($email));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -56,6 +60,7 @@ final class DemoAccess
             $created = true;
         } elseif ($name !== '') {
             AvoContactName::syncForUser($pdo, (int)$user['id'], $name);
+            $user['name'] = $name;
         }
 
         if ($user === null) {
@@ -66,10 +71,15 @@ final class DemoAccess
         if ($avoContactId !== null && $avoContactId > 0) {
             User::setAvoFlags($pdo, $userId, ['avo_contact_id' => $avoContactId]);
         }
-        StudentAttribution::recordForUser($pdo, $userId, $created, $utm, false);
+        StudentAttribution::recordForUser($pdo, $userId, $created, $utm, $captureVisitor);
         $state = Access::courseState($pdo, $userId, $courseSlug);
 
         if ($state['has_paid']) {
+            $loginUrl = null;
+            if ($emailIfExisting) {
+                $loginUrl = LoginLink::issue($pdo, $userId, '/c/' . rawurlencode($courseSlug), LoginLink::ttlSeconds());
+                $this->sendMagicLoginEmail($user, $loginUrl);
+            }
             return [
                 'user_id' => $userId,
                 'created' => $created,
@@ -78,6 +88,7 @@ final class DemoAccess
                 'demo_active' => false,
                 'expires_at' => null,
                 'course_slug' => $courseSlug,
+                'login_url' => $loginUrl,
             ];
         }
 
@@ -132,9 +143,12 @@ final class DemoAccess
 
         if ($demoGranted && $loginUrl !== null) {
             $this->sendDemoLoginEmail($user, $course, $expiresAt, $loginUrl);
+        } elseif (!$demoGranted && $emailIfExisting && $loginUrl !== null) {
+            $existingExpires = $this->currentDemoExpiresAt($pdo, $userId, $courseSlug) ?? $expiresAt;
+            $this->sendDemoLoginEmail($user, $course, $existingExpires, $loginUrl);
         }
 
-        if ($demoGranted && $source !== 'automation') {
+        if ($demoGranted && $source !== 'automation' && $source !== self::SOURCE_CABINET_FORM) {
             EmailAutomationEnrollment::onDemoGranted($userId, $courseSlug);
         }
 
@@ -186,6 +200,22 @@ final class DemoAccess
         }
 
         return '/c/' . rawurlencode($courseSlug);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function sendMagicLoginEmail(array $user, string $loginUrl): void
+    {
+        $message = EmailTemplateRenderer::render('magic', [
+            'name' => trim((string)($user['name'] ?? '')),
+            'email' => (string)$user['email'],
+            'magic_link' => $loginUrl,
+        ]);
+        EmailTracker::compose((int)$user['id'], (string)$user['email'], 'magic', $message['subject'])
+            ->deliver($message['text'], $message['html'], [
+                ['url' => $loginUrl, 'label' => 'Sign in'],
+            ]);
     }
 
     /**

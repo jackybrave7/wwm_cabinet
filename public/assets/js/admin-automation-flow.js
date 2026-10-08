@@ -12,7 +12,7 @@
   const config = JSON.parse((configEl && configEl.textContent) || root.dataset.config || '{}');
   const definition = JSON.parse((defEl && defEl.textContent) || root.dataset.definition || '{}');
   const initialProcessCourseSlug = root.dataset.courseSlug || 'elke-en';
-  const ENTRY_MODES_NEED_COURSE = { demo_grant: true, payment_course: true };
+  const ENTRY_MODES_NEED_COURSE = { demo_grant: true, payment_course: true, demo_form: true };
   const marketingTemplates = new Set(config.marketing_templates || []);
 
   function templateNeedsCourseSlug(template) {
@@ -1986,7 +1986,7 @@
           + escapeHtml(m.label || m.value) + '</option>';
       });
       html += '</select></label>';
-      html += '<p class="field-hint">Демо по курсу — AVO/API; вручную и после оплаты — допродажи и общие цепочки.</p>';
+      html += '<p class="field-hint">Demo for a course starts from AVO or /api/demo. Cabinet demo form starts when that course’s public form is submitted. Manual and after payment are for upsells.</p>';
       html += courseSlugFieldHtml(d.process_course_slug, 'Курс процесса', {
         allowEmpty: true,
         prop: 'process_course_slug',

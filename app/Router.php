@@ -27,6 +27,7 @@ use Wwm\Controllers\Api\MailWebhookController;
 use Wwm\Controllers\Api\PaymentWebhookController;
 use Wwm\Controllers\AuthController;
 use Wwm\Controllers\CourseController;
+use Wwm\Controllers\DemoLeadController;
 use Wwm\Controllers\DashboardController;
 use Wwm\Controllers\EmailTrackingController;
 use Wwm\Controllers\LessonController;
@@ -91,6 +92,22 @@ final class Router
                 }
             }
             echo json_encode($health);
+            return;
+        }
+        if ($method === 'OPTIONS' && preg_match('#^/demo/([a-z0-9\-]+)$#', $path, $m)) {
+            (new DemoLeadController())->preflight($m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/demo/([a-z0-9\-]+)/embed\.js$#', $path, $m)) {
+            (new DemoLeadController())->embedScript($m[1]);
+            return;
+        }
+        if ($method === 'GET' && preg_match('#^/demo/([a-z0-9\-]+)$#', $path, $m)) {
+            (new DemoLeadController())->show($m[1]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/demo/([a-z0-9\-]+)$#', $path, $m)) {
+            (new DemoLeadController())->submit($m[1]);
             return;
         }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/demo') {

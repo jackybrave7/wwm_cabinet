@@ -31,6 +31,30 @@ final class EmailAutomationEnrollment
     }
 
     /**
+     * Public cabinet demo form for one course. Does not enroll AVO/API demo funnels.
+     */
+    public static function onCabinetDemoForm(int $userId, string $courseSlug): void
+    {
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: '';
+        if ($courseSlug === '') {
+            return;
+        }
+
+        $pdo = wwm_pdo();
+        foreach (EmailAutomation::findActiveByEntryMode($pdo, EmailAutomation::ENTRY_DEMO_FORM, $courseSlug) as $automation) {
+            $existing = EmailAutomationRun::findForUser($pdo, (int)$automation['id'], $userId);
+            $status = is_array($existing) ? (string)($existing['status'] ?? '') : '';
+            if ($existing !== null && $status !== 'cancelled') {
+                continue;
+            }
+            self::enrollFromAutomation($pdo, $automation, $userId, $courseSlug, [
+                'trigger' => 'cabinet_demo_form',
+                'demo_pre_granted' => true,
+            ], 'cabinet_demo_form');
+        }
+    }
+
+    /**
      * After a paid order is recorded (payment webhook).
      */
     public static function onPaymentRecorded(int $userId, string $courseSlug, ?string $paidAt): void

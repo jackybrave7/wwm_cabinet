@@ -110,6 +110,20 @@ curl "https://my.worldwatercolormasters.art/api/demo?email=test@example.com&name
 
 Ожидание: `{"ok":true,...}` и письмо со ссылкой на `/reset`.
 
+### Public demo form (лендинг → кабинет)
+
+Форма на домене кабинета, без скриптов AVO. Выдаёт демо на `demo_hours` курса и письмо со ссылкой. Зачисляет в automations с типом входа **Cabinet demo form (this course)** для этого slug (процесс должен быть Active). Вход «Демо по курсу (AVO / API)» с формы не запускается.
+
+Страница: `https://my.worldwatercolormasters.art/demo/elke-en`
+
+На Tilda вместо скрипта AVO — кнопка со ссылкой `#wwm-demo` и блок:
+
+```html
+<script src="https://my.worldwatercolormasters.art/demo/elke-en/embed.js" async></script>
+```
+
+`?button=1` рисует кнопку рядом со скриптом, `?open=1` открывает окно сразу. Текст формы — поле `demo_lead` в JSON курса. Elke DE: `/demo/elke-de`.
+
 **Локальный тест** (без HTTP):
 
 ```powershell

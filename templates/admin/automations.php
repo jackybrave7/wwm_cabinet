@@ -97,7 +97,7 @@ $listErr = (string)($_GET['error'] ?? '');
     const mode = document.getElementById('automation-create-entry-mode');
     const course = document.getElementById('automation-create-course');
     if (!mode || !course) return;
-    const needs = { demo_grant: true, payment_course: true, manual: false, payment_any: false };
+    const needs = { demo_grant: true, payment_course: true, demo_form: true, manual: false, payment_any: false };
     function sync() {
       course.required = !!needs[mode.value];
     }

@@ -6,6 +6,16 @@
     "cover_image": "https://f1.autoweboffice.com/userdata/bl-school/training/launchpro_g1668170383.jpg",
     "avo_goods_id": 191,
     "demo_hours": 48,
+    "demo_lead": {
+        "kicker": "Noch unsicher?",
+        "title": "48 Stunden Zugang — kostenlos.",
+        "text": "Sehen Sie die ersten Teile beider Lektionen. Prüfen Sie Elkes Stil und die deutsche Originalsprache. Wenn es nicht passt — einfach den Tab schließen. Keine Karte nötig.",
+        "email_placeholder": "E-Mail",
+        "name_placeholder": "Ihr Name",
+        "button": "Demo zusenden",
+        "note": "Gelegentlich Kursnachrichten · Abmeldung jederzeit",
+        "success": "Prüfen Sie Ihre E-Mail — der Demo-Link ist unterwegs."
+    },
     "paid_email": true,
     "status": "published",
     "sections": [
