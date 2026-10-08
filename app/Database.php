@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 27;
+    public const SCHEMA_VERSION = 28;
 
     public static function connect(string $path): PDO
     {
@@ -34,8 +34,7 @@ final class Database
         }
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
-        // Do not rewrite elke-en-demo-subscription from the repo JSON on every request:
-        // that wiped admin entry_mode / Start-block edits after Save.
+        self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
     }
 
     /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */
@@ -355,17 +354,22 @@ SQL);
         self::migrateEmailTemplatesLogo($pdo);
     }
 
-    private static function syncElkeDemoAutomationDefinition(PDO $pdo): void
+    /**
+     * Push elke funnel definition when meta.flow_revision in the repo file is newer.
+     * Keeps active runs on their current_node_id (node ids are preserved / only appended).
+     * Preserves the admin-selected entry_mode from the automations row.
+     */
+    private static function syncElkeDemoAutomationDefinitionIfNewer(PDO $pdo): void
     {
         $path = WWM_ROOT . '/data/automations/elke-en-demo-subscription.v1.json';
         if (!is_readable($path)) {
             return;
         }
-        $definition = file_get_contents($path);
-        if ($definition === false || trim($definition) === '') {
+        $raw = file_get_contents($path);
+        if ($raw === false || trim($raw) === '') {
             return;
         }
-        $decoded = json_decode($definition, true);
+        $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
             return;
         }
@@ -374,16 +378,69 @@ SQL);
         } catch (\Throwable) {
             return;
         }
-        $slug = 'elke-en-demo-subscription';
-        $stmt = $pdo->prepare('SELECT id FROM email_automations WHERE slug = ? LIMIT 1');
-        $stmt->execute([$slug]);
-        $id = $stmt->fetchColumn();
-        if (!$id) {
+
+        $fileRev = (int)($decoded['meta']['flow_revision'] ?? 0);
+        if ($fileRev < 1) {
             return;
         }
+
+        $slug = 'elke-en-demo-subscription';
+        $stmt = $pdo->prepare(
+            'SELECT id, entry_mode, course_slug, definition_json FROM email_automations WHERE slug = ? LIMIT 1'
+        );
+        $stmt->execute([$slug]);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            return;
+        }
+
+        $current = json_decode((string)($row['definition_json'] ?? ''), true);
+        $dbRev = is_array($current) ? (int)($current['meta']['flow_revision'] ?? 0) : 0;
+        if ($dbRev >= $fileRev) {
+            return;
+        }
+
+        $entryMode = \Wwm\Models\EmailAutomation::normalizeEntryMode((string)($row['entry_mode'] ?? ''));
+        // Prefer cabinet demo form for this funnel once we ship flow_revision 2+.
+        if ($fileRev >= 2 && $entryMode === \Wwm\Models\EmailAutomation::ENTRY_DEMO_GRANT) {
+            $entryMode = \Wwm\Models\EmailAutomation::ENTRY_DEMO_FORM;
+        }
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', (string)($row['course_slug'] ?? '')) ?: 'elke-en';
+
+        if (!isset($decoded['meta']) || !is_array($decoded['meta'])) {
+            $decoded['meta'] = [];
+        }
+        $decoded['meta']['entry_mode'] = $entryMode;
+        $decoded['meta']['course_slug'] = $courseSlug;
+        if (isset($decoded['nodes']['start']) && is_array($decoded['nodes']['start'])) {
+            $decoded['nodes']['start']['entry_mode'] = $entryMode;
+            $decoded['nodes']['start']['process_course_slug'] = $courseSlug;
+        }
+
+        $json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if ($json === false) {
+            return;
+        }
+
         $pdo->prepare(
-            'UPDATE email_automations SET definition_json = ?, updated_at = ? WHERE id = ?'
-        )->execute([$definition, gmdate('c'), (int)$id]);
+            'UPDATE email_automations
+             SET definition_json = ?, entry_mode = ?, course_slug = ?, title = ?, description = ?, updated_at = ?
+             WHERE id = ?'
+        )->execute([
+            $json,
+            $entryMode,
+            $courseSlug,
+            (string)($decoded['meta']['title'] ?? 'Elke demo funnel (subscription ENG)'),
+            (string)($decoded['meta']['description'] ?? ''),
+            gmdate('c'),
+            (int)$row['id'],
+        ]);
+
+        wwm_log(sprintf(
+            'elke demo automation synced flow_revision %d → %d (runs keep current_node_id)',
+            $dbRev,
+            $fileRev
+        ));
     }
 
     private static function seedPostPurchaseCrossSellAutomation(PDO $pdo): void

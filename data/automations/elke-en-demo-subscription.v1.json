@@ -2,15 +2,16 @@
   "version": 1,
   "meta": {
     "title": "Elke demo funnel (subscription ENG)",
-    "description": "Demo access expires by course timer (demo_hours). No manual revoke steps.",
-    "course_slug": "elke-en"
+    "description": "48h demo access; reminders during the window; 40% offer after demo ends. flow_revision 2.",
+    "course_slug": "elke-en",
+    "flow_revision": 2
   },
   "nodes": {
     "start": {
       "type": "trigger",
-      "entry_mode": "demo_grant",
+      "entry_mode": "demo_form",
       "process_course_slug": "elke-en",
-      "label": "Entry: list subscription or /api/demo"
+      "label": "Start: cabinet demo form (elke-en)"
     },
     "grant_demo": {
       "type": "grant_demo",
@@ -49,7 +50,7 @@
       "type": "condition",
       "condition": "demo_lesson_opened",
       "course_slug": "elke-en",
-      "label": "Opened demo lesson (wwm_demo_opened)"
+      "label": "Opened demo lesson?"
     },
     "mail_waiting": {
       "type": "send_template",
@@ -66,6 +67,21 @@
       "seconds": 18000,
       "label": "Pause 5 hours"
     },
+    "wait_before_expiring": {
+      "type": "delay",
+      "seconds": 72000,
+      "label": "Pause 20 hours (toward demo end)"
+    },
+    "mail_expiring": {
+      "type": "send_template",
+      "template": "reminder_demo_expiring",
+      "label": "Reminder — demo ending soon"
+    },
+    "wait_after_expiring": {
+      "type": "delay",
+      "seconds": 10800,
+      "label": "Pause 3 hours (to demo end)"
+    },
     "gate_paid_any_2": {
       "type": "condition",
       "condition": "has_paid_any",
@@ -74,7 +90,7 @@
     "mail_sale_24h": {
       "type": "send_template",
       "template": "sale_demo_discount_24h",
-      "label": "40% offer (24h)"
+      "label": "40% offer after demo (24h)"
     },
     "gate_paid_any_3": {
       "type": "condition",
@@ -116,7 +132,10 @@
     { "from": "branch_opened", "to": "mail_waiting", "branch": "no" },
     { "from": "mail_waiting", "to": "mail_still" },
     { "from": "mail_still", "to": "wait_5h" },
-    { "from": "wait_5h", "to": "gate_paid_any_2" },
+    { "from": "wait_5h", "to": "wait_before_expiring" },
+    { "from": "wait_before_expiring", "to": "mail_expiring" },
+    { "from": "mail_expiring", "to": "wait_after_expiring" },
+    { "from": "wait_after_expiring", "to": "gate_paid_any_2" },
     { "from": "gate_paid_any_2", "to": "end_ok", "branch": "yes" },
     { "from": "gate_paid_any_2", "to": "mail_sale_24h", "branch": "no" },
     { "from": "mail_sale_24h", "to": "gate_paid_any_3" },
