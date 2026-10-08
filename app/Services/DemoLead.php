@@ -21,7 +21,8 @@ final class DemoLead
      *   success: string,
      *   error_email: string,
      *   error_rate: string,
-     *   error_generic: string
+     *   error_generic: string,
+     *   thanks_url: string
      * }
      */
     public static function copy(array $course): array
@@ -49,7 +50,29 @@ final class DemoLead
             'error_email' => self::text($custom, 'error_email', 'Enter a valid email.', 120),
             'error_rate' => self::text($custom, 'error_rate', 'Please wait a little and try again.', 120),
             'error_generic' => self::text($custom, 'error_generic', 'Something went wrong. Please try again.', 120),
+            'thanks_url' => self::thanksUrl($custom),
         ];
+    }
+
+    /**
+     * Marketing thanks page used for Meta/Pinterest conversion attribution.
+     *
+     * @param array<string, mixed> $custom
+     */
+    public static function thanksUrl(array $custom = []): string
+    {
+        $url = trim((string)($custom['thanks_url'] ?? ''));
+        if ($url === '') {
+            $url = trim((string)(wwm_config()['demo_lead_thanks_url'] ?? ''));
+        }
+        if ($url === '') {
+            $url = 'https://worldwatercolormasters.art/thanks';
+        }
+        if (!preg_match('#^https://worldwatercolormasters\.art(/|$)#i', $url)) {
+            return 'https://worldwatercolormasters.art/thanks';
+        }
+
+        return $url;
     }
 
     /**

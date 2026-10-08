@@ -14,7 +14,8 @@
         "name_placeholder": "Ihr Name",
         "button": "Demo zusenden",
         "note": "Gelegentlich Kursnachrichten · Abmeldung jederzeit",
-        "success": "Prüfen Sie Ihre E-Mail — der Demo-Link ist unterwegs."
+        "success": "Prüfen Sie Ihre E-Mail — der Demo-Link ist unterwegs.",
+        "thanks_url": "https://worldwatercolormasters.art/thanks"
     },
     "paid_email": true,
     "status": "published",

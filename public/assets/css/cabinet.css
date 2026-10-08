@@ -1295,3 +1295,13 @@ a:hover { text-decoration: underline; }
   height: 0;
   overflow: hidden;
 }
+
+.demo-lead-thanks-frame {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  border: 0;
+}

@@ -15,7 +15,8 @@
         "name_placeholder": "Your name",
         "button": "Send me the demo",
         "note": "We send course updates occasionally · Unsubscribe anytime",
-        "success": "Check your email — the demo link is on its way."
+        "success": "Check your email — the demo link is on its way.",
+        "thanks_url": "https://worldwatercolormasters.art/thanks"
     },
     "paid_email": true,
     "sections": [

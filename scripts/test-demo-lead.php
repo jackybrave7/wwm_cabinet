@@ -45,6 +45,9 @@ $utm = \Wwm\Services\DemoLead::utmFromPost([
     'nope' => 'x',
 ]);
 ok(($utm['utm_source'] ?? '') === 'ig' && ($utm['utm_medium'] ?? '') === 'cpc' && !isset($utm['nope']), 'utm sanitized');
+ok(\Wwm\Services\DemoLead::thanksUrl() === 'https://worldwatercolormasters.art/thanks', 'default thanks url');
+ok(\Wwm\Services\DemoLead::thanksUrl(['thanks_url' => 'https://evil.example/x']) === 'https://worldwatercolormasters.art/thanks', 'thanks url host locked');
+ok(str_contains(\Wwm\Services\DemoLeadEmbed::script('elke-en', 'https://my.worldwatercolormasters.art/demo/elke-en', \Wwm\Services\DemoLead::copy([]), false, false), 'pingThanksPage'), 'embed pings thanks');
 
 $js = \Wwm\Services\DemoLeadEmbed::script('elke-en', 'https://my.worldwatercolormasters.art/demo/elke-en', $copy, false, false);
 ok(str_contains($js, 'elke-en') && !str_contains($js, '{$cfg}'), 'embed script interpolated');

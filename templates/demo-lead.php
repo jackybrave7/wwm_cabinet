@@ -5,6 +5,31 @@
 
   <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?= wwm_escape((string)($copy['success'] ?? '')) ?></div>
+    <?php
+      $thanksUrl = (string)($copy['thanks_url'] ?? \Wwm\Services\DemoLead::thanksUrl());
+      $thanksParts = parse_url($thanksUrl);
+      if (is_array($thanksParts)) {
+          $q = [];
+          if (!empty($thanksParts['query'])) {
+              parse_str((string)$thanksParts['query'], $q);
+          }
+          $q['wwm_lead'] = '1';
+          $q['course'] = (string)($course['slug'] ?? '');
+          $thanksUrl = ($thanksParts['scheme'] ?? 'https') . '://'
+              . ($thanksParts['host'] ?? 'worldwatercolormasters.art')
+              . ($thanksParts['path'] ?? '/thanks')
+              . '?' . http_build_query($q);
+      }
+    ?>
+    <iframe
+      class="demo-lead-thanks-frame"
+      src="<?= wwm_escape($thanksUrl) ?>"
+      width="1"
+      height="1"
+      tabindex="-1"
+      aria-hidden="true"
+      title=""
+    ></iframe>
   <?php else: ?>
     <?php if (!empty($error)): ?>
       <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
