@@ -47,7 +47,28 @@ final class WebhookAuth
         if ($provided === '') {
             $provided = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
         }
+        if ($provided === '') {
+            $provided = self::tokenFromJsonBody();
+        }
 
         return $provided !== '' && hash_equals($expectedToken, $provided);
+    }
+
+    private static function tokenFromJsonBody(): string
+    {
+        $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
+        if (!str_contains($contentType, 'application/json')) {
+            return '';
+        }
+        $raw = \Wwm\Services\AvoWebhookPayload::rawBody();
+        if ($raw === '') {
+            return '';
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return '';
+        }
+
+        return trim((string)($decoded['token'] ?? ''));
     }
 }

@@ -82,6 +82,7 @@ final class EmailWebhookCatalog
                 ], $attribution),
             ],
             'paid' => [
+                // AVO invoice paid → /api/payment. Tilda-first → POST /api/payment/webhook (source=tilda).
                 'path' => '/api/payment',
                 'token_key' => 'payment_token',
                 'token_label' => 'WWM_WEBHOOK_PAYMENT_TOKEN',

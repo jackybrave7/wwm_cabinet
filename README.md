@@ -183,12 +183,16 @@ https://my.worldwatercolormasters.art/api/payment?token=ВАШ_PAYMENT_СЕКР�
 **Secrets / config.php:**
 
 - `WWM_WEBHOOKS_ENABLED=true`
-- `WWM_WEBHOOK_PAYMENT_TOKEN` — отдельный секрет (не demo!)
+- `WWM_WEBHOOK_PAYMENT_TOKEN` — отдельный секрет (не demo!); то же значение в bl-school как `WWM_CABINET_PAYMENT_TOKEN`
 - `paid_email_slugs` — запасной список; приоритет у поля `paid_email` в JSON курса
 
 Для RU-курсов оставьте письмо в AVO с `administrator@bl-school.com`. В AVO для EN-воронок отключите дублирующее письмо «доступ к курсу».
 
-**Проверка:**
+**Tilda (сразу после оплаты, без ожидания счёта АВО):** `POST /api/payment/webhook`  
+Авторизация: заголовок `X-WWM-Payment-Token` или JSON-поле `token`. Ответ `200` с телом `ok` или `already_paid`.  
+Повторный webhook АВО на тот же email+курс / ключи `tilda:order:` / `tilda:payment:` — `already_paid`, без второго письма.
+
+**Проверка (AVO):**
 
 ```bash
 curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&name=Test&id_goods=188&token=ВАШ_PAYMENT_СЕКРЕТ"
@@ -198,6 +202,7 @@ curl "https://my.worldwatercolormasters.art/api/payment?email=test@example.com&n
 
 ```powershell
 .\.tools\php\php.exe scripts\test-payment-webhook.php test@example.com elke-en "Test User"
+.\.tools\php\php.exe scripts\test-tilda-payment-webhook.php tilda-test@example.com 188
 ```
 
 ### AVO

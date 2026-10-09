@@ -8,6 +8,8 @@ namespace Wwm\Services;
  */
 final class AvoWebhookPayload
 {
+    private static ?string $rawBody = null;
+
     /**
      * @return array<string, mixed>
      */
@@ -16,8 +18,8 @@ final class AvoWebhookPayload
         $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $contentType = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? ''));
         if ($method === 'POST' && str_contains($contentType, 'application/json')) {
-            $raw = self::readRawBody();
-            $decoded = is_string($raw) ? json_decode($raw, true) : null;
+            $raw = self::rawBody();
+            $decoded = $raw !== '' ? json_decode($raw, true) : null;
             if (is_array($decoded)) {
                 return self::normalize($decoded);
             }
@@ -28,8 +30,8 @@ final class AvoWebhookPayload
         }
 
         if ($method === 'POST') {
-            $raw = self::readRawBody();
-            if (is_string($raw) && $raw !== '') {
+            $raw = self::rawBody();
+            if ($raw !== '') {
                 $decoded = @unserialize($raw, ['allowed_classes' => false]);
                 if (is_array($decoded)) {
                     return self::normalize(self::flattenAvoRow($decoded));
@@ -40,10 +42,15 @@ final class AvoWebhookPayload
         return self::normalize($_GET);
     }
 
-    private static function readRawBody(): string
+    /** Cached php://input so auth and payload parsers share one read. */
+    public static function rawBody(): string
     {
-        $raw = file_get_contents('php://input');
-        return is_string($raw) ? $raw : '';
+        if (self::$rawBody === null) {
+            $raw = file_get_contents('php://input');
+            self::$rawBody = is_string($raw) ? $raw : '';
+        }
+
+        return self::$rawBody;
     }
 
     /**

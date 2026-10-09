@@ -142,6 +142,7 @@ Cache для `/assets/*`.
   ```
   Товары: 188 (elke-en), 191 (elke-de), 193 (alvaro), 199 (la-fe), 201 (angus), 321 (votsmush), 329 (nono). Отключить дублирующее письмо «после оплаты» в AVO, если кабинет шлёт `paid_email`.
   Альтернатива: вызов `avo-payment-cabinet.php` из `tilda-avo-webhook.php` на bl-school.
+- **Tilda → кабинет (до АВО):** bl-school `tilda-cabinet-webhook.php` → `POST /api/payment/webhook` с `source=tilda`, ключами `tilda:order:` / `tilda:payment:` и тем же `WWM_WEBHOOK_PAYMENT_TOKEN` (в bl-school: `WWM_CABINET_PAYMENT_TOKEN`). Позже «счёт оплачен» из АВО дедупится по email+курс и по ключам в комментарии счёта.
 - Secrets: `WWM_WEBHOOKS_ENABLED=true`, `WWM_WEBHOOK_DEMO_TOKEN`, `WWM_WEBHOOK_PAYMENT_TOKEN`
 
 ## Курсы (slug → AVO id_goods)

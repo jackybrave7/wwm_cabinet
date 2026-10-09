@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 28;
+    public const SCHEMA_VERSION = 29;
 
     public static function connect(string $path): PDO
     {
@@ -290,6 +290,17 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_paid_at ON payments(paid_at);
+
+CREATE TABLE IF NOT EXISTS payment_external_keys (
+  external_key TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_slug TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'tilda',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_external_keys_user_course
+  ON payment_external_keys(user_id, course_slug);
 
 CREATE TABLE IF NOT EXISTS email_automations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

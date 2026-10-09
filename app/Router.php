@@ -118,6 +118,10 @@ final class Router
             (new PaymentWebhookController())->grant();
             return;
         }
+        if ($method === 'POST' && $path === '/api/payment/webhook') {
+            (new PaymentWebhookController())->webhook();
+            return;
+        }
         if (($method === 'POST' || $method === 'GET') && $path === '/api/payment/pricing') {
             (new \Wwm\Controllers\Api\PaymentPricingWebhookController())->store();
             return;

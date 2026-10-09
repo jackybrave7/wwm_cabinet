@@ -5,9 +5,11 @@ declare(strict_types=1);
  * Notify WWM Cabinet after Tilda → AVO payment (deploy to bl-school public/api/lib/).
  *
  * tilda-avo.config.php:
- *   'cabinet_payment_url' => 'https://my.worldwatercolormasters.art/api/payment', // optional if pricing URL set
+ *   // Prefer /api/payment/webhook for Tilda-first grant (access + email before AVO invoice).
+ *   'cabinet_payment_url' => 'https://my.worldwatercolormasters.art/api/payment/webhook',
  *   'cabinet_pricing_url' => 'https://my.worldwatercolormasters.art/api/payment/pricing',
  *   'cabinet_payment_token' => '…same as WWM_WEBHOOK_PAYMENT_TOKEN…',
+ *   // bl-school GitHub Secret: WWM_CABINET_PAYMENT_TOKEN = same value
  *   'cabinet_notify_grant' => true,  // paid access + email (default true when token set)
  *   'cabinet_notify_pricing' => true, // Tilda USD line in cabinet (default true when pricing URL set)
  */
@@ -129,6 +131,10 @@ function wwm_notify_cabinet_payment_grant(array $config, array $grant, ?callable
         'source_ref' => $idAccount,
         'token' => $token,
     ];
+    if (str_starts_with($idAccount, 'tilda:')) {
+        $payload['idempotency_key'] = $idAccount;
+        $payload['external_keys'] = [$idAccount];
+    }
     $idContact = (int)($grant['id_contact'] ?? 0);
     if ($idContact > 0) {
         $payload['id_contact'] = $idContact;
