@@ -14,6 +14,7 @@ use Wwm\Services\DemoAccess;
 use Wwm\Services\PaidAccess;
 use Wwm\Services\PaymentRecorder;
 use Wwm\Services\StudentAttribution;
+use Wwm\Services\TildaPaymentPayload;
 
 final class PaymentWebhookController
 {
@@ -26,6 +27,12 @@ final class PaymentWebhookController
         WebhookAuth::requirePayment();
 
         $payload = AvoWebhookPayload::read();
+        if (TildaPaymentPayload::isPing($payload)) {
+            $this->respondStatus('ok');
+        }
+        if (TildaPaymentPayload::isNative($payload)) {
+            $payload = TildaPaymentPayload::normalize($payload);
+        }
         $source = strtolower(trim((string)($payload['source'] ?? '')));
         if ($source !== 'tilda') {
             wwm_json_response(400, ['ok' => false, 'error' => 'source_tilda_required']);
