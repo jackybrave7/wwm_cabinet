@@ -36,6 +36,177 @@ final class EmailAutomationRunner
     }
 
     /**
+     * Admin: skip the current pause and continue until the next pause / end.
+     * For condition forks, pass $forcedBranch = yes|no (null = evaluate automatically).
+     *
+     * @return array{ok: bool, error?: string, node?: string}
+     */
+    public static function advanceManually(\PDO $pdo, int $runId, ?string $forcedBranch = null): array
+    {
+        $run = EmailAutomationRun::find($pdo, $runId);
+        if ($run === null || (string)($run['status'] ?? '') !== 'active') {
+            return ['ok' => false, 'error' => 'run_not_active'];
+        }
+
+        $automation = EmailAutomation::find($pdo, (int)$run['automation_id']);
+        if ($automation === null || !(int)$automation['is_active'] || EmailAutomation::isArchived($automation)) {
+            return ['ok' => false, 'error' => 'automation_inactive'];
+        }
+
+        $def = EmailAutomation::definition($automation);
+        if ($def === null) {
+            return ['ok' => false, 'error' => 'invalid_definition'];
+        }
+
+        if ($forcedBranch !== null && $forcedBranch !== '') {
+            $forcedBranch = strtolower(trim($forcedBranch));
+            if (!in_array($forcedBranch, ['yes', 'no', 'auto'], true)) {
+                return ['ok' => false, 'error' => 'invalid_branch'];
+            }
+            if ($forcedBranch === 'auto') {
+                $forcedBranch = null;
+            }
+        } else {
+            $forcedBranch = null;
+        }
+
+        $nodeId = (string)$run['current_node_id'];
+        $node = $def['nodes'][$nodeId] ?? null;
+        if (!is_array($node)) {
+            return ['ok' => false, 'error' => 'invalid_node'];
+        }
+
+        $context = EmailAutomationRun::context($run);
+        unset($context['manual_branch']);
+
+        $type = (string)($node['type'] ?? '');
+        $forkNodeId = $nodeId;
+        if ($type === 'delay') {
+            $next = self::nextNode($def, $nodeId, 'next');
+            if ($next === null || $next === '') {
+                EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                return ['ok' => true, 'node' => 'end'];
+            }
+            $armed = is_array($context['delay_until'] ?? null) ? $context['delay_until'] : [];
+            unset($armed[$nodeId]);
+            $context['delay_until'] = $armed;
+            $forkNodeId = $next;
+            self::logStep($pdo, $run, $nodeId, 'delay', 'manual_skip', 'admin_advance');
+            $forkNode = $def['nodes'][$forkNodeId] ?? null;
+            if ($forcedBranch !== null && is_array($forkNode) && (string)($forkNode['type'] ?? '') === 'condition') {
+                $context['manual_branch'] = $forcedBranch;
+            }
+            EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, gmdate('c'), $context);
+            $run = EmailAutomationRun::find($pdo, $runId);
+            if ($run === null) {
+                return ['ok' => false, 'error' => 'run_not_active'];
+            }
+        } else {
+            $forkNode = $def['nodes'][$forkNodeId] ?? null;
+            if ($forcedBranch !== null && is_array($forkNode) && (string)($forkNode['type'] ?? '') === 'condition') {
+                $context['manual_branch'] = $forcedBranch;
+            }
+            // Ensure due now so processRun continues from this node.
+            EmailAutomationRun::saveProgress(
+                $pdo,
+                (int)$run['id'],
+                $nodeId,
+                gmdate('c'),
+                $context
+            );
+            $run = EmailAutomationRun::find($pdo, $runId);
+            if ($run === null) {
+                return ['ok' => false, 'error' => 'run_not_active'];
+            }
+        }
+
+        try {
+            self::processRun($pdo, $run);
+        } catch (\Throwable $e) {
+            wwm_log('automation manual advance run=' . $runId . ' failed: ' . $e->getMessage());
+
+            return ['ok' => false, 'error' => 'advance_failed'];
+        }
+
+        $after = EmailAutomationRun::find($pdo, $runId);
+
+        return [
+            'ok' => true,
+            'node' => is_array($after) ? (string)($after['current_node_id'] ?? '') : '',
+        ];
+    }
+
+    /**
+     * Branches leaving a node (yes/no/…) — used in admin UI for manual advance.
+     *
+     * @param array<string, mixed> $def
+     * @return list<string>
+     */
+    public static function forkBranches(array $def, string $nodeId): array
+    {
+        $branches = [];
+        foreach ($def['edges'] ?? [] as $edge) {
+            if (!is_array($edge) || (string)($edge['from'] ?? '') !== $nodeId) {
+                continue;
+            }
+            $branch = (string)($edge['branch'] ?? 'next');
+            if ($branch === 'next' || $branch === '') {
+                continue;
+            }
+            if (!in_array($branch, $branches, true)) {
+                $branches[] = $branch;
+            }
+        }
+
+        return $branches;
+    }
+
+    /**
+     * If the run is on a delay, the node it would enter after a push.
+     *
+     * @param array<string, mixed> $def
+     */
+    public static function nodeAfterDelay(array $def, string $delayNodeId): ?string
+    {
+        $next = self::nextNode($def, $delayNodeId, 'next');
+
+        return ($next !== null && $next !== '') ? $next : null;
+    }
+
+    /**
+     * Condition node the admin must choose a branch for when pushing this run, if any.
+     *
+     * @param array<string, mixed> $def
+     */
+    public static function pendingForkNodeId(array $def, string $currentNodeId): ?string
+    {
+        $node = $def['nodes'][$currentNodeId] ?? null;
+        if (!is_array($node)) {
+            return null;
+        }
+        $type = (string)($node['type'] ?? '');
+        if ($type === 'condition' && self::forkBranches($def, $currentNodeId) !== []) {
+            return $currentNodeId;
+        }
+        if ($type === 'delay') {
+            $next = self::nodeAfterDelay($def, $currentNodeId);
+            if ($next === null) {
+                return null;
+            }
+            $nextNode = $def['nodes'][$next] ?? null;
+            if (is_array($nextNode)
+                && (string)($nextNode['type'] ?? '') === 'condition'
+                && self::forkBranches($def, $next) !== []
+            ) {
+                return $next;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed> $run
      */
     public static function processRun(\PDO $pdo, array $run): void
@@ -97,8 +268,31 @@ final class EmailAutomationRunner
             }
 
             if ($type === 'condition') {
-                $branch = self::evaluateCondition($pdo, $userId, $courseSlug, $node) ? 'yes' : 'no';
-                self::logStep($pdo, $run, $nodeId, $type, $branch, (string)($node['condition'] ?? ''));
+                $context = EmailAutomationRun::context($run);
+                $manual = strtolower(trim((string)($context['manual_branch'] ?? '')));
+                if (in_array($manual, ['yes', 'no'], true)) {
+                    $branch = $manual;
+                    unset($context['manual_branch']);
+                    $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+                    EmailAutomationRun::saveProgress(
+                        $pdo,
+                        (int)$run['id'],
+                        $nodeId,
+                        (string)($run['next_run_at'] ?? gmdate('c')),
+                        $context
+                    );
+                    self::logStep(
+                        $pdo,
+                        $run,
+                        $nodeId,
+                        $type,
+                        $branch,
+                        'manual:' . (string)($node['condition'] ?? '')
+                    );
+                } else {
+                    $branch = self::evaluateCondition($pdo, $userId, $courseSlug, $node) ? 'yes' : 'no';
+                    self::logStep($pdo, $run, $nodeId, $type, $branch, (string)($node['condition'] ?? ''));
+                }
                 $next = self::nextNode($def, $nodeId, $branch) ?? self::nextNode($def, $nodeId, 'next');
                 if ($next === null) {
                     EmailAutomationRun::complete($pdo, (int)$run['id']);

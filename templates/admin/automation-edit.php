@@ -145,6 +145,11 @@ $errors = [
     'enroll_not_found' => 'Ученик с таким email не найден.',
     'enroll_failed' => 'Не удалось зачислить (процесс выключен или в архиве).',
     'cancel_failed' => 'Не удалось снять: запуск не найден или уже не активен.',
+    'advance_failed' => 'Не удалось протолкнуть: запуск не активен или шаг упал с ошибкой.',
+    'run_not_active' => 'Запуск не найден или уже не активен.',
+    'automation_inactive' => 'Процесс выключен или в архиве — протолкнуть нельзя.',
+    'invalid_branch' => 'Некорректная ветка развилки.',
+    'invalid_node' => 'Текущий блок запуска не найден в схеме.',
     'course_required' => 'Для выбранного типа входа нужен course slug.',
 ];
 $err = (string)($error ?? '');
@@ -175,6 +180,8 @@ $formatRunAt = static function (?string $iso): string {
     Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
     Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют во все <strong>включённые</strong> процессы с типом входа «демо» и тем же slug курса.
     Сразу после входа ученик проходит блоки до первой паузы; дальше шаги снимает cron каждые 5–15 минут.
+    <strong>Протолкнуть</strong> — сразу снять текущую паузу и пройти дальше до следующей паузы или конца.
+    Если дальше развилка — выберите ветку (Да / Нет) или «Авто» по условию.
     <strong>Убрать</strong> — снять с активного запуска (письма останавливаются).
   </p>
   <?php if ($flowRuns === []): ?>
@@ -200,6 +207,13 @@ $formatRunAt = static function (?string $iso): string {
               $runName = trim((string)($run['name'] ?? ''));
               $runEmail = (string)($run['email'] ?? '');
               $runId = (int)($run['id'] ?? 0);
+              $runNodeId = (string)($run['current_node_id'] ?? '');
+              $forkNodeId = ($runStatus === 'active' && is_array($def))
+                  ? \Wwm\Services\EmailAutomationRunner::pendingForkNodeId($def, $runNodeId)
+                  : null;
+              $forkBranches = ($forkNodeId !== null)
+                  ? \Wwm\Services\EmailAutomationRunner::forkBranches($def, $forkNodeId)
+                  : [];
             ?>
             <tr>
               <td>
@@ -209,10 +223,27 @@ $formatRunAt = static function (?string $iso): string {
                 <?php endif; ?>
               </td>
               <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
-              <td><?= wwm_escape($nodeLabel((string)($run['current_node_id'] ?? ''))) ?></td>
+              <td><?= wwm_escape($nodeLabel($runNodeId)) ?></td>
               <td class="col-date"><?= wwm_escape($formatRunAt(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
               <td class="col-tight">
                 <?php if ($runStatus === 'active' && $runId > 0): ?>
+                  <form method="post" action="/admin/automations/<?= $id ?>/runs/<?= $runId ?>/advance" class="inline-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px" data-confirm="Протолкнуть ученика дальше по процессу?">
+                    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                    <?php if ($forkBranches !== []): ?>
+                      <select name="branch" style="max-width:140px" title="Ветка на развилке <?= wwm_escape($nodeLabel((string)$forkNodeId)) ?>">
+                        <option value="auto">Авто</option>
+                        <?php foreach ($forkBranches as $br): ?>
+                          <?php
+                            $brLabel = $br === 'yes' ? 'Да' : ($br === 'no' ? 'Нет' : $br);
+                          ?>
+                          <option value="<?= wwm_escape($br) ?>"><?= wwm_escape($brLabel) ?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    <?php else: ?>
+                      <input type="hidden" name="branch" value="auto">
+                    <?php endif; ?>
+                    <button type="submit" class="btn btn-primary btn-sm">Протолкнуть</button>
+                  </form>
                   <form method="post" action="/admin/automations/<?= $id ?>/runs/<?= $runId ?>/cancel" class="inline-form" data-confirm="Снять ученика с процесса? Письма и паузы больше не пойдут. Зачислить снова можно вручную (для оплаты — нет).">
                     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                     <button type="submit" class="btn btn-ghost btn-sm">Убрать</button>

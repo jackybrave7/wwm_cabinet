@@ -316,6 +316,33 @@ final class AdminAutomationController
         wwm_redirect('/admin/automations/' . $id . '/edit?cancelled=1');
     }
 
+    public function advanceRun(int $id, int $runId): void
+    {
+        Session::requireSuperAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=csrf');
+        }
+
+        $pdo = wwm_pdo();
+        $run = EmailAutomationRun::find($pdo, $runId);
+        if ($run === null || (int)($run['automation_id'] ?? 0) !== $id) {
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=advance_failed');
+        }
+
+        $branch = strtolower(trim((string)($_POST['branch'] ?? 'auto')));
+        if ($branch === '') {
+            $branch = 'auto';
+        }
+
+        $result = EmailAutomationRunner::advanceManually($pdo, $runId, $branch);
+        if (empty($result['ok'])) {
+            $err = (string)($result['error'] ?? 'advance_failed');
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=' . rawurlencode($err));
+        }
+
+        wwm_redirect('/admin/automations/' . $id . '/edit?advanced=1');
+    }
+
     public function importAvo(int $id): void
     {
         Session::requireSuperAdmin();
@@ -510,6 +537,9 @@ final class AdminAutomationController
         }
         if (!empty($_GET['cancelled'])) {
             return 'Ученик снят с процесса. Письма и паузы больше не идут.';
+        }
+        if (!empty($_GET['advanced'])) {
+            return 'Ученик протолкнут дальше по процессу (до следующей паузы или конца).';
         }
         if (isset($_GET['ran'])) {
             return 'Processed ' . (int)$_GET['ran'] . ' automation run(s).';

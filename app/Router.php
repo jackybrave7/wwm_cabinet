@@ -364,6 +364,10 @@ final class Router
             (new AdminAutomationController())->cancelRun((int)$m[1], (int)$m[2]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/runs/(\d+)/advance$#', $path, $m)) {
+            (new AdminAutomationController())->advanceRun((int)$m[1], (int)$m[2]);
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll-audience$#', $path, $m)) {
             (new AdminAutomationController())->enrollAudience((int)$m[1]);
             return;

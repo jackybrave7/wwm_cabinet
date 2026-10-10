@@ -33,7 +33,7 @@ function wwm_cabinet_payment_grant_url(array $config): string
     }
     $pricing = trim((string)($config['cabinet_pricing_url'] ?? ''));
     if ($pricing !== '' && str_ends_with($pricing, '/pricing')) {
-        return substr($pricing, 0, -strlen('/pricing'));
+        return substr($pricing, 0, -strlen('/pricing')) . '/webhook';
     }
 
     return '';
