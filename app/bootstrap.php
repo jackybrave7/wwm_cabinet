@@ -516,14 +516,15 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
     $logoRow = wwm_email_logo_row_html();
     $out = $html;
 
+    // Delimiter ~ — patterns contain background:#… so # cannot be the regex delimiter.
     $logoRowPatterns = [
-        '#<tr><td class="pad" align="center" style="padding:(?:20|28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
+        '~<tr><td class="pad" align="center" style="padding:(?:20|28|32)px 40px (?:4|8)px;background:#ffffff;[^"]*">\s*'
             . '(?:<a[^>]*>\s*<img[^>]*>\s*</a>|'
             . '<a[^>]*>\s*<span[^>]*>World Watercolor.*?</span>\s*</a>)'
             . '(?:\s*<p style="margin:[^"]*">by Bratec Lis School</p>)?'
-            . '\s*</td></tr>#is',
-        '#<tr>\s*<td[^>]*>\s*(?:<a[^>]*>\s*)?<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:</a>\s*)?(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
-        '#<tr>\s*<td[^>]*>\s*<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>#is',
+            . '\s*</td></tr>~is',
+        '~<tr>\s*<td[^>]*>\s*(?:<a[^>]*>\s*)?<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:</a>\s*)?(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>~is',
+        '~<tr>\s*<td[^>]*>\s*<img[^>]+(?:Watercolor_masters/World|World_Watercolor|\{\{logo_url\}\})[^>]*>\s*(?:<p[^>]*>by Bratec Lis School</p>\s*)?</td>\s*</tr>~is',
     ];
 
     foreach ($logoRowPatterns as $pattern) {
@@ -598,6 +599,11 @@ function wwm_normalize_email_logo_html(?string $html, bool $usePlaceholder = fal
 
 function wwm_email_button_html(string $url, string $label): string
 {
+    $url = trim($url);
+    // Keep {{placeholders}} for templates; empty href looks like a button but is not clickable in Gmail.
+    if ($url === '') {
+        $url = 'https://worldwatercolormasters.art';
+    }
     $url = htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $label = htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -619,16 +625,29 @@ function wwm_email_repair_cta_blocks(string $html): string
         '/<table[^>]*\bclass="btn"[^>]*>[\s\S]*?<\/table>/i',
         static function (array $match): string {
             $block = $match[0];
-            if (preg_match('/<a\s+[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/i', $block, $anchor)) {
-                return wwm_email_button_html(
-                    html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
-                    html_entity_decode(trim($anchor[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8')
-                );
+            // Prefer href + label inside <span> (current button markup).
+            if (preg_match(
+                '/<a\s+[^>]*href="([^"]*)"[^>]*>\s*(?:<span[^>]*>)?([^<]+)/i',
+                $block,
+                $anchor
+            )) {
+                $href = html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $label = html_entity_decode(trim($anchor[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                if ($href === '' || $href === '{{buy_url}}') {
+                    $href = 'https://worldwatercolormasters.art';
+                }
+
+                return wwm_email_button_html($href, $label !== '' ? $label : 'Open');
             }
 
-            if (preg_match('/(?:<|&lt;)\s*a\s+href="([^"]+)"[^>]*>([^<]+)/i', $block, $anchor)) {
+            if (preg_match('/(?:<|&lt;)\s*a\s+href="([^"]*)"[^>]*>([^<]+)/i', $block, $anchor)) {
+                $href = html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                if ($href === '' || $href === '{{buy_url}}') {
+                    $href = 'https://worldwatercolormasters.art';
+                }
+
                 return wwm_email_button_html(
-                    html_entity_decode($anchor[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                    $href,
                     html_entity_decode(trim($anchor[2]), ENT_QUOTES | ENT_HTML5, 'UTF-8')
                 );
             }

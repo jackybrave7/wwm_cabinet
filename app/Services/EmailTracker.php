@@ -46,6 +46,12 @@ final class EmailTracker
         $this->messageId = $created['id'];
         $this->openToken = $created['open_token'];
 
+        // Longest URL first — otherwise replacing https://example.com also breaks
+        // https://example.com/path in the same HTML (logo vs buy button).
+        usort($links, static function (array $a, array $b): int {
+            return strlen(trim((string)($b['url'] ?? ''))) <=> strlen(trim((string)($a['url'] ?? '')));
+        });
+
         foreach ($links as $link) {
             $url = trim((string)($link['url'] ?? ''));
             if ($url === '') {

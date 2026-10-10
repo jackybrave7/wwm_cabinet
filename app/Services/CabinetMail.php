@@ -185,6 +185,15 @@ final class CabinetMail
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = '';
         }
+        if ($coursePageUrl === '') {
+            // Sale CTAs must never ship with href="" (looks like a button, not clickable).
+            $coursePageUrl = 'https://worldwatercolormasters.art';
+            wwm_log(sprintf(
+                'cabinet mail missing buy_url course=%s title=%s — fallback site root',
+                $courseSlug,
+                (string)($course['title'] ?? '')
+            ));
+        }
 
         $nextPath = DemoAccess::defaultNextPath($courseSlug);
         $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
