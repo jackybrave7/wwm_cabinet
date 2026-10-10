@@ -96,12 +96,18 @@ final class AdminAutomationController
                 continue;
             }
             $nodeOccupancy[$nid] = ($nodeOccupancy[$nid] ?? 0) + 1;
+            $forkNodeId = EmailAutomationRunner::pendingForkNodeId($definition, $nid);
+            $forkBranches = $forkNodeId !== null
+                ? EmailAutomationRunner::forkBranches($definition, $forkNodeId)
+                : [];
             $nodeWaiting[$nid][] = [
+                'run_id' => (int)($run['id'] ?? 0),
                 'user_id' => (int)($run['user_id'] ?? 0),
                 'name' => (string)($run['name'] ?? ''),
                 'email' => (string)($run['email'] ?? ''),
                 'created_at' => (string)($run['enrolled_at'] ?? ''),
                 'student_url' => '/admin/students/' . (int)($run['user_id'] ?? 0),
+                'fork_branches' => $forkBranches,
             ];
         }
 
@@ -111,6 +117,7 @@ final class AdminAutomationController
         $flowEditorConfig['node_occupancy'] = $nodeOccupancy;
         $flowEditorConfig['node_waiting'] = $nodeWaiting;
         $flowEditorConfig['step_events_url'] = '/admin/automations/' . $id . '/step-events';
+        $flowEditorConfig['advance_run_url'] = '/admin/automations/' . $id . '/runs';
 
         wwm_render_admin('automation-edit', [
             'title' => 'Edit automation — Admin',
@@ -319,13 +326,20 @@ final class AdminAutomationController
     public function advanceRun(int $id, int $runId): void
     {
         Session::requireSuperAdmin();
+        $wantsJson = $this->wantsJsonResponse();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            if ($wantsJson) {
+                $this->jsonResponse(['ok' => false, 'error' => 'csrf'], 403);
+            }
             wwm_redirect('/admin/automations/' . $id . '/edit?error=csrf');
         }
 
         $pdo = wwm_pdo();
         $run = EmailAutomationRun::find($pdo, $runId);
         if ($run === null || (int)($run['automation_id'] ?? 0) !== $id) {
+            if ($wantsJson) {
+                $this->jsonResponse(['ok' => false, 'error' => 'advance_failed'], 404);
+            }
             wwm_redirect('/admin/automations/' . $id . '/edit?error=advance_failed');
         }
 
@@ -337,7 +351,21 @@ final class AdminAutomationController
         $result = EmailAutomationRunner::advanceManually($pdo, $runId, $branch);
         if (empty($result['ok'])) {
             $err = (string)($result['error'] ?? 'advance_failed');
+            if ($wantsJson) {
+                $this->jsonResponse(['ok' => false, 'error' => $err], 400);
+            }
             wwm_redirect('/admin/automations/' . $id . '/edit?error=' . rawurlencode($err));
+        }
+
+        if ($wantsJson) {
+            $after = EmailAutomationRun::find($pdo, $runId);
+            $this->jsonResponse([
+                'ok' => true,
+                'message' => 'Ученик протолкнут дальше по процессу.',
+                'run_id' => $runId,
+                'status' => is_array($after) ? (string)($after['status'] ?? '') : '',
+                'current_node_id' => is_array($after) ? (string)($after['current_node_id'] ?? '') : '',
+            ]);
         }
 
         wwm_redirect('/admin/automations/' . $id . '/edit?advanced=1');
@@ -662,5 +690,24 @@ final class AdminAutomationController
             ? ['ok' => true, 'message' => 'Сохранено.']
             : ['ok' => false, 'error' => $errorCode, 'detail' => $detail];
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function wantsJsonResponse(): bool
+    {
+        $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+        return str_contains($accept, 'application/json')
+            || strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function jsonResponse(array $payload, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+        exit;
     }
 }

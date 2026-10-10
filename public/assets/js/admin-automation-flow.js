@@ -869,6 +869,28 @@
     return shell || document.body;
   }
 
+  let peopleModalState = { nodeId: '', kind: 'passed' };
+
+  function csrfToken() {
+    const input = (form && form.querySelector('[name="csrf"]'))
+      || document.querySelector('input[name="csrf"]');
+    return input ? String(input.value || '') : '';
+  }
+
+  function branchLabel(branch) {
+    if (branch === 'yes') return 'Да';
+    if (branch === 'no') return 'Нет';
+    return String(branch || '');
+  }
+
+  function waitingRowForUser(nodeId, userId) {
+    const uid = Number(userId) || 0;
+    if (uid <= 0) {
+      return null;
+    }
+    return waitingForNode(nodeId).find((row) => Number(row.user_id) === uid) || null;
+  }
+
   function ensurePeopleModal() {
     let el = document.getElementById('automation-node-people');
     const host = peopleModalHost();
@@ -889,13 +911,22 @@
       + '<p class="field-hint automation-node-people__hint"></p>'
       + '<div class="admin-table-wrap admin-table-wrap--profile">'
       + '<table class="admin-table admin-table-compact admin-table--profile">'
-      + '<thead><tr><th>Имя</th><th>Email</th><th class="col-date">Дата</th></tr></thead>'
+      + '<thead><tr>'
+      + '<th>Имя</th><th>Email</th><th class="col-date">Дата</th>'
+      + '<th class="col-tight automation-node-people__actions-col">Действие</th>'
+      + '</tr></thead>'
       + '<tbody></tbody></table></div>'
       + '</div>';
     host.appendChild(el);
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-people-close]')) {
         el.classList.remove('is-open');
+        return;
+      }
+      const advanceBtn = e.target.closest('[data-advance-run]');
+      if (advanceBtn) {
+        e.preventDefault();
+        advanceFromPeopleModal(advanceBtn);
       }
     });
     document.addEventListener('keydown', (e) => {
@@ -906,10 +937,42 @@
     return el;
   }
 
-  function renderPeopleRows(tbody, rows, emptyText) {
+  function setPeopleActionsColVisible(modal, visible) {
+    const col = modal.querySelector('.automation-node-people__actions-col');
+    if (col) {
+      col.hidden = !visible;
+    }
+  }
+
+  function advanceControlsHtml(row) {
+    const runId = Number(row.run_id) || 0;
+    if (runId <= 0) {
+      return '';
+    }
+    const branches = Array.isArray(row.fork_branches) ? row.fork_branches : [];
+    let branchHtml = '';
+    if (branches.length > 0) {
+      branchHtml = '<select data-advance-branch style="max-width:120px;margin-right:6px">'
+        + '<option value="auto">Авто</option>'
+        + branches.map((br) => (
+          '<option value="' + escapeHtml(br) + '">' + escapeHtml(branchLabel(br)) + '</option>'
+        )).join('')
+        + '</select>';
+    }
+    return '<div class="automation-node-people__advance" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      + branchHtml
+      + '<button type="button" class="btn btn-primary btn-sm" data-advance-run="' + runId + '">Протолкнуть</button>'
+      + '</div>';
+  }
+
+  function renderPeopleRows(tbody, rows, emptyText, options) {
+    const opts = options || {};
+    const nodeId = String(opts.nodeId || '');
+    const allowAdvance = !!opts.allowAdvance;
+    const colSpan = allowAdvance ? 4 : 3;
     const people = uniquePeople(rows);
     if (people.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="field-hint">' + escapeHtml(emptyText) + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="field-hint">' + escapeHtml(emptyText) + '</td></tr>';
       return;
     }
     tbody.innerHTML = people.map((row) => {
@@ -917,12 +980,171 @@
       const email = String(row.email || '').trim();
       const url = String(row.student_url || ('/admin/students/' + (row.user_id || '')));
       const label = name !== '' ? name : (email || 'Ученик');
+      const waiting = allowAdvance ? (waitingRowForUser(nodeId, row.user_id) || row) : null;
+      const actions = allowAdvance && waiting ? advanceControlsHtml(waiting) : '';
       return '<tr>'
         + '<td><a href="' + escapeHtml(url) + '">' + escapeHtml(label) + '</a></td>'
         + '<td>' + (email !== '' ? '<a href="' + escapeHtml(url) + '">' + escapeHtml(email) + '</a>' : '—') + '</td>'
-        + '<td class="col-date">' + escapeHtml(formatPersonDate(row.created_at)) + '</td>'
+        + '<td class="col-date">' + escapeHtml(formatPersonDate(row.created_at || (waiting && waiting.created_at))) + '</td>'
+        + (allowAdvance ? '<td class="col-tight">' + (actions || '—') + '</td>' : '')
         + '</tr>';
     }).join('');
+  }
+
+  function removeWaitingRun(runId) {
+    const id = Number(runId) || 0;
+    if (id <= 0 || !config.node_waiting) {
+      return;
+    }
+    Object.keys(config.node_waiting).forEach((nodeId) => {
+      const list = config.node_waiting[nodeId];
+      if (!Array.isArray(list)) {
+        return;
+      }
+      config.node_waiting[nodeId] = list.filter((row) => Number(row.run_id) !== id);
+      config.node_occupancy = config.node_occupancy || {};
+      config.node_occupancy[nodeId] = config.node_waiting[nodeId].length;
+    });
+  }
+
+  function placeWaitingRun(runId, userMeta, nextNodeId) {
+    const id = Number(runId) || 0;
+    if (id <= 0) {
+      return;
+    }
+    removeWaitingRun(id);
+    if (!nextNodeId) {
+      return;
+    }
+    config.node_waiting = config.node_waiting || {};
+    config.node_occupancy = config.node_occupancy || {};
+    if (!Array.isArray(config.node_waiting[nextNodeId])) {
+      config.node_waiting[nextNodeId] = [];
+    }
+    const forkBranches = forkBranchesForNode(nextNodeId);
+    config.node_waiting[nextNodeId].push({
+      run_id: id,
+      user_id: Number(userMeta.user_id) || 0,
+      name: String(userMeta.name || ''),
+      email: String(userMeta.email || ''),
+      created_at: String(userMeta.created_at || ''),
+      student_url: String(userMeta.student_url || ''),
+      fork_branches: forkBranches,
+    });
+    config.node_occupancy[nextNodeId] = config.node_waiting[nextNodeId].length;
+  }
+
+  function forkBranchesForNode(nodeId) {
+    const nodes = definition.nodes || {};
+    const edges = Array.isArray(definition.edges) ? definition.edges : [];
+    let forkId = null;
+    const cur = nodes[nodeId];
+    if (cur && String(cur.type || '') === 'condition') {
+      forkId = nodeId;
+    } else if (cur && String(cur.type || '') === 'delay') {
+      const nextEdge = edges.find((e) => e && String(e.from || '') === nodeId
+        && (!e.branch || e.branch === 'next'));
+      const nextId = nextEdge ? String(nextEdge.to || '') : '';
+      const next = nextId ? nodes[nextId] : null;
+      if (next && String(next.type || '') === 'condition') {
+        forkId = nextId;
+      }
+    }
+    if (!forkId) {
+      return [];
+    }
+    const branches = [];
+    edges.forEach((e) => {
+      if (!e || String(e.from || '') !== forkId) {
+        return;
+      }
+      const br = String(e.branch || 'next');
+      if (br === 'next' || br === '') {
+        return;
+      }
+      if (branches.indexOf(br) === -1) {
+        branches.push(br);
+      }
+    });
+    return branches;
+  }
+
+  function advanceFromPeopleModal(btn) {
+    const runId = Number(btn.getAttribute('data-advance-run')) || 0;
+    const base = String(config.advance_run_url || '');
+    const token = csrfToken();
+    if (runId <= 0 || base === '' || token === '') {
+      if (typeof wwmAdminAlert === 'function') {
+        wwmAdminAlert({ title: 'Не удалось', message: 'Нет данных для проталкивания. Обновите страницу.' });
+      }
+      return;
+    }
+    const wrap = btn.closest('.automation-node-people__advance');
+    const select = wrap ? wrap.querySelector('[data-advance-branch]') : null;
+    const branch = select ? String(select.value || 'auto') : 'auto';
+    const confirmMsg = 'Протолкнуть ученика дальше по процессу?';
+    const doAdvance = () => {
+      btn.disabled = true;
+      const body = new FormData();
+      body.append('csrf', token);
+      body.append('branch', branch);
+      fetch(base + '/' + runId + '/advance', {
+        method: 'POST',
+        body,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((res) => res.json().then((data) => ({ res, data })))
+        .then((payload) => {
+          const data = payload.data || {};
+          if (!payload.res.ok || !data.ok) {
+            const msg = String(data.error || '') === 'csrf'
+              ? 'Сессия истекла. Обновите страницу.'
+              : 'Не удалось протолкнуть ученика.';
+            if (typeof wwmAdminAlert === 'function') {
+              wwmAdminAlert({ title: 'Ошибка', message: msg });
+            }
+            btn.disabled = false;
+            return;
+          }
+          const row = waitingForNode(peopleModalState.nodeId).find((r) => Number(r.run_id) === runId) || {};
+          const status = String(data.status || '');
+          const nextNode = String(data.current_node_id || '');
+          if (status === 'active' && nextNode !== '') {
+            placeWaitingRun(runId, row, nextNode);
+          } else {
+            removeWaitingRun(runId);
+          }
+          applyAllNodeStats();
+          refreshOpenPeopleModal();
+          showFlowSaveToast(data.message || 'Ученик протолкнут.');
+        })
+        .catch(() => {
+          if (typeof wwmAdminAlert === 'function') {
+            wwmAdminAlert({ title: 'Ошибка', message: 'Сетевая ошибка при проталкивании.' });
+          }
+          btn.disabled = false;
+        });
+    };
+    if (typeof wwmAdminConfirm === 'function') {
+      wwmAdminConfirm({ title: 'Протолкнуть', message: confirmMsg }).then((ok) => {
+        if (ok) {
+          doAdvance();
+        }
+      });
+      return;
+    }
+    if (window.confirm(confirmMsg)) {
+      doAdvance();
+    }
+  }
+
+  function refreshOpenPeopleModal() {
+    const modal = document.getElementById('automation-node-people');
+    if (!modal || !modal.classList.contains('is-open') || !peopleModalState.nodeId) {
+      return;
+    }
+    openNodePeople(peopleModalState.nodeId, peopleModalState.kind);
   }
 
   function openNodePeople(nodeId, kind) {
@@ -931,6 +1153,7 @@
     const hint = modal.querySelector('.automation-node-people__hint');
     const tbody = modal.querySelector('tbody');
     const isWaiting = kind === 'waiting';
+    peopleModalState = { nodeId: String(nodeId || ''), kind: isWaiting ? 'waiting' : 'passed' };
     title.textContent = isWaiting ? 'Сейчас на блоке' : 'Прошедшие блок';
     let label = nodeId;
     const home = editor.export().drawflow?.Home?.data || {};
@@ -941,17 +1164,21 @@
       }
     });
     hint.textContent = label;
-    tbody.innerHTML = '<tr><td colspan="3" class="field-hint">Загрузка…</td></tr>';
+    setPeopleActionsColVisible(modal, true);
+    tbody.innerHTML = '<tr><td colspan="4" class="field-hint">Загрузка…</td></tr>';
     modal.classList.add('is-open');
 
     if (isWaiting) {
-      renderPeopleRows(tbody, waitingForNode(nodeId), 'Никого нет на этом блоке.');
+      renderPeopleRows(tbody, waitingForNode(nodeId), 'Никого нет на этом блоке.', {
+        allowAdvance: true,
+        nodeId,
+      });
       return;
     }
 
     const base = String(config.step_events_url || '');
     if (base === '') {
-      renderPeopleRows(tbody, [], 'Список недоступен.');
+      renderPeopleRows(tbody, [], 'Список недоступен.', { allowAdvance: true, nodeId });
       return;
     }
     fetch(base + '?node_id=' + encodeURIComponent(nodeId), { credentials: 'same-origin' })
@@ -963,10 +1190,14 @@
       })
       .then((data) => {
         const events = Array.isArray(data.events) ? data.events : [];
-        renderPeopleRows(tbody, events, 'Пока никто не проходил этот блок.');
+        // Same advance controls if the student is still waiting on this block.
+        renderPeopleRows(tbody, events, 'Пока никто не проходил этот блок.', {
+          allowAdvance: true,
+          nodeId,
+        });
       })
       .catch(() => {
-        renderPeopleRows(tbody, [], 'Не удалось загрузить список.');
+        renderPeopleRows(tbody, [], 'Не удалось загрузить список.', { allowAdvance: true, nodeId });
       });
   }
 
