@@ -522,6 +522,85 @@ ok((string)$payCancel->fetchColumn() === 'payment', 'demo funnel cancel detail i
 $pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$demoStopId]);
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$demoStopUser]);
 
+// --- after cancel + restart, prior "sent" must not block a new send ---
+$resendSlug = 'test-resend-' . bin2hex(random_bytes(3));
+$resendId = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $resendSlug,
+    'title' => 'Resend after restart',
+    'description' => 'test',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_MANUAL,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'mail' => [
+                'type' => 'send_template',
+                'template' => 'reminder_demo_no_login',
+                'stale_after_seconds' => 86400,
+                'label' => 'Mail',
+            ],
+            'wait' => ['type' => 'delay', 'seconds' => 86400, 'label' => 'Wait'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'mail'],
+            ['from' => 'mail', 'to' => 'wait'],
+            ['from' => 'wait', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$resendUserId = \Wwm\Models\User::create(
+    $pdo,
+    'resend-' . bin2hex(random_bytes(3)) . '@example.com',
+    'test-pass-123',
+    'Resend'
+);
+$resendRunId = \Wwm\Services\EmailAutomationEnrollment::enrollManual($resendId, $resendUserId, 'elke-en');
+ok($resendRunId !== null, 'resend-test enroll');
+$sentStmt = $pdo->prepare(
+    'SELECT COUNT(*) FROM email_automation_step_events
+     WHERE run_id = ? AND node_id = \'mail\' AND branch = \'sent\''
+);
+$sentStmt->execute([(int)$resendRunId]);
+ok((int)$sentStmt->fetchColumn() === 1, 'first pass sends mail once');
+$firstEnrolled = (string)(\Wwm\Models\EmailAutomationRun::find($pdo, (int)$resendRunId)['enrolled_at'] ?? '');
+ok($firstEnrolled !== '', 'first pass enrolled_at set');
+ok(
+    \Wwm\Models\EmailAutomationStepEvent::hasBranch($pdo, (int)$resendRunId, 'mail', 'sent', $firstEnrolled),
+    'hasBranch sees sent in current pass'
+);
+
+ok(
+    \Wwm\Services\EmailAutomationEnrollment::cancelRun((int)$resendRunId, $resendId, $resendUserId),
+    'resend-test cancel'
+);
+// Ensure restart gets a newer enrolled_at than the previous sent event.
+usleep(1100000);
+$restartedId = \Wwm\Models\EmailAutomationRun::restart(
+    $pdo,
+    (int)$resendRunId,
+    'elke-en',
+    'start',
+    ['trigger' => 'manual']
+);
+ok((int)$restartedId === (int)$resendRunId, 'resend-test restart same run id');
+$afterRestart = \Wwm\Models\EmailAutomationRun::find($pdo, (int)$resendRunId);
+$secondEnrolled = is_array($afterRestart) ? (string)($afterRestart['enrolled_at'] ?? '') : '';
+ok($secondEnrolled !== '' && $secondEnrolled > $firstEnrolled, 'restart bumps enrolled_at');
+ok(
+    !\Wwm\Models\EmailAutomationStepEvent::hasBranch($pdo, (int)$resendRunId, 'mail', 'sent', $secondEnrolled),
+    'hasBranch ignores sent from previous pass after restart'
+);
+\Wwm\Services\EmailAutomationRunner::processRun($pdo, $afterRestart);
+$sentStmt->execute([(int)$resendRunId]);
+ok((int)$sentStmt->fetchColumn() === 2, 'second pass sends mail again after restart');
+
+\Wwm\Models\EmailAutomation::update($pdo, $resendId, ['is_active' => false]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$resendId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$resendUserId]);
+
 echo PHP_EOL;
 if ($failed > 0) {
     echo "FAILED: {$failed}\n";

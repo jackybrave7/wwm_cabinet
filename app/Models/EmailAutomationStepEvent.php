@@ -28,14 +28,32 @@ final class EmailAutomationStepEvent
         ]);
     }
 
-    public static function hasBranch(PDO $pdo, int $runId, string $nodeId, string $branch): bool
-    {
-        $stmt = $pdo->prepare(
-            'SELECT 1 FROM email_automation_step_events
-             WHERE run_id = ? AND node_id = ? AND branch = ?
-             LIMIT 1'
-        );
-        $stmt->execute([$runId, $nodeId, $branch]);
+    /**
+     * Whether this run already recorded a branch for the node in the current pass.
+     * Pass enrolled_at so events from a previous restart() are ignored.
+     */
+    public static function hasBranch(
+        PDO $pdo,
+        int $runId,
+        string $nodeId,
+        string $branch,
+        ?string $enrolledAt = null
+    ): bool {
+        if ($enrolledAt !== null && $enrolledAt !== '') {
+            $stmt = $pdo->prepare(
+                'SELECT 1 FROM email_automation_step_events
+                 WHERE run_id = ? AND node_id = ? AND branch = ? AND created_at >= ?
+                 LIMIT 1'
+            );
+            $stmt->execute([$runId, $nodeId, $branch, $enrolledAt]);
+        } else {
+            $stmt = $pdo->prepare(
+                'SELECT 1 FROM email_automation_step_events
+                 WHERE run_id = ? AND node_id = ? AND branch = ?
+                 LIMIT 1'
+            );
+            $stmt->execute([$runId, $nodeId, $branch]);
+        }
 
         return (bool)$stmt->fetchColumn();
     }

@@ -481,7 +481,8 @@ final class EmailAutomationRunner
         $templateCourse = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
         $next = self::nextNode($def, $nodeId, 'next');
 
-        if (EmailAutomationStepEvent::hasBranch($pdo, (int)$run['id'], $nodeId, 'sent')) {
+        $enrolledAt = (string)($run['enrolled_at'] ?? '');
+        if (EmailAutomationStepEvent::hasBranch($pdo, (int)$run['id'], $nodeId, 'sent', $enrolledAt !== '' ? $enrolledAt : null)) {
             self::advanceAfterSend($pdo, $run, $nodeId, $next, false);
 
             return ['next' => $next, 'sent' => false, 'stop' => $next === null];
