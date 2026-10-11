@@ -5,9 +5,12 @@ namespace Wwm\Auth;
 
 final class Password
 {
+    /** bcrypt cost — balance security vs login latency (no rehash on every login). */
+    public const BCRYPT_COST = 11;
+
     public static function hash(string $password): string
     {
-        return password_hash($password, PASSWORD_DEFAULT);
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]);
     }
 
     public static function verify(string $password, string $hash): bool
@@ -16,6 +19,11 @@ final class Password
             return false;
         }
         return password_verify($password, $hash);
+    }
+
+    public static function needsRehash(string $hash): bool
+    {
+        return password_needs_rehash($hash, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]);
     }
 
     /** Readable random password (no 0/O, 1/l). */

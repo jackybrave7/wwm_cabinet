@@ -5,10 +5,10 @@ namespace Wwm\Controllers;
 
 use Wwm\Auth\Password;
 use Wwm\Auth\Session;
+use Wwm\Models\BackgroundJob;
 use Wwm\Models\LoginLink;
 use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
-use Wwm\Services\AvoEngagementSync;
 use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
 use Wwm\Services\StudentAttribution;
@@ -38,15 +38,7 @@ final class AuthController
         if ($email !== '' && $password !== '') {
             $user = User::findByEmail(wwm_pdo(), $email);
             if ($user !== null && Password::verify($password, (string)($user['password_hash'] ?? ''))) {
-                Session::login((int)$user['id']);
-                User::touchLogin(wwm_pdo(), (int)$user['id']);
-                StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
-                if (StudentAttribution::utmFields($user) === []) {
-                    StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$user['id']);
-                }
-                AvoEngagementSync::onLogin((int)$user['id']);
-                wwm_log('login via url user_id=' . $user['id']);
-                wwm_redirect($next);
+                self::completeLogin($user, 'url', $next);
             }
             $error = 'Invalid email or password.';
         }
@@ -88,15 +80,7 @@ final class AuthController
             return;
         }
 
-        Session::login((int)$user['id']);
-        User::touchLogin(wwm_pdo(), (int)$user['id']);
-        StudentAttribution::recordForUser(wwm_pdo(), (int)$user['id']);
-        if (StudentAttribution::utmFields($user) === []) {
-            StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$user['id']);
-        }
-        AvoEngagementSync::onLogin((int)$user['id']);
-        wwm_log('login user_id=' . $user['id']);
-        wwm_redirect($next);
+        self::completeLogin($user, 'form', $next);
     }
 
     public function consumeMagicLink(): void
@@ -113,17 +97,61 @@ final class AuthController
         }
 
         LoginLink::markUsed(wwm_pdo(), (int)$row['id']);
-        Session::login((int)$row['user_id']);
-        User::touchLogin(wwm_pdo(), (int)$row['user_id']);
-        StudentAttribution::recordForUser(wwm_pdo(), (int)$row['user_id']);
         $magicUser = User::findById(wwm_pdo(), (int)$row['user_id']);
-        if (is_array($magicUser) && StudentAttribution::utmFields($magicUser) === []) {
-            StudentAttribution::backfillUtmFromAvo(wwm_pdo(), (int)$row['user_id']);
+        if (!is_array($magicUser)) {
+            wwm_render('error', [
+                'pageTitle' => 'Invalid link',
+                'code' => 400,
+                'message' => 'This sign-in link is invalid or has expired.',
+            ]);
+            return;
         }
-        AvoEngagementSync::onLogin((int)$row['user_id']);
-        wwm_log('magic login user_id=' . $row['user_id']);
-
         $next = LoginLink::sanitizeNextPath((string)($row['next_path'] ?? '/'));
+        self::completeLogin($magicUser, 'magic', $next);
+    }
+
+    /**
+     * Fast path after password/magic validation: no synchronous AVO/GeoIP.
+     *
+     * @param array<string, mixed> $user
+     */
+    private static function completeLogin(array $user, string $via, string $next): void
+    {
+        $t0 = microtime(true);
+        $stages = [];
+        $mark = static function (string $label) use (&$stages, $t0): void {
+            $stages[$label] = (int)round((microtime(true) - $t0) * 1000);
+        };
+
+        $userId = (int)$user['id'];
+        $pdo = wwm_pdo();
+
+        Session::login($userId);
+        $mark('session');
+
+        User::touchLogin($pdo, $userId);
+        $mark('touch');
+
+        // Session UTM only — GeoIP + AVO run in background_jobs (cron).
+        StudentAttribution::recordForUser($pdo, $userId, false, [], false);
+        $mark('attr');
+
+        BackgroundJob::enqueue($pdo, BackgroundJob::TYPE_LOGIN_FOLLOWUP, [
+            'user_id' => $userId,
+            'ip' => (string)(wwm_client_ip() ?? ''),
+            'backfill_utm' => StudentAttribution::utmFields($user) === [],
+        ]);
+        $mark('enqueue');
+
+        $totalMs = (int)round((microtime(true) - $t0) * 1000);
+        wwm_log(sprintf(
+            'login via=%s user_id=%d ms_total=%d stages=%s',
+            $via,
+            $userId,
+            $totalMs,
+            json_encode($stages, JSON_UNESCAPED_UNICODE) ?: '{}'
+        ));
+
         wwm_redirect($next);
     }
 

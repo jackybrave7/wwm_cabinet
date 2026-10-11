@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 29;
+    public const SCHEMA_VERSION = 30;
 
     public static function connect(string $path): PDO
     {
@@ -350,6 +350,21 @@ CREATE TABLE IF NOT EXISTS email_automation_step_events (
 
 CREATE INDEX IF NOT EXISTS idx_automation_step_events_flow ON email_automation_step_events(automation_id, node_id);
 CREATE INDEX IF NOT EXISTS idx_automation_step_events_run ON email_automation_step_events(run_id);
+
+CREATE TABLE IF NOT EXISTS background_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_type TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  available_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_background_jobs_due
+  ON background_jobs(status, available_at, id);
 SQL);
 
         self::ensureColumn($pdo, 'email_automations', 'archived_at', 'TEXT');
@@ -359,6 +374,7 @@ SQL);
         self::ensureColumn($pdo, 'payments', 'currency_original', "TEXT NOT NULL DEFAULT ''");
         self::ensureColumn($pdo, 'payments', 'fx_rate', 'REAL');
         \Wwm\Models\PaymentPricingPending::ensureTable($pdo);
+        \Wwm\Models\BackgroundJob::ensureTable($pdo);
 
         self::seedEmailAutomations($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);

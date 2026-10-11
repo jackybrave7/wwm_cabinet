@@ -3,17 +3,40 @@ declare(strict_types=1);
 
 namespace Wwm\Services;
 
+use Wwm\Models\BackgroundJob;
 use Wwm\Models\User;
 
 final class AvoEngagementSync
 {
-    public static function onLogin(int $userId): void
+    /**
+     * @param bool $async Queue for cron when true (default). Login must stay fast.
+     */
+    public static function onLogin(int $userId, bool $async = true): void
     {
+        if ($async) {
+            BackgroundJob::enqueue(wwm_pdo(), BackgroundJob::TYPE_AVO_LOGGED_IN, [
+                'user_id' => $userId,
+            ]);
+
+            return;
+        }
+
         self::assignTag($userId, 'logged_in', 'avo_logged_in_tagged');
     }
 
-    public static function onDemoLessonOpen(int $userId): void
+    /**
+     * @param bool $async Queue for cron when true (default).
+     */
+    public static function onDemoLessonOpen(int $userId, bool $async = true): void
     {
+        if ($async) {
+            BackgroundJob::enqueue(wwm_pdo(), BackgroundJob::TYPE_AVO_DEMO_OPENED, [
+                'user_id' => $userId,
+            ]);
+
+            return;
+        }
+
         self::assignTag($userId, 'demo_opened', 'avo_demo_opened_tagged');
     }
 
@@ -24,8 +47,8 @@ final class AvoEngagementSync
             'avo_logged_in_tagged' => 0,
             'avo_demo_opened_tagged' => 0,
         ]);
-        self::onLogin($userId);
-        self::onDemoLessonOpen($userId);
+        self::onLogin($userId, false);
+        self::onDemoLessonOpen($userId, false);
     }
 
     private static function assignTag(int $userId, string $tagName, string $flagColumn): void
