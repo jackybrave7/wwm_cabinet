@@ -433,6 +433,7 @@ SQL);
             return;
         }
 
+        $now = gmdate('c');
         $pdo->prepare(
             'UPDATE email_automations
              SET definition_json = ?, entry_mode = ?, course_slug = ?, title = ?, description = ?, updated_at = ?
@@ -443,9 +444,18 @@ SQL);
             $courseSlug,
             (string)($decoded['meta']['title'] ?? 'Elke demo funnel (subscription ENG)'),
             (string)($decoded['meta']['description'] ?? ''),
-            gmdate('c'),
+            $now,
             (int)$row['id'],
         ]);
+
+        // flow_revision 4: second reminder removed — active runs on mail_still skip to wait_5h.
+        if ($fileRev >= 4) {
+            $pdo->prepare(
+                "UPDATE email_automation_runs
+                 SET current_node_id = 'wait_5h', updated_at = ?
+                 WHERE automation_id = ? AND status = 'active' AND current_node_id = 'mail_still'"
+            )->execute([$now, (int)$row['id']]);
+        }
 
         wwm_log(sprintf(
             'elke demo automation synced flow_revision %d → %d (runs keep current_node_id)',

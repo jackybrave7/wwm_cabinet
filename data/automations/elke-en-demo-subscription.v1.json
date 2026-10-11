@@ -2,9 +2,9 @@
   "version": 1,
   "meta": {
     "title": "Elke demo funnel (subscription ENG)",
-    "description": "48h demo access; reminders during the window; 40% coupon for 24h after demo ends (final mail at 3h left). flow_revision 3.",
+    "description": "48h demo access; one reminder if lesson not opened; 40% coupon for 24h after demo ends (final mail at 3h left). flow_revision 4.",
     "course_slug": "elke-en",
-    "flow_revision": 3
+    "flow_revision": 4
   },
   "nodes": {
     "start": {
@@ -55,12 +55,7 @@
     "mail_waiting": {
       "type": "send_template",
       "template": "reminder_demo_no_login",
-      "label": "Reminder — no login"
-    },
-    "mail_still": {
-      "type": "send_template",
-      "template": "reminder_demo_no_lesson",
-      "label": "Reminder — no lesson"
+      "label": "Reminder — demo not opened"
     },
     "wait_5h": {
       "type": "delay",
@@ -90,7 +85,8 @@
     "mail_sale_24h": {
       "type": "send_template",
       "template": "sale_demo_discount_24h",
-      "label": "40% coupon after demo (valid 24h)"
+      "label": "40% coupon after demo (valid 24h)",
+      "stale_after_seconds": 7200
     },
     "wait_coupon_21h": {
       "type": "delay",
@@ -105,7 +101,8 @@
     "mail_final_3h": {
       "type": "send_template",
       "template": "sale_demo_discount_3h",
-      "label": "Final reminder — 3h left on coupon"
+      "label": "Final reminder — 3h left on coupon",
+      "stale_after_seconds": 3600
     },
     "gate_paid_course": {
       "type": "condition",
@@ -135,8 +132,7 @@
     { "from": "wait_20h", "to": "branch_opened" },
     { "from": "branch_opened", "to": "wait_5h", "branch": "yes" },
     { "from": "branch_opened", "to": "mail_waiting", "branch": "no" },
-    { "from": "mail_waiting", "to": "mail_still" },
-    { "from": "mail_still", "to": "wait_5h" },
+    { "from": "mail_waiting", "to": "wait_5h" },
     { "from": "wait_5h", "to": "wait_before_expiring" },
     { "from": "wait_before_expiring", "to": "mail_expiring" },
     { "from": "mail_expiring", "to": "wait_after_expiring" },

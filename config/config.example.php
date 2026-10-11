@@ -64,6 +64,12 @@ return [
     'demo_hours' => 48,
     'magic_link_hours' => 72,
 
+    // Email automations (cron scripts/run-email-automations.php)
+    'email_automations' => [
+        // Skip send_template if next_run_at is older than this (seconds). Node/template overrides apply.
+        'stale_after_seconds' => 7200,
+    ],
+
     // Bump on deploy when static assets change (cache bust for cabinet.css).
     'asset_version' => '1',
 

@@ -101,6 +101,10 @@ return [
     'sale_coupon_code' => ${phpString(env('WWM_SALE_COUPON_CODE', 'SPECWWM4'))},
     'crosssell_coupon_code' => ${phpString(env('WWM_CROSSSELL_COUPON_CODE', 'WWM5'))},
 
+    'email_automations' => [
+        'stale_after_seconds' => ${Number(env('WWM_AUTOMATION_STALE_SECONDS', '7200')) || 7200},
+    ],
+
     'staff_notify_email' => ${phpString(env('WWM_STAFF_NOTIFY_EMAIL', 'support@worldwatercolormasters.art'))},
 
     'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},

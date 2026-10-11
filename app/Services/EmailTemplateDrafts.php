@@ -82,9 +82,9 @@ final class EmailTemplateDrafts
                 'text' => implode("\n", [
                     'Hello {{name}},',
                     '',
-                    'You requested demo access to "{{course_title}}", but we have not seen you in the cabinet yet.',
+                    'You requested demo access to "{{course_title}}", but you have not opened the demo lesson yet.',
                     '',
-                    'Sign in to watch your free demo lesson while access is still active:',
+                    'Your demo is still active — sign in and take a few minutes to watch the first lesson while access is available:',
                     '{{login_url}}',
                     '',
                     'Manual sign-in:',
@@ -102,10 +102,10 @@ final class EmailTemplateDrafts
                         self::paragraph('Hello {{name}},'),
                         self::paragraph(
                             'You requested demo access to <span style="font-weight:700;">{{course_title}}</span>, '
-                            . 'but we have not seen you in the cabinet yet.'
+                            . 'but you have not opened the demo lesson yet.'
                         ),
                         self::paragraph(
-                            'Your demo is still active — sign in and watch the first lesson while it is available.'
+                            'Your demo is still active — sign in and take a few minutes to watch the first lesson while it is available.'
                         ),
                         self::button('{{login_url}}', 'Open my demo lesson'),
                         self::credentialsBoxDraft(false),
@@ -115,6 +115,7 @@ final class EmailTemplateDrafts
                 ),
             ],
             'reminder_demo_no_lesson' => [
+                // Kept for AVO / legacy samples; funnel uses reminder_demo_no_login only (flow_revision 4).
                 'subject' => 'Your demo is waiting — {{course_title}}',
                 'text' => implode("\n", [
                     'Hello {{name}},',

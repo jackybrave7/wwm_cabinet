@@ -66,6 +66,10 @@ final class EmailAutomationEnrollment
         $pdo = wwm_pdo();
         $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: '';
 
+        if ($courseSlug !== '') {
+            self::stopDemoFunnelsForCourse($pdo, $userId, $courseSlug);
+        }
+
         foreach (EmailAutomation::findActiveByEntryMode($pdo, EmailAutomation::ENTRY_PAYMENT_ANY) as $automation) {
             self::enrollFromAutomation($pdo, $automation, $userId, $courseSlug, [
                 'trigger' => 'payment',
@@ -80,6 +84,56 @@ final class EmailAutomationEnrollment
                 ], 'payment_course:' . $courseSlug);
             }
         }
+    }
+
+    /**
+     * Stop active demo-form / demo-grant funnels for this course so buyers
+     * do not keep getting “open the lesson” / “demo ending” mail.
+     */
+    public static function stopDemoFunnelsForCourse(\PDO $pdo, int $userId, string $courseSlug): int
+    {
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: '';
+        if ($courseSlug === '' || $userId <= 0) {
+            return 0;
+        }
+
+        $stopped = 0;
+        foreach (
+            [
+                EmailAutomation::ENTRY_DEMO_FORM,
+                EmailAutomation::ENTRY_DEMO_GRANT,
+            ] as $mode
+        ) {
+            foreach (EmailAutomation::findActiveByEntryMode($pdo, $mode, $courseSlug) as $automation) {
+                $run = EmailAutomationRun::findActive($pdo, (int)$automation['id'], $userId);
+                if ($run === null) {
+                    continue;
+                }
+                $runId = (int)$run['id'];
+                if (!EmailAutomationRun::cancel($pdo, $runId)) {
+                    continue;
+                }
+                EmailAutomationStepEvent::record($pdo, [
+                    'automation_id' => (int)$automation['id'],
+                    'run_id' => $runId,
+                    'user_id' => $userId,
+                    'node_id' => (string)($run['current_node_id'] ?? ''),
+                    'node_type' => 'run',
+                    'branch' => 'cancelled',
+                    'detail' => 'payment',
+                ]);
+                $stopped++;
+                wwm_log(sprintf(
+                    'automation stopped on payment automation_id=%d run_id=%d user_id=%d course=%s',
+                    (int)$automation['id'],
+                    $runId,
+                    $userId,
+                    $courseSlug
+                ));
+            }
+        }
+
+        return $stopped;
     }
 
     /**

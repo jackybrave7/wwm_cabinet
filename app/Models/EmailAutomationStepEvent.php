@@ -28,6 +28,18 @@ final class EmailAutomationStepEvent
         ]);
     }
 
+    public static function hasBranch(PDO $pdo, int $runId, string $nodeId, string $branch): bool
+    {
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM email_automation_step_events
+             WHERE run_id = ? AND node_id = ? AND branch = ?
+             LIMIT 1'
+        );
+        $stmt->execute([$runId, $nodeId, $branch]);
+
+        return (bool)$stmt->fetchColumn();
+    }
+
     /**
      * @return list<array{node_id: string, node_type: string, hits: int, unique_users: int, last_at: ?string}>
      */

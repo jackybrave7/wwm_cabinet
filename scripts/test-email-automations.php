@@ -276,6 +276,252 @@ $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userIdB]);
 $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$payUserId]);
 
+// --- flow_revision 4: single reminder (no mail_waiting → mail_still chain) ---
+$edges = is_array($def['edges'] ?? null) ? $def['edges'] : [];
+$waitingTargets = [];
+foreach ($edges as $edge) {
+    if (!is_array($edge) || (string)($edge['from'] ?? '') !== 'mail_waiting') {
+        continue;
+    }
+    $waitingTargets[] = (string)($edge['to'] ?? '');
+}
+ok(
+    $waitingTargets === ['wait_5h'] || (count($waitingTargets) === 1 && $waitingTargets[0] === 'wait_5h'),
+    'elke funnel: mail_waiting goes to wait_5h (single reminder)'
+);
+ok((int)($def['meta']['flow_revision'] ?? 0) >= 4, 'elke funnel flow_revision >= 4');
+ok(!isset($def['nodes']['mail_still']), 'elke funnel: mail_still node removed (legacy runs remapped on migrate)');
+
+// --- stale skip + one email per cron tick ---
+$staleSlug = 'test-stale-' . bin2hex(random_bytes(3));
+$staleId = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $staleSlug,
+    'title' => 'Stale catch-up',
+    'description' => 'test',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_MANUAL,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'mail_a' => [
+                'type' => 'send_template',
+                'template' => 'sale_demo_discount_24h',
+                'stale_after_seconds' => 7200,
+                'label' => '24h',
+            ],
+            'mail_b' => [
+                'type' => 'send_template',
+                'template' => 'sale_demo_discount_3h',
+                'stale_after_seconds' => 3600,
+                'label' => '3h',
+            ],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'mail_a'],
+            ['from' => 'mail_a', 'to' => 'mail_b'],
+            ['from' => 'mail_b', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$staleUserId = \Wwm\Models\User::create(
+    $pdo,
+    'stale-' . bin2hex(random_bytes(3)) . '@example.com',
+    'test-pass-123',
+    'Stale'
+);
+$staleRunId = \Wwm\Services\EmailAutomationEnrollment::enrollManual($staleId, $staleUserId, 'elke-en');
+ok($staleRunId !== null, 'stale-test enroll');
+// Park on mail_a with next_run_at far in the past (simulates cron downtime).
+$pdo->prepare(
+    'UPDATE email_automation_runs
+     SET current_node_id = ?, next_run_at = ?, status = \'active\', completed_at = NULL, updated_at = ?
+     WHERE id = ?'
+)->execute(['mail_a', gmdate('c', time() - 86400), gmdate('c'), (int)$staleRunId]);
+$pdo->prepare('DELETE FROM email_automation_step_events WHERE run_id = ? AND node_id IN (?, ?)')->execute([
+    (int)$staleRunId,
+    'mail_a',
+    'mail_b',
+]);
+
+$n1 = \Wwm\Services\EmailAutomationRunner::processDue($pdo);
+ok($n1 >= 1, 'processDue picks up stale run');
+$branchA = $pdo->prepare(
+    'SELECT branch FROM email_automation_step_events WHERE run_id = ? AND node_id = ? ORDER BY id DESC LIMIT 1'
+);
+$branchA->execute([(int)$staleRunId, 'mail_a']);
+ok((string)$branchA->fetchColumn() === 'skipped_stale', 'overdue 24h mail marked skipped_stale');
+
+// One email per cron tick: two fresh consecutive mails → only the first is sent.
+$pdo->prepare(
+    'UPDATE email_automation_runs
+     SET current_node_id = ?, next_run_at = ?, status = \'active\', completed_at = NULL, updated_at = ?
+     WHERE id = ?'
+)->execute(['mail_a', gmdate('c', time() - 120), gmdate('c'), (int)$staleRunId]);
+$pdo->prepare('DELETE FROM email_automation_step_events WHERE run_id = ? AND node_id IN (?, ?)')->execute([
+    (int)$staleRunId,
+    'mail_a',
+    'mail_b',
+]);
+// Temporarily widen stale window so 2-minute lateness is allowed for 24h template.
+$pdo->prepare(
+    'UPDATE email_automations SET definition_json = ? WHERE id = ?'
+)->execute([
+    json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'mail_a' => [
+                'type' => 'send_template',
+                'template' => 'reminder_demo_no_login',
+                'stale_after_seconds' => 86400,
+                'label' => 'A',
+            ],
+            'mail_b' => [
+                'type' => 'send_template',
+                'template' => 'reminder_demo_expiring',
+                'stale_after_seconds' => 86400,
+                'label' => 'B',
+            ],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'mail_a'],
+            ['from' => 'mail_a', 'to' => 'mail_b'],
+            ['from' => 'mail_b', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+    $staleId,
+]);
+\Wwm\Services\EmailAutomationRunner::processDue($pdo);
+$sentCount = static function (int $runId, string $node) use ($pdo): int {
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM email_automation_step_events WHERE run_id = ? AND node_id = ? AND branch = \'sent\''
+    );
+    $stmt->execute([$runId, $node]);
+
+    return (int)$stmt->fetchColumn();
+};
+ok($sentCount((int)$staleRunId, 'mail_a') === 1, 'first mail sent in cron tick');
+ok($sentCount((int)$staleRunId, 'mail_b') === 0, 'second mail deferred to next cron tick');
+$staleRun = \Wwm\Models\EmailAutomationRun::find($pdo, (int)$staleRunId);
+ok(
+    is_array($staleRun)
+    && (string)$staleRun['status'] === 'active'
+    && (string)$staleRun['current_node_id'] === 'mail_b',
+    'run parked on second mail after one-email tick'
+);
+
+// Very late 3h mail must be skipped_stale (time-sensitive).
+$pdo->prepare(
+    'UPDATE email_automations SET definition_json = ? WHERE id = ?'
+)->execute([
+    json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'mail_a' => [
+                'type' => 'send_template',
+                'template' => 'sale_demo_discount_24h',
+                'stale_after_seconds' => 7200,
+                'label' => '24h',
+            ],
+            'mail_b' => [
+                'type' => 'send_template',
+                'template' => 'sale_demo_discount_3h',
+                'stale_after_seconds' => 3600,
+                'label' => '3h',
+            ],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'mail_a'],
+            ['from' => 'mail_a', 'to' => 'mail_b'],
+            ['from' => 'mail_b', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+    $staleId,
+]);
+$pdo->prepare(
+    'UPDATE email_automation_runs
+     SET current_node_id = ?, next_run_at = ?, status = \'active\', completed_at = NULL, updated_at = ?
+     WHERE id = ?'
+)->execute(['mail_b', gmdate('c', time() - 7200), gmdate('c'), (int)$staleRunId]);
+$pdo->prepare('DELETE FROM email_automation_step_events WHERE run_id = ? AND node_id = ?')->execute([
+    (int)$staleRunId,
+    'mail_b',
+]);
+\Wwm\Services\EmailAutomationRunner::processDue($pdo);
+$branchB = $pdo->prepare(
+    'SELECT branch FROM email_automation_step_events WHERE run_id = ? AND node_id = ? ORDER BY id DESC LIMIT 1'
+);
+$branchB->execute([(int)$staleRunId, 'mail_b']);
+ok((string)$branchB->fetchColumn() === 'skipped_stale', 'time-sensitive 3h mail skipped when too late');
+
+// Lock: nested processDue while holding the same lock file should no-op.
+$lockPath = WWM_ROOT . '/data/locks/email-automations.lock';
+if (!is_dir(dirname($lockPath))) {
+    mkdir(dirname($lockPath), 0775, true);
+}
+$lockFh = fopen($lockPath, 'c+');
+ok($lockFh !== false && flock($lockFh, LOCK_EX | LOCK_NB), 'acquired automation lock for contention test');
+$nested = \Wwm\Services\EmailAutomationRunner::processDue($pdo);
+ok($nested === 0, 'processDue returns 0 when lock is busy');
+flock($lockFh, LOCK_UN);
+fclose($lockFh);
+
+\Wwm\Models\EmailAutomation::update($pdo, $staleId, ['is_active' => false]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$staleId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$staleUserId]);
+
+// --- payment stops active demo funnel ---
+$demoStopSlug = 'test-demo-stop-' . bin2hex(random_bytes(3));
+$demoStopId = \Wwm\Models\EmailAutomation::create($pdo, [
+    'slug' => $demoStopSlug,
+    'title' => 'Demo stop on pay',
+    'description' => 'test',
+    'course_slug' => 'elke-en',
+    'entry_mode' => \Wwm\Models\EmailAutomation::ENTRY_DEMO_FORM,
+    'is_active' => true,
+    'definition_json' => json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'label' => 'Start'],
+            'wait' => ['type' => 'delay', 'seconds' => 86400, 'label' => 'Wait'],
+            'end' => ['type' => 'end', 'label' => 'End'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'wait'],
+            ['from' => 'wait', 'to' => 'end'],
+        ],
+    ], JSON_UNESCAPED_UNICODE),
+]);
+$demoStopUser = \Wwm\Models\User::create(
+    $pdo,
+    'demo-stop-' . bin2hex(random_bytes(3)) . '@example.com',
+    'test-pass-123',
+    'DemoStop'
+);
+\Wwm\Services\EmailAutomationEnrollment::onCabinetDemoForm($demoStopUser, 'elke-en');
+$activeDemo = \Wwm\Models\EmailAutomationRun::findActive($pdo, $demoStopId, $demoStopUser);
+ok(is_array($activeDemo), 'demo-form run is active before payment');
+\Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded($demoStopUser, 'elke-en', gmdate('c'));
+ok(
+    \Wwm\Models\EmailAutomationRun::findActive($pdo, $demoStopId, $demoStopUser) === null,
+    'payment cancels active demo funnel for the course'
+);
+$payCancel = $pdo->prepare(
+    'SELECT detail FROM email_automation_step_events
+     WHERE run_id = ? AND branch = \'cancelled\' ORDER BY id DESC LIMIT 1'
+);
+$payCancel->execute([(int)($activeDemo['id'] ?? 0)]);
+ok((string)$payCancel->fetchColumn() === 'payment', 'demo funnel cancel detail is payment');
+\Wwm\Models\EmailAutomation::update($pdo, $demoStopId, ['is_active' => false]);
+$pdo->prepare('DELETE FROM email_automations WHERE id = ?')->execute([$demoStopId]);
+$pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$demoStopUser]);
+
 echo PHP_EOL;
 if ($failed > 0) {
     echo "FAILED: {$failed}\n";

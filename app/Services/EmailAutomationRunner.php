@@ -17,19 +17,53 @@ final class EmailAutomationRunner
 {
     public const BATCH_SIZE = 40;
 
+    /** Default max lateness for send_template before skipped_stale (seconds). */
+    public const DEFAULT_STALE_SECONDS = 7200;
+
+    /**
+     * Cron tick: process due runs with a process-wide lock and at most one email per run.
+     */
     public static function processDue(?\PDO $pdo = null): int
     {
         $pdo ??= wwm_pdo();
-        $runs = EmailAutomationRun::dueRuns($pdo, self::BATCH_SIZE);
-        $processed = 0;
+        $lockDir = WWM_ROOT . '/data/locks';
+        if (!is_dir($lockDir)) {
+            @mkdir($lockDir, 0775, true);
+        }
+        $lockPath = $lockDir . '/email-automations.lock';
+        $lockFh = @fopen($lockPath, 'c+');
+        if ($lockFh === false) {
+            wwm_log('automation processDue: cannot open lock file');
 
-        foreach ($runs as $run) {
-            try {
-                self::processRun($pdo, $run);
-                $processed++;
-            } catch (\Throwable $e) {
-                wwm_log('automation run ' . ($run['id'] ?? '?') . ' failed: ' . $e->getMessage());
+            return 0;
+        }
+        if (!flock($lockFh, LOCK_EX | LOCK_NB)) {
+            fclose($lockFh);
+            wwm_log('automation processDue skipped: lock busy at=' . gmdate('c'));
+
+            return 0;
+        }
+
+        $processed = 0;
+        try {
+            $runs = EmailAutomationRun::dueRuns($pdo, self::BATCH_SIZE);
+            foreach ($runs as $run) {
+                try {
+                    self::processRun($pdo, $run, ['max_emails' => 1]);
+                    $processed++;
+                } catch (\Throwable $e) {
+                    wwm_log('automation run ' . ($run['id'] ?? '?') . ' failed: ' . $e->getMessage());
+                }
             }
+            wwm_log(sprintf(
+                'automation processDue pulse at=%s processed=%d due=%d',
+                gmdate('c'),
+                $processed,
+                count($runs)
+            ));
+        } finally {
+            flock($lockFh, LOCK_UN);
+            fclose($lockFh);
         }
 
         return $processed;
@@ -208,8 +242,9 @@ final class EmailAutomationRunner
 
     /**
      * @param array<string, mixed> $run
+     * @param array{max_emails?: int|null} $options max_emails=1 for cron; null = unlimited (enroll / admin)
      */
-    public static function processRun(\PDO $pdo, array $run): void
+    public static function processRun(\PDO $pdo, array $run, array $options = []): void
     {
         $automation = EmailAutomation::find($pdo, (int)$run['automation_id']);
         if ($automation === null || !(int)$automation['is_active']) {
@@ -236,6 +271,8 @@ final class EmailAutomationRunner
         $courseSlug = (string)($run['course_slug'] ?? $automation['course_slug'] ?? '');
         $nodeId = (string)$run['current_node_id'];
         $steps = 0;
+        $maxEmails = array_key_exists('max_emails', $options) ? $options['max_emails'] : null;
+        $emailsSent = 0;
 
         while ($nodeId !== '' && $steps < 24) {
             $steps++;
@@ -315,6 +352,45 @@ final class EmailAutomationRunner
                 continue;
             }
 
+            if ($type === 'send_template') {
+                // One outbound email per cron tick; park here for the next processDue.
+                if ($maxEmails !== null && $emailsSent >= (int)$maxEmails) {
+                    $context = EmailAutomationRun::context($run);
+                    EmailAutomationRun::saveProgress(
+                        $pdo,
+                        (int)$run['id'],
+                        $nodeId,
+                        gmdate('c'),
+                        $context
+                    );
+
+                    return;
+                }
+                $result = self::handleSendTemplate(
+                    $pdo,
+                    $run,
+                    $def,
+                    $automation,
+                    $user,
+                    $userId,
+                    $courseSlug,
+                    $nodeId,
+                    $node
+                );
+                if ($result['stop']) {
+                    return;
+                }
+                if (!empty($result['sent'])) {
+                    $emailsSent++;
+                }
+                $nodeId = (string)($result['next'] ?? '');
+                if ($nodeId === '') {
+                    return;
+                }
+                // Continue so a following delay can be armed in the same tick.
+                continue;
+            }
+
             self::logStep($pdo, $run, $nodeId, $type, null, null);
 
             if ($type === 'grant_demo') {
@@ -344,50 +420,6 @@ final class EmailAutomationRunner
                         );
                     } catch (\Throwable $e) {
                         wwm_log('automation grant_demo: ' . $e->getMessage());
-                    }
-                }
-            } elseif ($type === 'send_template') {
-                $template = (string)($node['template'] ?? '');
-                $templateCourse = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
-                if (!empty($node['skip_if_paid_course']) && $templateCourse !== '') {
-                    $paidState = Access::courseState($pdo, $userId, $templateCourse);
-                    if (!empty($paidState['has_paid'])) {
-                        self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'already_paid_course');
-                        $next = self::nextNode($def, $nodeId, 'next');
-                        if ($next === null) {
-                            EmailAutomationRun::complete($pdo, (int)$run['id']);
-
-                            return;
-                        }
-                        $nodeId = $next;
-                        continue;
-                    }
-                }
-                if ($template !== '' && EmailTemplateCatalog::find($template) !== null) {
-                    try {
-                        if (MarketingEmailDelivery::isMarketingTemplate($template)) {
-                            if (EmailSuppression::isSuppressed($pdo, (string)$user['email'])) {
-                                self::logStep($pdo, $run, $nodeId, $type, 'skipped', 'suppressed');
-                                EmailAutomationRun::complete($pdo, (int)$run['id']);
-
-                                return;
-                            }
-                            (new CabinetMail())->sendAutomationMarketingTemplate(
-                                $template,
-                                $user,
-                                $templateCourse,
-                                (int)$automation['id']
-                            );
-                        } else {
-                            (new CabinetMail())->sendTemplate(
-                                $template,
-                                (string)$user['email'],
-                                trim((string)($user['name'] ?? '')) ?: null,
-                                $templateCourse
-                            );
-                        }
-                    } catch (\Throwable $e) {
-                        wwm_log('automation send_template ' . $template . ': ' . $e->getMessage());
                     }
                 }
             } elseif ($type === 'revoke_demo') {
@@ -421,6 +453,198 @@ final class EmailAutomationRunner
         }
 
         EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $nodeId, gmdate('c'));
+    }
+
+    /**
+     * Send (or skip) a template node. On success: log sent, then advance current_node_id
+     * before returning so a crash after send cannot resend the same step.
+     *
+     * @param array<string, mixed> $run
+     * @param array<string, mixed> $def
+     * @param array<string, mixed> $automation
+     * @param array<string, mixed> $user
+     * @param array<string, mixed> $node
+     * @return array{next: ?string, sent: bool, stop: bool}
+     */
+    private static function handleSendTemplate(
+        \PDO $pdo,
+        array &$run,
+        array $def,
+        array $automation,
+        array $user,
+        int $userId,
+        string $courseSlug,
+        string $nodeId,
+        array $node
+    ): array {
+        $template = (string)($node['template'] ?? '');
+        $templateCourse = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
+        $next = self::nextNode($def, $nodeId, 'next');
+
+        if (EmailAutomationStepEvent::hasBranch($pdo, (int)$run['id'], $nodeId, 'sent')) {
+            self::advanceAfterSend($pdo, $run, $nodeId, $next, false);
+
+            return ['next' => $next, 'sent' => false, 'stop' => $next === null];
+        }
+
+        if (!empty($node['skip_if_paid_course']) && $templateCourse !== '') {
+            $paidState = Access::courseState($pdo, $userId, $templateCourse);
+            if (!empty($paidState['has_paid'])) {
+                self::logStep($pdo, $run, $nodeId, 'send_template', 'skipped', 'already_paid_course');
+                self::advanceAfterSend($pdo, $run, $nodeId, $next, false);
+                if ($next === null) {
+                    EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                    return ['next' => null, 'sent' => false, 'stop' => true];
+                }
+
+                return ['next' => $next, 'sent' => false, 'stop' => false];
+            }
+        }
+
+        $staleReason = self::staleSkipReason($run, $node, $template);
+        if ($staleReason !== null) {
+            self::logStep($pdo, $run, $nodeId, 'send_template', 'skipped_stale', $staleReason);
+            self::advanceAfterSend($pdo, $run, $nodeId, $next, false);
+            if ($next === null) {
+                EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                return ['next' => null, 'sent' => false, 'stop' => true];
+            }
+
+            return ['next' => $next, 'sent' => false, 'stop' => false];
+        }
+
+        if ($template === '' || EmailTemplateCatalog::find($template) === null) {
+            self::logStep($pdo, $run, $nodeId, 'send_template', 'skipped', 'missing_template');
+            self::advanceAfterSend($pdo, $run, $nodeId, $next, false);
+            if ($next === null) {
+                EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                return ['next' => null, 'sent' => false, 'stop' => true];
+            }
+
+            return ['next' => $next, 'sent' => false, 'stop' => false];
+        }
+
+        try {
+            if (MarketingEmailDelivery::isMarketingTemplate($template)) {
+                if (EmailSuppression::isSuppressed($pdo, (string)$user['email'])) {
+                    self::logStep($pdo, $run, $nodeId, 'send_template', 'skipped', 'suppressed');
+                    EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                    return ['next' => null, 'sent' => false, 'stop' => true];
+                }
+                (new CabinetMail())->sendAutomationMarketingTemplate(
+                    $template,
+                    $user,
+                    $templateCourse,
+                    (int)$automation['id']
+                );
+            } else {
+                (new CabinetMail())->sendTemplate(
+                    $template,
+                    (string)$user['email'],
+                    trim((string)($user['name'] ?? '')) ?: null,
+                    $templateCourse
+                );
+            }
+        } catch (\Throwable $e) {
+            wwm_log('automation send_template ' . $template . ': ' . $e->getMessage());
+            self::logStep($pdo, $run, $nodeId, 'send_template', 'failed', $e->getMessage());
+            // Do not advance — retry next cron tick.
+            return ['next' => null, 'sent' => false, 'stop' => true];
+        }
+
+        // Record send before advancing so a crash after this cannot double-send.
+        self::logStep($pdo, $run, $nodeId, 'send_template', 'sent', $template);
+        self::advanceAfterSend($pdo, $run, $nodeId, $next, true);
+        if ($next === null) {
+            EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+            return ['next' => null, 'sent' => true, 'stop' => true];
+        }
+
+        return ['next' => $next, 'sent' => true, 'stop' => false];
+    }
+
+    /**
+     * @param array<string, mixed> $run
+     */
+    private static function advanceAfterSend(
+        \PDO $pdo,
+        array &$run,
+        string $fromNodeId,
+        ?string $next,
+        bool $sent
+    ): void {
+        if ($next === null || $next === '') {
+            return;
+        }
+        $context = EmailAutomationRun::context($run);
+        $when = gmdate('c');
+        $run['current_node_id'] = $next;
+        $run['next_run_at'] = $when;
+        $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, $when, $context);
+        unset($fromNodeId, $sent);
+    }
+
+    /**
+     * @param array<string, mixed> $run
+     * @param array<string, mixed> $node
+     */
+    private static function staleSkipReason(array $run, array $node, string $template): ?string
+    {
+        $dueRaw = (string)($run['next_run_at'] ?? '');
+        $dueTs = $dueRaw !== '' ? strtotime($dueRaw) : false;
+        if ($dueTs === false) {
+            return null;
+        }
+        $lateness = time() - $dueTs;
+        if ($lateness <= 0) {
+            return null;
+        }
+
+        $max = self::staleLimitSeconds($node, $template);
+        if ($lateness <= $max) {
+            return null;
+        }
+
+        return sprintf('lateness=%ds limit=%ds template=%s', $lateness, $max, $template);
+    }
+
+    /**
+     * @param array<string, mixed> $node
+     */
+    private static function staleLimitSeconds(array $node, string $template): int
+    {
+        if (isset($node['stale_after_seconds'])) {
+            return max(0, (int)$node['stale_after_seconds']);
+        }
+
+        $byTemplate = self::templateStaleSeconds($template);
+        if ($byTemplate !== null) {
+            return $byTemplate;
+        }
+
+        $cfg = wwm_config()['email_automations'] ?? [];
+        if (is_array($cfg) && isset($cfg['stale_after_seconds'])) {
+            return max(0, (int)$cfg['stale_after_seconds']);
+        }
+
+        return self::DEFAULT_STALE_SECONDS;
+    }
+
+    private static function templateStaleSeconds(string $template): ?int
+    {
+        // Time-copy in the body must still be roughly true.
+        return match ($template) {
+            'sale_demo_discount_24h' => 7200,
+            'sale_demo_discount_3h' => 3600,
+            'reminder_demo_expiring' => 7200,
+            default => null,
+        };
     }
 
     /**
@@ -530,6 +754,15 @@ final class EmailAutomationRunner
         }
 
         $seconds = max(0, (int)($node['seconds'] ?? 0));
+        if ($seconds === 0) {
+            // Zero-length delay (legacy passthrough nodes): continue immediately.
+            self::logStep($pdo, $run, $nodeId, 'delay', 'done', 'until=immediate');
+            $run['current_node_id'] = $next;
+            $run['next_run_at'] = gmdate('c');
+            EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, $run['next_run_at'], $context);
+
+            return $next;
+        }
         $wakeAt = gmdate('c', $now + $seconds);
         $armed[$nodeId] = $wakeAt;
         $context['delay_until'] = $armed;
