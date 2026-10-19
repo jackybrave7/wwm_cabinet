@@ -486,6 +486,10 @@ final class Router
             (new LessonController())->show($m[1], (int)$m[2]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/c/([a-z0-9\-]+)/(\d+)/viewed$#', $path, $m)) {
+            (new LessonController())->markViewed($m[1], (int)$m[2]);
+            return;
+        }
 
         http_response_code(404);
         wwm_render('error', [

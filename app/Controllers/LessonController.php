@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Controllers;
 
 use Wwm\Auth\Session;
+use Wwm\Models\LessonOpen;
 use Wwm\Models\User;
 use Wwm\Services\AccessChecker;
 use Wwm\Services\AvoEngagementSync;
@@ -53,10 +54,8 @@ final class LessonController
             return;
         }
 
-        $firstOpen = \Wwm\Models\LessonOpen::record(wwm_pdo(), $userId, $slug, $num);
-        if ($firstOpen && !empty($lesson['demo'])) {
-            AvoEngagementSync::onDemoLessonOpen($userId);
-        }
+        // Opening the URL (including auto-login after signup) is not a view.
+        // The page pings markViewed after dwell or video start.
 
         $lessonAccess = [];
         foreach ($lessons as $item) {
@@ -87,6 +86,56 @@ final class LessonController
             'nextLesson' => $nextLesson,
             'prevLocked' => $prevLocked,
             'nextLocked' => $nextLocked,
+            'trackLessonView' => !empty($lesson['demo']),
         ]);
+    }
+
+    public function markViewed(string $slug, int $num): void
+    {
+        $userId = Session::requireLogin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo '{"ok":false}';
+            return;
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->get($slug);
+        if (!is_array($course)) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo '{"ok":false}';
+            return;
+        }
+        $lesson = null;
+        foreach (is_array($course['lessons'] ?? null) ? $course['lessons'] : [] as $item) {
+            if (is_array($item) && (int)($item['num'] ?? 0) === $num) {
+                $lesson = $item;
+                break;
+            }
+        }
+        if ($course === null || $lesson === null) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo '{"ok":false}';
+            return;
+        }
+
+        $access = (new AccessChecker(wwm_pdo()))->lesson($userId, $course, $lesson);
+        if (empty($access['can_view_lesson'])) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo '{"ok":false}';
+            return;
+        }
+
+        $first = LessonOpen::record(wwm_pdo(), $userId, $slug, $num);
+        if ($first && !empty($lesson['demo'])) {
+            AvoEngagementSync::onDemoLessonOpen($userId);
+        }
+
+        header('Content-Type: application/json');
+        echo '{"ok":true}';
     }
 }

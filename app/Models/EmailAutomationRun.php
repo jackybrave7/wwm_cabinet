@@ -17,18 +17,53 @@ final class EmailAutomationRun
         return (bool)$stmt->fetchColumn();
     }
 
+    public static function countForAutomation(PDO $pdo, int $automationId): int
+    {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM email_automation_runs WHERE automation_id = ?');
+        $stmt->execute([$automationId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
-    public static function listForAutomation(PDO $pdo, int $automationId, int $limit = 80): array
-    {
+    public static function listForAutomation(
+        PDO $pdo,
+        int $automationId,
+        int $limit = 80,
+        int $offset = 0
+    ): array {
         $limit = max(1, min(200, $limit));
+        $offset = max(0, $offset);
         $stmt = $pdo->prepare(
             'SELECT r.id, r.user_id, r.course_slug, r.status, r.current_node_id,
                     r.next_run_at, r.enrolled_at, r.completed_at, u.email, u.name
              FROM email_automation_runs r
              LEFT JOIN users u ON u.id = r.user_id
              WHERE r.automation_id = ?
+             ORDER BY r.enrolled_at DESC, r.id DESC
+             LIMIT ' . $limit . ' OFFSET ' . $offset
+        );
+        $stmt->execute([$automationId]);
+
+        return $stmt->fetchAll() ?: [];
+    }
+
+    /**
+     * Active runs for canvas occupancy (not the paginated table).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function listActiveForAutomation(PDO $pdo, int $automationId, int $limit = 500): array
+    {
+        $limit = max(1, min(1000, $limit));
+        $stmt = $pdo->prepare(
+            'SELECT r.id, r.user_id, r.course_slug, r.status, r.current_node_id,
+                    r.next_run_at, r.enrolled_at, r.completed_at, u.email, u.name
+             FROM email_automation_runs r
+             LEFT JOIN users u ON u.id = r.user_id
+             WHERE r.automation_id = ? AND r.status = \'active\'
              ORDER BY r.enrolled_at DESC, r.id DESC
              LIMIT ' . $limit
         );

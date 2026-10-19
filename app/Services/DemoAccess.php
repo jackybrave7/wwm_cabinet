@@ -128,17 +128,8 @@ final class DemoAccess
         $loginUrl = null;
         if ($state['demo_active'] || $demoGranted) {
             $nextPath = self::defaultNextPath($courseSlug);
-            $demoPassword = $this->demoDefaultPassword();
-            if ($demoPassword !== null) {
-                $loginUrl = wwm_login_url($email, $demoPassword, $nextPath);
-            } else {
-                $loginUrl = LoginLink::issue(
-                    $pdo,
-                    $userId,
-                    $nextPath,
-                    LoginLink::ttlSeconds()
-                );
-            }
+            $ttl = max(3600, (int)strtotime($expiresAt) - time());
+            $loginUrl = LoginLink::issueReusable($pdo, $userId, $nextPath, $ttl);
         }
 
         if ($demoGranted && $loginUrl !== null) {
@@ -230,8 +221,7 @@ final class DemoAccess
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = '';
         }
-        $expiresLocal = gmdate('Y-m-d H:i', strtotime($expiresAt)) . ' UTC';
-        $password = $this->demoDefaultPassword();
+        $expiresLocal = gmdate('M j, Y H:i', strtotime($expiresAt)) . ' UTC';
 
         $message = EmailTemplateRenderer::render('demo', [
             'name' => trim((string)($user['name'] ?? '')),
@@ -241,7 +231,7 @@ final class DemoAccess
             'course_page_url' => $coursePageUrl,
             'login_url' => $loginUrl,
             'expires_label' => $expiresLocal,
-            'password' => $password ?? '',
+            'password' => '',
         ]);
 
         $links = [['url' => $loginUrl, 'label' => 'Watch demo']];
@@ -249,8 +239,15 @@ final class DemoAccess
             $links[] = ['url' => $coursePageUrl, 'label' => 'Course page'];
         }
 
-        EmailTracker::compose((int)$user['id'], (string)$user['email'], 'demo', $message['subject'])
-            ->deliver($message['text'], $message['html'], $links);
+        MarketingEmailDelivery::deliver(
+            (int)$user['id'],
+            (string)$user['email'],
+            'demo',
+            $message,
+            $links,
+            'demo-welcome',
+            trim((string)($user['name'] ?? ''))
+        );
     }
 
     private function demoDefaultPassword(): ?string

@@ -280,8 +280,7 @@ final class EmailTemplateCatalog
         $resetLink = (string)($context['reset_link'] ?? wwm_base_url() . '/reset?token=sample');
 
         if ($password === '' && in_array($id, ['demo', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'], true)) {
-            $configured = trim((string)(wwm_config()['demo_default_password'] ?? ''));
-            $password = $configured !== '' ? $configured : '(use the sign-in link above)';
+            $password = '';
         }
         if ($password === '' && $id === 'paid') {
             $password = 'your-password';
@@ -321,6 +320,11 @@ final class EmailTemplateCatalog
             'expires_label' => $expiresLabel,
             'buy_url' => $buyUrl,
             'coupon_code' => $couponCode,
+            'coupon_expires_label' => (string)($context['coupon_expires_label'] ?? 'in 24 hours'),
+            'sale_intro' => (string)($context['sale_intro'] ?? ('Your demo of ' . $courseTitle . ' is still here.')),
+            'expiring_subject' => (string)($context['expiring_subject'] ?? 'Your demo ends soon'),
+            'expiring_heading' => (string)($context['expiring_heading'] ?? 'Your demo ends soon'),
+            'expiring_line' => (string)($context['expiring_line'] ?? 'Your demo access will not last much longer.'),
             'magic_link' => $magicLink,
             'reset_link' => $resetLink,
             'magic_link_hours' => (string)max(1, (int)(\Wwm\Models\LoginLink::ttlSeconds() / 3600)),

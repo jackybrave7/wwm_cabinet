@@ -196,19 +196,27 @@ final class CabinetMail
         }
 
         $nextPath = DemoAccess::defaultNextPath($courseSlug);
-        $password = trim((string)(wwm_config()['demo_default_password'] ?? ''));
-        $loginUrl = $password !== ''
-            ? wwm_login_url($email, $password, $nextPath)
-            : wwm_base_url() . '/login?email=' . rawurlencode($email) . '&next=' . rawurlencode($nextPath);
+        $userId = (int)($user['id'] ?? 0);
+        $demoEnds = $this->demoExpiresTimestamp(wwm_pdo(), $userId, $courseSlug);
+        $ttl = $demoEnds !== null ? max(3600, $demoEnds - time()) : \Wwm\Models\LoginLink::ttlSeconds();
+        $loginUrl = $userId > 0
+            ? \Wwm\Models\LoginLink::issueReusable(wwm_pdo(), $userId, $nextPath, $ttl)
+            : wwm_base_url() . '/login?next=' . rawurlencode($nextPath);
 
-        $expiresLabel = $this->demoExpiresLabel(wwm_pdo(), (int)$user['id'], $courseSlug);
-        if (MarketingEmailDelivery::isMarketingTemplate($template)) {
+        $expiresLabel = $this->demoExpiresLabel(wwm_pdo(), $userId, $courseSlug);
+        $opened = $userId > 0 && (new StudentEngagement())->forEmail($email, $courseSlug)['demo_lesson_opened'];
+        if (in_array($template, ['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'], true)) {
             $couponCode = MarketingEmailDelivery::crosssellCouponCode();
         } else {
             $couponCode = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4'));
             if ($couponCode === '') {
                 $couponCode = 'SPECWWM4';
             }
+        }
+        $couponExpiresTs = time() + 24 * 3600;
+        $couponExpiresLabel = gmdate('M j, Y H:i', $couponExpiresTs) . ' UTC';
+        if (in_array($template, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
+            $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template);
         }
 
         $context = [
@@ -220,9 +228,20 @@ final class CabinetMail
             'course_page_url' => $coursePageUrl,
             'buy_url' => $coursePageUrl,
             'login_url' => $loginUrl,
-            'password' => $password,
+            'password' => '',
             'expires_label' => $expiresLabel,
             'coupon_code' => $couponCode,
+            'coupon_expires_label' => $couponExpiresLabel,
+            'sale_intro' => $opened
+                ? 'We hope you enjoyed the demo lesson from "' . $courseTitle . '".'
+                : 'Your demo of "' . $courseTitle . '" is still waiting if you want to look before the offer ends.',
+            'expiring_subject' => $opened
+                ? 'Your demo ends soon — continue watching'
+                : "Haven't watched yet? Your demo ends soon",
+            'expiring_heading' => $opened ? 'Your demo ends soon' : "Haven't watched yet?",
+            'expiring_line' => $opened
+                ? 'Your demo of ' . $courseTitle . ' ends soon — continue watching while access is active.'
+                : 'You have not opened the demo lesson yet, and access to ' . $courseTitle . ' ends soon.',
         ];
 
         $message = EmailTemplateRenderer::render($template, $context);
@@ -232,15 +251,41 @@ final class CabinetMail
 
     private function demoExpiresLabel(\PDO $pdo, int $userId, string $courseSlug): string
     {
-        $grant = Access::findGrant($pdo, $userId, $courseSlug, 'demo');
-        $expiresAt = is_array($grant) ? trim((string)($grant['expires_at'] ?? '')) : '';
-        if ($expiresAt === '') {
+        $ts = $this->demoExpiresTimestamp($pdo, $userId, $courseSlug);
+        if ($ts === null) {
             $hours = (int)(wwm_config()['demo_hours'] ?? 48);
             return gmdate('M j, Y H:i', time() + max(1, $hours) * 3600) . ' UTC';
         }
 
+        return gmdate('M j, Y H:i', $ts) . ' UTC';
+    }
+
+    private function demoExpiresTimestamp(\PDO $pdo, int $userId, string $courseSlug): ?int
+    {
+        $grant = Access::findGrant($pdo, $userId, $courseSlug, 'demo');
+        $expiresAt = is_array($grant) ? trim((string)($grant['expires_at'] ?? '')) : '';
+        if ($expiresAt === '') {
+            return null;
+        }
         $ts = strtotime($expiresAt);
-        return $ts ? gmdate('M j, Y H:i', $ts) . ' UTC' : $expiresAt . ' UTC';
+
+        return $ts !== false ? $ts : null;
+    }
+
+    private static function saleCheckoutUrl(string $buyUrl, string $coupon, string $nodeHint): string
+    {
+        if ($buyUrl === '' || !str_starts_with($buyUrl, 'https://')) {
+            return $buyUrl;
+        }
+        $extra = [
+            'promo' => $coupon,
+            'utm_source' => 'email',
+            'utm_campaign' => 'elke-demo',
+            'utm_content' => $nodeHint,
+        ];
+        $sep = str_contains($buyUrl, '?') ? '&' : '?';
+
+        return $buyUrl . $sep . http_build_query($extra, '', '&', PHP_QUERY_RFC3986);
     }
 
     /**

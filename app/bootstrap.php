@@ -307,6 +307,10 @@ function wwm_course_cover_url(?string $url): ?string
     if ($url === '' || !str_starts_with($url, 'https://')) {
         return null;
     }
+    $host = strtolower((string)parse_url($url, PHP_URL_HOST));
+    if ($host === '' || str_contains($host, 'autoweboffice')) {
+        return null;
+    }
 
     return $url;
 }
@@ -328,7 +332,8 @@ function wwm_email_font_family_heading(): string
 
 function wwm_email_font_link_tag(): string
 {
-    return '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">';
+    // Georgia fallback only — Google Fonts are blocked in many inboxes.
+    return '';
 }
 
 function wwm_email_head_styles(): string

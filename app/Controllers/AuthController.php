@@ -96,7 +96,9 @@ final class AuthController
             return;
         }
 
-        LoginLink::markUsed(wwm_pdo(), (int)$row['id']);
+        if (empty($row['reusable'])) {
+            LoginLink::markUsed(wwm_pdo(), (int)$row['id']);
+        }
         $magicUser = User::findById(wwm_pdo(), (int)$row['user_id']);
         if (!is_array($magicUser)) {
             wwm_render('error', [

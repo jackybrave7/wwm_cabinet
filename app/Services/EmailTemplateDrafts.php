@@ -18,13 +18,10 @@ final class EmailTemplateDrafts
                     '',
                     'Your demo access to "{{course_title}}" is ready.',
                     '',
-                    'Open this link — your email and password will be filled in automatically:',
+                    'Open this one-time sign-in link (no password in the email):',
                     '{{login_url}}',
                     '',
-                    'You can also sign in manually at:',
-                    '{{base_url}}/login',
-                    '',
-                    'Demo access expires: {{expires_label}}',
+                    'Demo access is active until {{expires_label}}.',
                     '',
                     'World Watercolor Masters',
                 ]),
@@ -33,9 +30,8 @@ final class EmailTemplateDrafts
                     implode('', [
                         self::paragraph('Hello {{name}},'),
                         self::paragraph('Your demo access to <span style="font-weight:700;">{{course_title}}</span> is ready.'),
-                        self::paragraph('Demo access is active for <strong>{{expires_label}}</strong>.'),
+                        self::paragraph('Demo access is active until <strong>{{expires_label}}</strong>.'),
                         self::button('{{login_url}}', 'Watch the demo lesson'),
-                        self::credentialsBoxDraft(false),
                         self::courseLinkDraft(),
                         self::supportBlock(),
                     ])
@@ -84,13 +80,8 @@ final class EmailTemplateDrafts
                     '',
                     'You requested demo access to "{{course_title}}", but you have not opened the demo lesson yet.',
                     '',
-                    'Your demo is still active — sign in and take a few minutes to watch the first lesson while access is available:',
+                    'Your demo is still active until {{expires_label}}. Sign in and watch the first lesson:',
                     '{{login_url}}',
-                    '',
-                    'Manual sign-in:',
-                    '{{base_url}}/login',
-                    'Login: {{email}}',
-                    'Password: {{password}}',
                     '',
                     'Questions? support@worldwatercolormasters.art',
                     '',
@@ -108,7 +99,6 @@ final class EmailTemplateDrafts
                             'Your demo is still active — sign in and take a few minutes to watch the first lesson while it is available.'
                         ),
                         self::button('{{login_url}}', 'Open my demo lesson'),
-                        self::credentialsBoxDraft(false),
                         self::courseLinkDraft(),
                         self::supportBlock(),
                     ])
@@ -153,39 +143,27 @@ final class EmailTemplateDrafts
                 ),
             ],
             'reminder_demo_expiring' => [
-                'subject' => 'Still have not watched? Your demo expires soon',
+                'subject' => '{{expiring_subject}}',
                 'text' => implode("\n", [
                     'Hello {{name}},',
                     '',
-                    'This is a friendly reminder: your demo access to "{{course_title}}" will not last much longer.',
+                    '{{expiring_line}}',
                     '',
-                    'Demo access expires: {{expires_label}}',
+                    'Demo access ends {{expires_label}}.',
                     '',
-                    'Watch now before your access runs out:',
                     '{{login_url}}',
-                    '',
-                    'Manual sign-in:',
-                    '{{base_url}}/login',
-                    'Login: {{email}}',
-                    'Password: {{password}}',
                     '',
                     'Questions? support@worldwatercolormasters.art',
                     '',
                     'World Watercolor Masters',
                 ]),
                 'html' => self::layoutDraft(
-                    "Don't miss your<br>free demo lesson",
+                    '{{expiring_heading}}',
                     implode('', [
                         self::paragraph('Hello {{name}},'),
-                        self::paragraph(
-                            'This is a friendly reminder: your demo access to <span style="font-weight:700;">{{course_title}}</span> '
-                            . 'will not last much longer.'
-                        ),
-                        self::paragraph(
-                            'Watch the full demo lesson before your access expires on <strong>{{expires_label}}</strong>.'
-                        ),
-                        self::button('{{login_url}}', 'Watch before it expires'),
-                        self::credentialsBoxDraft(false),
+                        self::paragraph('{{expiring_line}}'),
+                        self::paragraph('Demo access ends <strong>{{expires_label}}</strong>.'),
+                        self::button('{{login_url}}', 'Open the demo lesson'),
                         self::courseLinkDraft(),
                         self::supportBlock(),
                     ])
@@ -196,12 +174,12 @@ final class EmailTemplateDrafts
                 'text' => implode("\n", [
                     'Hi {{name}},',
                     '',
-                    'We hope you enjoyed the demo lesson from "{{course_title}}".',
+                    '{{sale_intro}}',
                     '',
                     'We have reserved a 40% discount on full course access — just for you.',
                     '',
                     'Your coupon code: {{coupon_code}}',
-                    'This offer expires in 24 hours.',
+                    'This offer expires {{coupon_expires_label}}.',
                     '',
                     'Get full access now:',
                     '{{buy_url}}',
@@ -215,13 +193,11 @@ final class EmailTemplateDrafts
                     'Save 40% on<br>full course access',
                     implode('', [
                         self::paragraph('Hi {{name}},'),
-                        self::paragraph(
-                            'We hope you enjoyed the demo lesson from <span style="font-weight:700;">{{course_title}}</span>.'
-                        ),
+                        self::paragraph('{{sale_intro}}'),
                         self::paragraph(
                             'We have reserved an exclusive <strong>40% discount</strong> on full course access — just for you.'
                         ),
-                        self::couponBoxDraft('Expires in 24 hours'),
+                        self::couponBoxDraft('Expires {{coupon_expires_label}}'),
                         self::button('{{buy_url}}', 'Get Full Access Now & Save 40%'),
                         self::supportBlock(),
                     ])
@@ -232,7 +208,7 @@ final class EmailTemplateDrafts
                 'text' => implode("\n", [
                     'Hi {{name}},',
                     '',
-                    'This is your final reminder: your 40% discount on "{{course_title}}" expires in 3 hours.',
+                    'This is your final reminder: your 40% discount on "{{course_title}}" expires {{coupon_expires_label}}.',
                     '',
                     'Your coupon code: {{coupon_code}}',
                     '',

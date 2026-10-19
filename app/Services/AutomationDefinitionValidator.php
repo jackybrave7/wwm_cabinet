@@ -188,7 +188,7 @@ final class AutomationDefinitionValidator
             if ($tpl === '') {
                 return '«' . $label . '»: выберите шаблон письма.';
             }
-            if (MarketingEmailDelivery::isMarketingTemplate($tpl)) {
+            if (str_starts_with($tpl, 'sale_crosssell_')) {
                 $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
                 if ($slug === '') {
                     return '«' . $label . '»: для cross-sell письма укажите курс (course slug).';

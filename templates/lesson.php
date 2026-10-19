@@ -86,3 +86,25 @@ $lessonNum = (int)($lesson['num'] ?? 0);
     </div>
   </div>
 </section>
+<?php if (!empty($trackLessonView)): ?>
+<script>
+(function () {
+  var sent = false;
+  function ping() {
+    if (sent) return;
+    sent = true;
+    var body = new FormData();
+    body.append('csrf', <?= json_encode(wwm_csrf_token()) ?>);
+    fetch(<?= json_encode('/c/' . rawurlencode((string)$course['slug']) . '/' . (int)($lesson['num'] ?? 0) . '/viewed') ?>, {
+      method: 'POST',
+      body: body,
+      credentials: 'same-origin'
+    }).catch(function () { sent = false; });
+  }
+  document.querySelectorAll('video, iframe').forEach(function (el) {
+    el.addEventListener('play', ping, { once: true });
+  });
+  window.setTimeout(ping, 20000);
+})();
+</script>
+<?php endif; ?>

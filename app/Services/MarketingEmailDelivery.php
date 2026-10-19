@@ -25,6 +25,12 @@ final class MarketingEmailDelivery
         return [
             'sale_crosssell_50_offer',
             'sale_crosssell_50_reminder',
+            'demo',
+            'reminder_demo_no_login',
+            'reminder_demo_no_lesson',
+            'reminder_demo_expiring',
+            'sale_demo_discount_24h',
+            'sale_demo_discount_3h',
         ];
     }
 

@@ -84,13 +84,23 @@ final class AdminAutomationController
         $runsStmt->execute([$id]);
         $activeRuns = (int)$runsStmt->fetchColumn();
 
-        $flowRuns = EmailAutomationRun::listForAutomation($pdo, $id, 200);
+        $runsPerPage = 20;
+        $flowRunsTotal = EmailAutomationRun::countForAutomation($pdo, $id);
+        $flowRunsPages = max(1, (int)ceil($flowRunsTotal / $runsPerPage));
+        $flowRunsPage = max(1, (int)($_GET['runs_page'] ?? 1));
+        if ($flowRunsPage > $flowRunsPages) {
+            $flowRunsPage = $flowRunsPages;
+        }
+        $flowRuns = EmailAutomationRun::listForAutomation(
+            $pdo,
+            $id,
+            $runsPerPage,
+            ($flowRunsPage - 1) * $runsPerPage
+        );
+
         $nodeOccupancy = [];
         $nodeWaiting = [];
-        foreach ($flowRuns as $run) {
-            if ((string)($run['status'] ?? '') !== 'active') {
-                continue;
-            }
+        foreach (EmailAutomationRun::listActiveForAutomation($pdo, $id, 500) as $run) {
             $nid = (string)($run['current_node_id'] ?? '');
             if ($nid === '') {
                 continue;
@@ -119,6 +129,12 @@ final class AdminAutomationController
         $flowEditorConfig['step_events_url'] = '/admin/automations/' . $id . '/step-events';
         $flowEditorConfig['advance_run_url'] = '/admin/automations/' . $id . '/runs';
 
+        $openRunsPanel = $flowRunsPage > 1
+            || !empty($_GET['enrolled'])
+            || !empty($_GET['cancelled'])
+            || !empty($_GET['advanced'])
+            || (string)($_GET['error'] ?? '') !== '';
+
         wwm_render_admin('automation-edit', [
             'title' => 'Edit automation — Admin',
             'adminNav' => 'automations',
@@ -131,6 +147,11 @@ final class AdminAutomationController
             'stepEventTotal' => EmailAutomationStepEvent::totalEvents($pdo, $id),
             'flowActiveRuns' => $activeRuns,
             'flowRuns' => $flowRuns,
+            'flowRunsTotal' => $flowRunsTotal,
+            'flowRunsPage' => $flowRunsPage,
+            'flowRunsPages' => $flowRunsPages,
+            'flowRunsPerPage' => $runsPerPage,
+            'openRunsPanel' => $openRunsPanel,
             'isArchivedFlow' => EmailAutomation::isArchived($row),
             'entryModeLabels' => EmailAutomation::entryModeLabels(),
             'courseSlugs' => $this->courseSlugOptions(),
@@ -306,21 +327,21 @@ final class AdminAutomationController
             wwm_redirect('/admin/automations/' . $id . '/edit?error=enroll_failed');
         }
 
-        wwm_redirect('/admin/automations/' . $id . '/edit?enrolled=1');
+        wwm_redirect('/admin/automations/' . $id . '/edit?enrolled=1#automation-runs');
     }
 
     public function cancelRun(int $id, int $runId): void
     {
         Session::requireSuperAdmin();
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
-            wwm_redirect('/admin/automations/' . $id . '/edit?error=csrf');
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=csrf#automation-runs');
         }
 
         if (!EmailAutomationEnrollment::cancelRun($runId, $id)) {
-            wwm_redirect('/admin/automations/' . $id . '/edit?error=cancel_failed');
+            wwm_redirect('/admin/automations/' . $id . '/edit?error=cancel_failed#automation-runs');
         }
 
-        wwm_redirect('/admin/automations/' . $id . '/edit?cancelled=1');
+        wwm_redirect('/admin/automations/' . $id . '/edit?cancelled=1#automation-runs');
     }
 
     public function advanceRun(int $id, int $runId): void
@@ -368,7 +389,7 @@ final class AdminAutomationController
             ]);
         }
 
-        wwm_redirect('/admin/automations/' . $id . '/edit?advanced=1');
+        wwm_redirect('/admin/automations/' . $id . '/edit?advanced=1#automation-runs');
     }
 
     public function importAvo(int $id): void

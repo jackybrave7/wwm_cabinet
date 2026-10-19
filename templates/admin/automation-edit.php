@@ -159,6 +159,10 @@ if ($err !== '' && isset($errors[$err])): ?>
 
 <?php
 $flowRuns = is_array($flowRuns ?? null) ? $flowRuns : [];
+$flowRunsTotal = (int)($flowRunsTotal ?? count($flowRuns));
+$flowRunsPage = max(1, (int)($flowRunsPage ?? 1));
+$flowRunsPages = max(1, (int)($flowRunsPages ?? 1));
+$openRunsPanel = !empty($openRunsPanel);
 $nodeLabel = static function (string $nodeId) use ($nodes): string {
     $node = $nodes[$nodeId] ?? null;
     if (is_array($node) && trim((string)($node['label'] ?? '')) !== '') {
@@ -173,9 +177,25 @@ $formatRunAt = static function (?string $iso): string {
     $ts = strtotime($iso);
     return $ts ? date('d.m.Y H:i', $ts) : $iso;
 };
+$runsPageUrl = static function (int $p) use ($id): string {
+    $qs = $_GET;
+    $qs['runs_page'] = $p;
+    return '/admin/automations/' . $id . '/edit?' . http_build_query($qs) . '#automation-runs';
+};
+$runsSummaryHint = $flowRunsTotal === 0
+    ? 'Никого нет'
+    : ($flowActiveRuns . ' активн. · всего ' . $flowRunsTotal
+        . ($flowRunsPages > 1 ? ' · стр. ' . $flowRunsPage . '/' . $flowRunsPages : ''));
 ?>
-<div class="admin-card" style="margin-bottom:16px">
-  <h2 class="admin-team-section-title">Ученики в процессе</h2>
+<details class="admin-card admin-expander" id="automation-runs" style="margin-bottom:16px"<?= $openRunsPanel ? ' open' : '' ?>>
+  <summary class="admin-expander-summary">
+    <span class="admin-expander-summary-text">
+      <h2 class="admin-team-section-title" style="margin:0">Ученики в процессе</h2>
+      <span class="field-hint"><?= wwm_escape($runsSummaryHint) ?></span>
+    </span>
+    <span class="admin-expander-chevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="admin-expander-body">
   <p class="field-hint">
     Попадание в процесс — строка здесь и число <strong>Active runs</strong> в списке процессов.
     Демо из карточки ученика и вебхук <code>/api/demo</code> зачисляют во все <strong>включённые</strong> процессы с типом входа «демо» и тем же slug курса.
@@ -195,6 +215,7 @@ $formatRunAt = static function (?string $iso): string {
             <th>Статус</th>
             <th>Сейчас на блоке</th>
             <th class="col-date">Зачислен</th>
+            <th class="col-date">Следующий шаг</th>
             <th class="col-tight"></th>
           </tr>
         </thead>
@@ -225,6 +246,7 @@ $formatRunAt = static function (?string $iso): string {
               <td><span class="badge <?= $badge ?>"><?= wwm_escape($statusLabel) ?></span></td>
               <td><?= wwm_escape($nodeLabel($runNodeId)) ?></td>
               <td class="col-date"><?= wwm_escape($formatRunAt(isset($run['enrolled_at']) ? (string)$run['enrolled_at'] : null)) ?></td>
+              <td class="col-date"><?= wwm_escape($formatRunAt(isset($run['next_run_at']) ? (string)$run['next_run_at'] : null)) ?></td>
               <td class="col-tight">
                 <?php if ($runStatus === 'active' && $runId > 0): ?>
                   <form method="post" action="/admin/automations/<?= $id ?>/runs/<?= $runId ?>/advance" class="inline-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px" data-confirm="Протолкнуть ученика дальше по процессу?">
@@ -255,6 +277,19 @@ $formatRunAt = static function (?string $iso): string {
         </tbody>
       </table>
     </div>
+    <?php if ($flowRunsPages > 1): ?>
+      <div class="admin-table-actions" style="margin-top:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span class="field-hint">Страница <?= (int)$flowRunsPage ?> из <?= (int)$flowRunsPages ?> (по 20)</span>
+        <span style="display:flex;gap:8px">
+          <?php if ($flowRunsPage > 1): ?>
+            <a href="<?= wwm_escape($runsPageUrl($flowRunsPage - 1)) ?>" class="btn btn-ghost btn-sm">← Назад</a>
+          <?php endif; ?>
+          <?php if ($flowRunsPage < $flowRunsPages): ?>
+            <a href="<?= wwm_escape($runsPageUrl($flowRunsPage + 1)) ?>" class="btn btn-ghost btn-sm">Далее →</a>
+          <?php endif; ?>
+        </span>
+      </div>
+    <?php endif; ?>
   <?php endif; ?>
   <?php if (!$isArchivedFlow): ?>
   <form method="post" action="/admin/automations/<?= $id ?>/enroll" class="admin-filter-grid" style="margin-top:16px">
@@ -269,7 +304,8 @@ $formatRunAt = static function (?string $iso): string {
     </div>
   </form>
   <?php endif; ?>
-</div>
+  </div>
+</details>
 
 <form method="post" action="/admin/automations/<?= $id ?>" class="admin-card automation-flow-editor" id="automation-edit-form">
   <h2 class="admin-team-section-title">Визуальный редактор сценария</h2>

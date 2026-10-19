@@ -4,7 +4,7 @@
     "title": "Elke demo funnel (subscription ENG)",
     "description": "48h demo access; one reminder if lesson not opened; 40% coupon for 24h after demo ends (final mail at 3h left). flow_revision 4.",
     "course_slug": "elke-en",
-    "flow_revision": 4
+    "flow_revision": 5
   },
   "nodes": {
     "start": {
@@ -91,7 +91,9 @@
     "wait_coupon_21h": {
       "type": "delay",
       "seconds": 75600,
-      "label": "Pause 21 hours (coupon still valid)"
+      "wake_from_context": "coupon_expires_at",
+      "wake_lead_seconds": 10800,
+      "label": "Pause until 3 hours before coupon ends"
     },
     "gate_paid_any_3": {
       "type": "condition",

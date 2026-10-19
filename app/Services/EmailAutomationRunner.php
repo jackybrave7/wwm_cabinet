@@ -557,6 +557,20 @@ final class EmailAutomationRunner
             return ['next' => null, 'sent' => false, 'stop' => true];
         }
 
+        if ($template === 'sale_demo_discount_24h') {
+            $context = EmailAutomationRun::context($run);
+            $context['coupon_expires_at'] = gmdate('c', time() + 24 * 3600);
+            $context['coupon_code'] = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4')) ?: 'SPECWWM4';
+            $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+            EmailAutomationRun::saveProgress(
+                $pdo,
+                (int)$run['id'],
+                $nodeId,
+                (string)($run['next_run_at'] ?? gmdate('c')),
+                $context
+            );
+        }
+
         // Record send before advancing so a crash after this cannot double-send.
         self::logStep($pdo, $run, $nodeId, 'send_template', 'sent', $template);
         self::advanceAfterSend($pdo, $run, $nodeId, $next, true);
@@ -704,9 +718,7 @@ final class EmailAutomationRunner
         if ($user === null) {
             return false;
         }
-        if (!empty($user['avo_demo_opened_tagged'])) {
-            return true;
-        }
+        // AVO tag alone is not a view: signup auto-login used to set it without a lesson open.
         $engagement = (new StudentEngagement())->forEmail((string)$user['email'], $courseSlug);
 
         return !empty($engagement['demo_lesson_opened']);
@@ -755,6 +767,14 @@ final class EmailAutomationRunner
         }
 
         $seconds = max(0, (int)($node['seconds'] ?? 0));
+        $fromKey = trim((string)($node['wake_from_context'] ?? ''));
+        if ($fromKey !== '') {
+            $base = strtotime((string)($context[$fromKey] ?? ''));
+            $lead = max(0, (int)($node['wake_lead_seconds'] ?? 0));
+            if ($base !== false && $base > 0) {
+                $seconds = max(0, $base - $lead - $now);
+            }
+        }
         if ($seconds === 0) {
             // Zero-length delay (legacy passthrough nodes): continue immediately.
             self::logStep($pdo, $run, $nodeId, 'delay', 'done', 'until=immediate');
