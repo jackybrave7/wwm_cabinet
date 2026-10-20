@@ -147,6 +147,45 @@ final class User
     }
 
     /**
+     * @param array<string, scalar|null> $patch
+     */
+    public static function mergeMetaAds(PDO $pdo, int $userId, array $patch): void
+    {
+        $current = self::metaAds(self::findById($pdo, $userId) ?? []);
+        foreach ($patch as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $current[$key] = is_scalar($value) ? (string)$value : '';
+        }
+        $json = json_encode($current, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $pdo->prepare('UPDATE users SET meta_ads_json = ? WHERE id = ?')->execute([$json, $userId]);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return array<string, string>
+     */
+    public static function metaAds(array $user): array
+    {
+        $decoded = json_decode((string)($user['meta_ads_json'] ?? ''), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+        $out = [];
+        foreach ($decoded as $key => $value) {
+            if (is_string($key) && is_scalar($value) && (string)$value !== '') {
+                $out[$key] = (string)$value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @param array{avo_contact_id?: int, avo_logged_in_tagged?: int, avo_demo_opened_tagged?: int} $flags
      */
     public static function setAvoFlags(PDO $pdo, int $userId, array $flags): void

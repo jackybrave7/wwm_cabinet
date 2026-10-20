@@ -61,6 +61,13 @@ return [
     // Post-purchase cross-sell automation (50% for 48h)
     'crosssell_coupon_code' => 'WWM5',
 
+    // Meta pixel + Conversions API (optional). Pixel id is public; token is a secret.
+    'meta' => [
+        'pixel_id' => '',
+        'capi_token' => '',
+        'test_event_code' => '',
+    ],
+
     'demo_hours' => 48,
     'magic_link_hours' => 72,
 

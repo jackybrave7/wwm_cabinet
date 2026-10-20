@@ -9,6 +9,7 @@ use Wwm\Services\DemoLead;
 use Wwm\Services\DemoLeadEmbed;
 use Wwm\Services\DemoLeadRateLimit;
 use Wwm\Services\EmailAutomationEnrollment;
+use Wwm\Services\MetaCapi;
 
 final class DemoLeadController
 {
@@ -105,15 +106,27 @@ final class DemoLeadController
             EmailAutomationEnrollment::onCabinetDemoForm((int)$result['user_id'], (string)$result['course_slug']);
         }
 
+        $leadId = MetaCapi::newLeadId();
+        $courseSlug = (string)$result['course_slug'];
+        try {
+            MetaCapi::rememberLead($pdo, (int)$result['user_id'], $leadId, $_POST + [
+                'course' => $courseSlug,
+            ]);
+            MetaCapi::enqueueLead($pdo, (int)$result['user_id'], $leadId, $courseSlug . '-demo');
+        } catch (\Throwable $e) {
+            wwm_log('meta lead enqueue failed: ' . $e->getMessage());
+        }
+
         wwm_log(sprintf(
-            'demo form user_id=%d course=%s paid=%s granted=%s',
+            'demo form user_id=%d course=%s paid=%s granted=%s lead_id=%s',
             (int)$result['user_id'],
-            (string)$result['course_slug'],
+            $courseSlug,
             !empty($result['paid']) ? 'yes' : 'no',
-            !empty($result['demo_granted']) ? 'yes' : 'no'
+            !empty($result['demo_granted']) ? 'yes' : 'no',
+            $leadId
         ));
 
-        $this->respond($embed, $course, $copy, 200, true, '', $copy['success'], $email, $name);
+        $this->respond($embed, $course, $copy, 200, true, '', $copy['success'], $email, $name, $leadId);
     }
 
     public function embedScript(string $slug): void
@@ -212,15 +225,20 @@ final class DemoLeadController
         string $error,
         string $message,
         string $email,
-        string $name
+        string $name,
+        string $leadId = ''
     ): void {
         header('Cache-Control: private, no-store');
         if ($embed || $this->wantsJson()) {
-            wwm_json_response($code, [
+            $payload = [
                 'ok' => $ok,
                 'error' => $error,
                 'message' => $message,
-            ]);
+            ];
+            if ($leadId !== '') {
+                $payload['leadId'] = $leadId;
+            }
+            wwm_json_response($code, $payload);
         }
 
         http_response_code($code);

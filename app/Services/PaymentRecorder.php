@@ -34,7 +34,7 @@ final class PaymentRecorder
         $pricing = Payment::pricingFromPayload($payload);
         $amountRub = $pricing['amount_rub'] ?? self::amount($payload);
 
-        return Payment::upsert($pdo, [
+        $wrote = Payment::upsert($pdo, [
             'user_id' => $userId,
             'avo_account_id' => $accountId,
             'course_slug' => $courseSlug,
@@ -55,6 +55,47 @@ final class PaymentRecorder
             'ad_snapshot' => $adSnapshot,
             'avo_contact_id' => $avoContactId,
         ]);
+
+        if ($wrote && $paidAt !== null && trim($paidAt) !== '') {
+            self::enqueueMetaPurchase($pdo, $userId, $accountId, $courseSlug, $pricing, $amountRub);
+        }
+
+        return $wrote;
+    }
+
+    /**
+     * @param array{amount_original: ?float, currency_original: string, fx_rate: ?float, amount_rub: ?float} $pricing
+     */
+    private static function enqueueMetaPurchase(
+        \PDO $pdo,
+        int $userId,
+        string $accountId,
+        string $courseSlug,
+        array $pricing,
+        ?float $amountRub
+    ): void {
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT id FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
+            );
+            $stmt->execute([$accountId, $courseSlug]);
+            $paymentId = (int)$stmt->fetchColumn();
+            $value = $pricing['amount_original'] ?? null;
+            $currency = trim((string)($pricing['currency_original'] ?? ''));
+            if ($value === null || $value <= 0 || $currency === '') {
+                $value = $amountRub;
+                $currency = $amountRub !== null ? 'RUB' : '';
+            }
+            MetaCapi::enqueuePurchase(
+                $pdo,
+                $userId,
+                $paymentId > 0 ? (string)$paymentId : $accountId,
+                $value,
+                $currency
+            );
+        } catch (\Throwable $e) {
+            wwm_log('meta purchase enqueue failed: ' . $e->getMessage());
+        }
     }
 
     /**

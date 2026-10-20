@@ -10,6 +10,7 @@ final class BackgroundJob
     public const TYPE_LOGIN_FOLLOWUP = 'login_followup';
     public const TYPE_AVO_LOGGED_IN = 'avo_logged_in';
     public const TYPE_AVO_DEMO_OPENED = 'avo_demo_opened';
+    public const TYPE_META_CAPI = 'meta_capi';
 
     public static function ensureTable(PDO $pdo): void
     {

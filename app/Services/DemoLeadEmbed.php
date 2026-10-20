@@ -80,33 +80,22 @@ final class DemoLeadEmbed
     '.wwm-demo-success{margin:12px 0;font-size:16px;line-height:1.45;}',
     '.wwm-demo-close{position:absolute;right:-12px;top:-12px;width:40px;height:40px;border:0;border-radius:20px;background:#fff;box-shadow:0 0 3px #888;font-size:28px;line-height:1;cursor:pointer;color:#5b6b79;}',
     '.wwm-demo-hp{position:absolute;left:-9999px;height:0;overflow:hidden;}',
-    '.wwm-demo-thanks-frame{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;border:0;}',
     '.t-popup .wwm-demo-card{box-shadow:none;}'
   ].join('');
   document.head.appendChild(style);
 
-  function pingThanksPage() {
-    var url = String(cfg.thanksUrl || '').trim();
-    if (!url) return;
-    try {
-      var u = new URL(url, window.location.href);
-      u.searchParams.set('wwm_lead', '1');
-      u.searchParams.set('course', cfg.slug || '');
-      url = u.toString();
-    } catch (e) {
-      url += (url.indexOf('?') >= 0 ? '&' : '?') + 'wwm_lead=1';
-    }
-    var frame = document.createElement('iframe');
-    frame.className = 'wwm-demo-thanks-frame';
-    frame.src = url;
-    frame.width = 1;
-    frame.height = 1;
-    frame.setAttribute('aria-hidden', 'true');
-    frame.tabIndex = -1;
-    document.body.appendChild(frame);
-    setTimeout(function () {
-      try { frame.remove(); } catch (err) {}
-    }, 30000);
+  function cookieValue(name) {
+    var match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&') + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function fbcValue() {
+    var existing = cookieValue('_fbc');
+    if (existing) return existing;
+    var fbclid = '';
+    try { fbclid = new URLSearchParams(window.location.search).get('fbclid') || ''; } catch (e) {}
+    if (!fbclid) return '';
+    return 'fb.1.' + Date.now() + '.' + fbclid;
   }
 
   var host = document.createElement(inline ? 'div' : 'div');
@@ -235,6 +224,11 @@ final class DemoLeadEmbed
     error.hidden = true;
     submit.disabled = true;
     var body = new URLSearchParams(new FormData(form));
+    var fbp = cookieValue('_fbp');
+    var fbc = fbcValue();
+    if (fbp) body.set('_fbp', fbp);
+    if (fbc) body.set('_fbc', fbc);
+    try { body.set('event_source_url', String(window.location.href || '').slice(0, 500)); } catch (e) {}
     fetch(cfg.postUrl, {
       method: 'POST',
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -248,7 +242,11 @@ final class DemoLeadEmbed
         done.className = 'wwm-demo-success';
         done.textContent = (data && data.message) || copy.success || '';
         card.insertBefore(done, form);
-        pingThanksPage();
+        if (data.leadId && window.fbq) {
+          try {
+            fbq('track', 'Lead', { content_name: (cfg.slug || 'demo') + '-demo' }, { eventID: data.leadId });
+          } catch (e) {}
+        }
         return;
       }
       error.textContent = (data && data.message) || copy.error_generic || '';

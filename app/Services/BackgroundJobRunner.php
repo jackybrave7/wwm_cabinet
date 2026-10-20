@@ -74,6 +74,9 @@ final class BackgroundJobRunner
                 }
                 AvoEngagementSync::onDemoLessonOpen($userId, false);
                 return;
+            case BackgroundJob::TYPE_META_CAPI:
+                MetaCapi::sendFromJob($pdo, $payload);
+                return;
             default:
                 throw new \InvalidArgumentException('unknown job_type=' . $type);
         }

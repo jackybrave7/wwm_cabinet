@@ -105,6 +105,12 @@ return [
         'stale_after_seconds' => ${Number(env('WWM_AUTOMATION_STALE_SECONDS', '7200')) || 7200},
     ],
 
+    'meta' => [
+        'pixel_id' => ${phpString(env('WWM_META_PIXEL_ID', '931617909033035'))},
+        'capi_token' => ${phpString(env('WWM_META_CAPI_TOKEN'))},
+        'test_event_code' => ${phpString(env('WWM_META_TEST_EVENT_CODE'))},
+    ],
+
     'staff_notify_email' => ${phpString(env('WWM_STAFF_NOTIFY_EMAIL', 'support@worldwatercolormasters.art'))},
 
     'demo_default_password' => ${phpString(env('WWM_DEMO_DEFAULT_PASSWORD', 'Gh45tyhf'))},

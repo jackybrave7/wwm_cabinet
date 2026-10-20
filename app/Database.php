@@ -129,6 +129,7 @@ SQL);
         self::ensureColumn($pdo, 'access', 'avo_ordered_at', 'TEXT');
         self::ensureColumn($pdo, 'access', 'avo_paid_at', 'TEXT');
         self::ensureColumn($pdo, 'users', 'registration_source', 'TEXT NOT NULL DEFAULT \'\'');
+        self::ensureColumn($pdo, 'users', 'meta_ads_json', 'TEXT');
 
         $pdo->exec(
             'UPDATE users SET registration_source = \'csv-import\' WHERE registration_source = \'\''
