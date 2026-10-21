@@ -93,6 +93,8 @@ final class EmailWebhookCatalog
                     'id_contact' => '{id_contact}',
                     'id_account' => '{id_account}',
                     'id_goods' => '{id_goods}',
+                    'sum' => '{account_sum}',
+                    'account_sum' => '{account_sum}',
                 ], $attribution),
             ],
             'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring',

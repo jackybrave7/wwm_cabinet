@@ -34,6 +34,7 @@ final class Payment
         $rub = self::positiveFloat(
             $payload['amount_rub']
                 ?? $payload['sum_rub']
+                ?? $payload['account_sum']
                 ?? null
         );
         $fx = self::positiveFloat($payload['fx_rate'] ?? $payload['rate'] ?? null);

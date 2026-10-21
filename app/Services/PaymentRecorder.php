@@ -29,6 +29,7 @@ final class PaymentRecorder
             return false;
         }
 
+        $payload = AvoInvoiceAmounts::mergeMissing($payload);
         $utm = StudentAttribution::utmFromAvoPayload($payload);
         $adSnapshot = self::adSnapshotJson($payload);
         $pricing = Payment::pricingFromPayload($payload);
@@ -103,7 +104,7 @@ final class PaymentRecorder
      */
     private static function amount(array $payload): ?float
     {
-        foreach (['sum', 'price', 'amount', 'total'] as $key) {
+        foreach (['account_sum', 'sum', 'price', 'amount', 'total'] as $key) {
             if (!isset($payload[$key])) {
                 continue;
             }

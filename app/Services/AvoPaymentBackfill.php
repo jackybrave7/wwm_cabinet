@@ -146,7 +146,7 @@ final class AvoPaymentBackfill
                 }
 
                 $accountId = AvoAccountRow::accountId($row);
-                if ($this->paymentExists($pdo, (string)$accountId, $courseSlug)) {
+                if ($this->paymentHasAmount($pdo, (string)$accountId, $courseSlug)) {
                     $stats['skipped_existing']++;
                     continue;
                 }
@@ -228,14 +228,20 @@ final class AvoPaymentBackfill
         return $stats;
     }
 
-    private function paymentExists(PDO $pdo, string $avoAccountId, string $courseSlug): bool
+    private function paymentHasAmount(PDO $pdo, string $avoAccountId, string $courseSlug): bool
     {
         $stmt = $pdo->prepare(
-            'SELECT 1 FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
+            'SELECT amount, amount_original FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
         );
         $stmt->execute([$avoAccountId, $courseSlug]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            return false;
+        }
+        $amount = (float)($row['amount'] ?? 0);
+        $original = (float)($row['amount_original'] ?? 0);
 
-        return (bool)$stmt->fetchColumn();
+        return $amount > 0 || $original > 0;
     }
 
     /**
