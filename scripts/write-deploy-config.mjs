@@ -60,6 +60,7 @@ const avoEnabled = envBool('WWM_AVO_ENABLED', false);
 const avoTagLoggedIn = Number(env('WWM_AVO_TAG_LOGGED_IN', '0')) || 0;
 const avoTagDemoOpened = Number(env('WWM_AVO_TAG_DEMO_OPENED', '0')) || 0;
 const avoImportCategoryId = Number(env('WWM_AVO_IMPORT_GOODS_CATEGORY_ID', '0')) || 0;
+const metaPixelId = env('WWM_META_PIXEL_ID', '931617909033035').trim() || '931617909033035';
 
 const config = `<?php
 /**
@@ -106,7 +107,7 @@ return [
     ],
 
     'meta' => [
-        'pixel_id' => ${phpString(env('WWM_META_PIXEL_ID', '931617909033035'))},
+        'pixel_id' => ${phpString(metaPixelId)},
         'capi_token' => ${phpString(env('WWM_META_CAPI_TOKEN'))},
         'test_event_code' => ${phpString(env('WWM_META_TEST_EVENT_CODE'))},
     ],

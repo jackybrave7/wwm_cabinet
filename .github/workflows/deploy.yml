@@ -45,6 +45,17 @@ jobs:
           WWM_AVO_API_KEY_SET: ${{ secrets.WWM_AVO_API_KEY_SET }}
           WWM_AVO_TAG_LOGGED_IN: ${{ secrets.WWM_AVO_TAG_LOGGED_IN }}
           WWM_AVO_TAG_DEMO_OPENED: ${{ secrets.WWM_AVO_TAG_DEMO_OPENED }}
+          WWM_META_PIXEL_ID: ${{ secrets.WWM_META_PIXEL_ID }}
+          WWM_META_CAPI_TOKEN: ${{ secrets.WWM_META_CAPI_TOKEN }}
+          WWM_META_TEST_EVENT_CODE: ${{ secrets.WWM_META_TEST_EVENT_CODE }}
+
+      - name: Check Meta CAPI token
+        env:
+          WWM_META_CAPI_TOKEN: ${{ secrets.WWM_META_CAPI_TOKEN }}
+        run: |
+          if [ -z "$WWM_META_CAPI_TOKEN" ]; then
+            echo "::warning::Meta CAPI token is empty"
+          fi
 
       - name: Mirror public → public_html (Spaceweb docroot)
         run: rm -rf public_html && cp -a public public_html
