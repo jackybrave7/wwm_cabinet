@@ -11,6 +11,8 @@ final class EmailTracker
 
     private int $messageId = 0;
     private string $openToken = '';
+    private string $lastTextBody = '';
+    private ?string $lastHtmlBody = null;
 
     private function __construct(
         private string $to,
@@ -30,6 +32,16 @@ final class EmailTracker
         return $this->messageId;
     }
 
+    public function lastTextBody(): string
+    {
+        return $this->lastTextBody;
+    }
+
+    public function lastHtmlBody(): ?string
+    {
+        return $this->lastHtmlBody;
+    }
+
     /**
      * @param list<array{url: string, label?: string}> $links
      * @param list<string> $extraHeaders
@@ -46,28 +58,19 @@ final class EmailTracker
         $this->messageId = $created['id'];
         $this->openToken = $created['open_token'];
 
-        // Longest URL first — otherwise replacing https://example.com also breaks
-        // https://example.com/path in the same HTML (logo vs buy button).
-        usort($links, static function (array $a, array $b): int {
-            return strlen(trim((string)($b['url'] ?? ''))) <=> strlen(trim((string)($a['url'] ?? '')));
-        });
-
-        foreach ($links as $link) {
-            $url = trim((string)($link['url'] ?? ''));
-            if ($url === '') {
-                continue;
-            }
-            $tracked = $this->registerLink($url, (string)($link['label'] ?? ''));
-            $textBody = str_replace($url, $tracked, $textBody);
-            if ($htmlBody !== null && $htmlBody !== '') {
-                $htmlBody = str_replace($url, $tracked, $htmlBody);
-            }
+        $trackedByUrl = $this->trackedUrls($links);
+        $textBody = $this->replaceTextUrls($textBody, $trackedByUrl);
+        if ($htmlBody !== null && $htmlBody !== '') {
+            $htmlBody = $this->replaceHtmlHrefs($htmlBody, $trackedByUrl);
         }
 
         if ($htmlBody !== null && $htmlBody !== '') {
             $htmlBody = wwm_repair_email_html($htmlBody) ?? $htmlBody;
             $htmlBody = $this->injectOpenPixel($htmlBody);
         }
+
+        $this->lastTextBody = $textBody;
+        $this->lastHtmlBody = $htmlBody;
 
         $ok = Mailer::send($this->to, $this->subject, $textBody, $htmlBody, $extraHeaders);
         EmailMessage::markStatus($pdo, $this->messageId, $ok, $ok ? null : Mailer::lastError());
@@ -88,6 +91,68 @@ final class EmailTracker
     public static function clickTarget(string $linkToken): ?string
     {
         return EmailMessage::clickTarget(wwm_pdo(), $linkToken);
+    }
+
+    /**
+     * @param list<array{url: string, label?: string}> $links
+     * @return array<string, string> original URL => tracked URL
+     */
+    private function trackedUrls(array $links): array
+    {
+        $trackedByUrl = [];
+        foreach ($links as $link) {
+            $url = trim((string)($link['url'] ?? ''));
+            if ($url === '' || isset($trackedByUrl[$url])) {
+                continue;
+            }
+            $trackedByUrl[$url] = $this->registerLink($url, (string)($link['label'] ?? ''));
+        }
+
+        return $trackedByUrl;
+    }
+
+    /**
+     * @param array<string, string> $trackedByUrl
+     */
+    private function replaceHtmlHrefs(string $html, array $trackedByUrl): string
+    {
+        $rewritten = preg_replace_callback(
+            "#\\bhref\\s*=\\s*(\"|')([^\"']*)\\1#i",
+            static function (array $match) use ($trackedByUrl): string {
+                $decoded = trim(html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                if (!isset($trackedByUrl[$decoded])) {
+                    return $match[0];
+                }
+                $tracked = htmlspecialchars($trackedByUrl[$decoded], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                return 'href=' . $match[1] . $tracked . $match[1];
+            },
+            $html
+        );
+
+        return is_string($rewritten) ? $rewritten : $html;
+    }
+
+    /**
+     * Replace a whole URL only (whitespace, start/end, or parentheses), never a prefix.
+     *
+     * @param array<string, string> $trackedByUrl
+     */
+    private function replaceTextUrls(string $text, array $trackedByUrl): string
+    {
+        $urls = array_keys($trackedByUrl);
+        usort($urls, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+        foreach ($urls as $url) {
+            $tracked = $trackedByUrl[$url];
+            $pattern = '#(^|[\s(])' . preg_quote($url, '#') . '(?=$|[\s)])#m';
+            $text = preg_replace_callback(
+                $pattern,
+                static fn (array $match): string => $match[1] . $tracked,
+                $text
+            ) ?? $text;
+        }
+
+        return $text;
     }
 
     private function registerLink(string $targetUrl, string $label): string

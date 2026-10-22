@@ -146,7 +146,7 @@ final class Router
             (new EmailTrackingController())->open($m[1]);
             return;
         }
-        if ($method === 'GET' && preg_match('#^/t/c/([a-f0-9]{32})$#', $path, $m)) {
+        if ($method === 'GET' && preg_match('#^/t/c/([a-f0-9]{32})(?:/.*)?$#', $path, $m)) {
             (new EmailTrackingController())->click($m[1]);
             return;
         }
