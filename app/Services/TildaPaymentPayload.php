@@ -159,7 +159,8 @@ final class TildaPaymentPayload
             is_array($payment) ? ($payment['promocode'] ?? null) : null,
         ]);
 
-        return [
+        $utm = PaymentUtmExtractor::extract($payload);
+        $normalized = [
             'source' => 'tilda',
             'email' => strtolower($email),
             'name' => $name,
@@ -173,7 +174,19 @@ final class TildaPaymentPayload
             'promocode' => $promocode,
             'is_free' => $amount <= 0,
             'id_account' => $keys[0] ?? '',
+            'utm' => $utm,
         ];
+        foreach ($utm as $key => $value) {
+            $normalized[$key] = $value;
+        }
+        foreach (['COOKIES', 'referer', 'formurl', 'tildaformurl', 'page_url'] as $field) {
+            $raw = $payload[$field] ?? $payload[strtolower($field)] ?? null;
+            if (is_string($raw) && trim($raw) !== '') {
+                $normalized[$field] = $raw;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

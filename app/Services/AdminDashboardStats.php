@@ -146,21 +146,18 @@ final class AdminDashboardStats
      */
     public function revenueTotals(DateTimeImmutable $from, DateTimeImmutable $to): array
     {
-        $paidAt = $this->paymentEventAtSql();
-        $stmt = $this->pdo->prepare(
-            'SELECT * FROM payments
-             WHERE (' . $paidAt . ') >= ? AND (' . $paidAt . ') <= ?
-             ORDER BY (' . $paidAt . ') ASC'
-        );
-        $stmt->execute([$from->format('c'), $to->format('c')]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $fromTs = $from->getTimestamp();
+        $toTs = $to->getTimestamp();
+        $rows = [];
+        foreach ($this->pdo->query('SELECT * FROM payments')->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $ts = Payment::eventTimestamp($row);
+            if ($ts === null || $ts < $fromTs || $ts > $toTs) {
+                continue;
+            }
+            $rows[] = $row;
+        }
 
         return Payment::aggregateRevenue($rows);
-    }
-
-    private function paymentEventAtSql(): string
-    {
-        return "COALESCE(NULLIF(paid_at, ''), NULLIF(ordered_at, ''), created_at)";
     }
 
     /**

@@ -103,6 +103,10 @@ try {
     exit;
 }
 
+if (!is_array($order['utm'] ?? null) && class_exists('TildaUtm')) {
+    $order['utm'] = TildaUtm::parse($_POST);
+}
+
 if ($order['email'] === '') {
     // Повторная страховка: пустой/тестовый запрос без email
     if (isTildaWebhookPing($_POST) || ($order['products'] === [] && $order['amount'] <= 0)) {
@@ -670,6 +674,7 @@ function notifyWwmCabinetForProcessedTildaOrder(
         'currency_original' => (string)($processedMeta['currency'] ?? $order['currency'] ?? ''),
         'amount_rub' => $amountRub,
         'fx_rate' => (float)($fx['rate'] ?? 0),
+        'utm' => is_array($order['utm'] ?? null) ? $order['utm'] : [],
     ], $logger);
 }
 

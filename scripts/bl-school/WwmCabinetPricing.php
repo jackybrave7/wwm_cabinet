@@ -139,6 +139,13 @@ function wwm_notify_cabinet_payment_grant(array $config, array $grant, ?callable
     if ($idContact > 0) {
         $payload['id_contact'] = $idContact;
     }
+    $utm = is_array($grant['utm'] ?? null) ? $grant['utm'] : [];
+    foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+        $value = trim((string)($utm[$key] ?? $grant[$key] ?? ''));
+        if ($value !== '') {
+            $payload[$key] = $value;
+        }
+    }
 
     $status = wwm_cabinet_http_post_json($url, $token, $payload);
     if ($logger !== null) {

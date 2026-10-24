@@ -13,6 +13,7 @@ use Wwm\Services\AvoWebhookPayload;
 use Wwm\Services\DemoAccess;
 use Wwm\Services\PaidAccess;
 use Wwm\Services\PaymentRecorder;
+use Wwm\Services\PaymentUtmExtractor;
 use Wwm\Services\StudentAttribution;
 use Wwm\Services\TildaPaymentPayload;
 
@@ -64,6 +65,7 @@ final class PaymentWebhookController
         }
 
         $pdo = wwm_pdo();
+        $utm = self::utmFromPayload($payload);
 
         // Same purchase already processed via Tilda keys → no second grant/email.
         if ($externalKeys !== [] && PaymentExternalKey::anyExist($pdo, $externalKeys)) {
@@ -78,7 +80,8 @@ final class PaymentWebhookController
                     $payload,
                     null,
                     null,
-                    null
+                    null,
+                    $utm
                 );
             }
             $this->respondStatus('already_paid', [
@@ -97,7 +100,7 @@ final class PaymentWebhookController
                 $courseSlug,
                 'tilda',
                 $accountId !== '' ? $accountId : ($externalKeys[0] ?? null),
-                [],
+                $utm,
                 null,
                 null,
                 $paidAt,
@@ -113,7 +116,8 @@ final class PaymentWebhookController
                 $payload,
                 $paidAt,
                 $paidAt,
-                null
+                null,
+                $utm
             );
             if ($paymentRecorded && empty($result['already_paid'])) {
                 \Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded(
@@ -184,6 +188,7 @@ final class PaymentWebhookController
         }
 
         $pdo = wwm_pdo();
+        $utm = (new AvoUtmResolver())->resolve($payload);
 
         // Tilda already granted (keys in invoice comment) → no second access/email.
         if ($externalKeys !== [] && PaymentExternalKey::anyExist($pdo, $externalKeys)) {
@@ -201,7 +206,8 @@ final class PaymentWebhookController
                     $payload,
                     $timeline['ordered'],
                     $timeline['paid'],
-                    $avoContactId > 0 ? $avoContactId : null
+                    $avoContactId > 0 ? $avoContactId : null,
+                    $utm
                 );
             }
             wwm_json_response(200, [
@@ -224,7 +230,7 @@ final class PaymentWebhookController
                 $courseSlug,
                 $source,
                 $sourceRef !== '' ? $sourceRef : null,
-                (new AvoUtmResolver())->resolve($payload),
+                $utm,
                 $avoContactId > 0 ? $avoContactId : null,
                 $sendEmail,
                 $timeline['ordered'],
@@ -244,7 +250,8 @@ final class PaymentWebhookController
                 $payload,
                 $timeline['ordered'],
                 $timeline['paid'],
-                $avoContactId > 0 ? $avoContactId : null
+                $avoContactId > 0 ? $avoContactId : null,
+                $utm
             );
             if ($paymentRecorded && empty($result['already_paid'])) {
                 \Wwm\Services\EmailAutomationEnrollment::onPaymentRecorded(
@@ -289,6 +296,7 @@ final class PaymentWebhookController
 
     /**
      * @param array<string, mixed> $payload
+     * @param array<string, string>|null $utm
      */
     private function recordPaymentQuietly(
         \PDO $pdo,
@@ -298,7 +306,8 @@ final class PaymentWebhookController
         array $payload,
         ?string $orderedAt,
         ?string $paidAt,
-        ?int $avoContactId
+        ?int $avoContactId,
+        ?array $utm = null
     ): bool {
         try {
             return PaymentRecorder::recordFromWebhook(
@@ -309,13 +318,35 @@ final class PaymentWebhookController
                 $payload,
                 $orderedAt,
                 $paidAt,
-                $avoContactId
+                $avoContactId,
+                $utm
             );
         } catch (\Throwable $e) {
             wwm_log('payment record skipped: ' . $e->getMessage());
 
             return false;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private static function utmFromPayload(array $payload): array
+    {
+        $nested = is_array($payload['utm'] ?? null) ? $payload['utm'] : [];
+        $utm = [];
+        foreach (PaymentUtmExtractor::KEYS as $key) {
+            $value = trim((string)($nested[$key] ?? $payload[$key] ?? ''));
+            if ($value !== '') {
+                $utm[$key] = mb_substr($value, 0, 255);
+            }
+        }
+        if ($utm !== []) {
+            return $utm;
+        }
+
+        return PaymentUtmExtractor::extract($payload);
     }
 
     private function parseSendEmail(mixed $value): ?bool

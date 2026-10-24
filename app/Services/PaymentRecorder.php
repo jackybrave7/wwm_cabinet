@@ -12,6 +12,7 @@ final class PaymentRecorder
 {
     /**
      * @param array<string, mixed> $payload
+     * @param array<string, string>|null $utmOverride
      * @return bool True when a row was written
      */
     public static function recordFromWebhook(
@@ -22,7 +23,8 @@ final class PaymentRecorder
         array $payload,
         ?string $orderedAt,
         ?string $paidAt,
-        ?int $avoContactId = null
+        ?int $avoContactId = null,
+        ?array $utmOverride = null
     ): bool {
         $accountId = trim((string)($payload['id_account'] ?? $payload['source_ref'] ?? ''));
         if ($accountId === '') {
@@ -30,8 +32,8 @@ final class PaymentRecorder
         }
 
         $payload = AvoInvoiceAmounts::mergeMissing($payload);
-        $utm = StudentAttribution::utmFromAvoPayload($payload);
-        $adSnapshot = self::adSnapshotJson($payload);
+        [$utm, $origin] = self::chooseUtm($pdo, $userId, $payload, $utmOverride);
+        $adSnapshot = self::adSnapshotJson($pdo, $accountId, $courseSlug, $payload, $origin);
         $pricing = Payment::pricingFromPayload($payload);
         $amountRub = $pricing['amount_rub'] ?? self::amount($payload);
 
@@ -61,7 +63,69 @@ final class PaymentRecorder
             self::enqueueMetaPurchase($pdo, $userId, $accountId, $courseSlug, $pricing, $amountRub);
         }
 
+        wwm_log(sprintf(
+            'payment utm origin=%s src=%s user_id=%d account=%s',
+            $origin,
+            $utm['utm_source'] ?? '',
+            $userId,
+            $accountId
+        ));
+
         return $wrote;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, string>|null $utmOverride
+     * @return array{0: array<string, string>, 1: string}
+     */
+    private static function chooseUtm(\PDO $pdo, int $userId, array $payload, ?array $utmOverride): array
+    {
+        $override = self::cleanUtm($utmOverride ?? []);
+        $extracted = PaymentUtmExtractor::extract($payload);
+        $avo = StudentAttribution::utmFromAvoPayload($payload);
+
+        if ($override !== []) {
+            $origin = PaymentUtmExtractor::bodyOrigin($payload) === 'payload' ? 'payload' : 'avo';
+
+            return [$override, $origin];
+        }
+        if ($extracted !== []) {
+            $origin = PaymentUtmExtractor::bodyOrigin($payload);
+            if ($origin === 'empty') {
+                $origin = 'payload';
+            }
+
+            return [$extracted, $origin];
+        }
+        if ($avo !== []) {
+            return [$avo, 'avo'];
+        }
+
+        $user = \Wwm\Models\User::findById($pdo, $userId);
+        $first = self::cleanUtm(is_array($user) ? $user : []);
+        if ($first !== []) {
+            return [$first, 'first_touch'];
+        }
+
+        return [[], 'empty'];
+    }
+
+    /**
+     * @param array<string, mixed> $utm
+     * @return array<string, string>
+     */
+    private static function cleanUtm(array $utm): array
+    {
+        $out = [];
+        foreach (PaymentUtmExtractor::KEYS as $key) {
+            $value = trim((string)($utm[$key] ?? ''));
+            if ($value !== '') {
+                $out[$key] = mb_substr($value, 0, 255);
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -152,8 +216,13 @@ final class PaymentRecorder
     /**
      * @param array<string, mixed> $payload
      */
-    private static function adSnapshotJson(array $payload): ?string
-    {
+    private static function adSnapshotJson(
+        \PDO $pdo,
+        string $accountId,
+        string $courseSlug,
+        array $payload,
+        string $origin
+    ): ?string {
         $keys = [
             'advertising_channel_type_traffic',
             'advertising_channel_keyword',
@@ -161,15 +230,24 @@ final class PaymentRecorder
             'id_advertising_channel_page',
         ];
         $snapshot = [];
+        $stmt = $pdo->prepare(
+            'SELECT ad_snapshot FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
+        );
+        $stmt->execute([$accountId, $courseSlug]);
+        $existing = $stmt->fetchColumn();
+        if (is_string($existing) && $existing !== '') {
+            $decoded = json_decode($existing, true);
+            if (is_array($decoded)) {
+                $snapshot = $decoded;
+            }
+        }
         foreach ($keys as $key) {
             $value = trim((string)($payload[$key] ?? ''));
             if ($value !== '') {
                 $snapshot[$key] = mb_substr($value, 0, 255);
             }
         }
-        if ($snapshot === []) {
-            return null;
-        }
+        $snapshot['utm_origin'] = $origin;
 
         return json_encode($snapshot, JSON_UNESCAPED_UNICODE) ?: null;
     }

@@ -41,6 +41,7 @@ $paths = @(
     'scripts/run-email-automations.php',
     'scripts/run-background-jobs.php',
     'scripts/backfill-payments-from-avo.php',
+    'scripts/backfill-payment-utm.php',
     'scripts/test-email-automations.php',
     'scripts/test-login-background.php',
     'scripts/build-post-purchase-cross-sell-automation.php',

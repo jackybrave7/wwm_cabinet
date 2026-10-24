@@ -218,6 +218,31 @@ final class Payment
         return ['primary' => '—', 'secondary' => null, 'estimated' => false];
     }
 
+    /**
+     * Instant of the payment for dashboard windows. Offsets are real time, not string order.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function eventTimestamp(array $row): ?int
+    {
+        foreach (['paid_at', 'ordered_at', 'created_at'] as $key) {
+            $raw = trim((string)($row[$key] ?? ''));
+            if ($raw === '') {
+                continue;
+            }
+            try {
+                return (new \DateTimeImmutable($raw))->getTimestamp();
+            } catch (\Throwable) {
+                $ts = strtotime($raw);
+                if ($ts !== false) {
+                    return $ts;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public static function formatAmount(?float $amount, string $currency = ''): string
     {
         if ($amount === null || $amount <= 0) {
@@ -249,24 +274,27 @@ final class Payment
 
         foreach ($rows as $pay) {
             $rub = self::positiveFloat($pay['amount'] ?? null);
-            if ($rub === null) {
-                continue;
-            }
-            $rubTotal += $rub;
-            $count++;
-
             $original = self::positiveFloat($pay['amount_original'] ?? null);
             $currencyOriginal = strtoupper(trim((string)($pay['currency_original'] ?? '')));
-            if ($original !== null && $currencyOriginal !== '') {
-                $tildaByCurrency[$currencyOriginal] = ($tildaByCurrency[$currencyOriginal] ?? 0.0) + $original;
+            if ($rub === null && $original === null) {
+                continue;
+            }
+            $count++;
+            if ($rub !== null) {
+                $rubTotal += $rub;
+            }
+            if ($original !== null) {
+                $code = $currencyOriginal !== '' ? $currencyOriginal : 'USD';
+                $tildaByCurrency[$code] = ($tildaByCurrency[$code] ?? 0.0) + $original;
                 continue;
             }
 
             $fx = CbrUsdRubRates::rubPerUsdForPayment($pay);
-            $tildaByCurrency['USD'] = ($tildaByCurrency['USD'] ?? 0.0) + ($rub / $fx);
-            if (self::positiveFloat($pay['amount_original'] ?? null) === null) {
-                $estimatedCount++;
+            if ($fx <= 0) {
+                continue;
             }
+            $tildaByCurrency['USD'] = ($tildaByCurrency['USD'] ?? 0.0) + ($rub / $fx);
+            $estimatedCount++;
         }
 
         $primaryCurrency = 'USD';
@@ -335,6 +363,73 @@ final class Payment
             '' => $formatted,
             default => $formatted . ' ' . $code,
         };
+    }
+
+    /**
+     * Fill UTM only when all five payment columns are empty. Existing values stay.
+     *
+     * @param array<string, string> $utm
+     */
+    public static function fillEmptyUtm(PDO $pdo, int $id, array $utm, string $origin): bool
+    {
+        if ($id <= 0 || $utm === []) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT utm_source, utm_medium, utm_campaign, utm_term, utm_content, ad_snapshot
+             FROM payments WHERE id = ?'
+        );
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            return false;
+        }
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $key) {
+            if (trim((string)($row[$key] ?? '')) !== '') {
+                return false;
+            }
+        }
+
+        $snapshot = [];
+        $existing = $row['ad_snapshot'] ?? '';
+        if (is_string($existing) && $existing !== '') {
+            $decoded = json_decode($existing, true);
+            if (is_array($decoded)) {
+                $snapshot = $decoded;
+            }
+        }
+        $snapshot['utm_origin'] = $origin;
+        $json = json_encode($snapshot, JSON_UNESCAPED_UNICODE) ?: null;
+
+        $update = $pdo->prepare(
+            'UPDATE payments SET
+                utm_source = ?,
+                utm_medium = ?,
+                utm_campaign = ?,
+                utm_term = ?,
+                utm_content = ?,
+                ad_snapshot = ?,
+                updated_at = ?
+             WHERE id = ?
+               AND COALESCE(utm_source, \'\') = \'\'
+               AND COALESCE(utm_medium, \'\') = \'\'
+               AND COALESCE(utm_campaign, \'\') = \'\'
+               AND COALESCE(utm_term, \'\') = \'\'
+               AND COALESCE(utm_content, \'\') = \'\''
+        );
+        $update->execute([
+            $utm['utm_source'] ?? null,
+            $utm['utm_medium'] ?? null,
+            $utm['utm_campaign'] ?? null,
+            $utm['utm_term'] ?? null,
+            $utm['utm_content'] ?? null,
+            $json,
+            gmdate('c'),
+            $id,
+        ]);
+
+        return $update->rowCount() > 0;
     }
 
     private static function positiveFloat(mixed $value): ?float

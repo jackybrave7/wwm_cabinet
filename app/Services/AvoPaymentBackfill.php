@@ -167,6 +167,7 @@ final class AvoPaymentBackfill
                 }
 
                 try {
+                    $utm = $utmResolver->resolve($payload);
                     $userId = 0;
                     if ($grantAccess) {
                         $grant = (new PaidAccess())->grant(
@@ -175,7 +176,7 @@ final class AvoPaymentBackfill
                             $courseSlug,
                             self::SOURCE,
                             (string)$accountId,
-                            $utmResolver->resolve($payload),
+                            $utm,
                             $contactId > 0 ? $contactId : null,
                             $sendEmail ? null : false,
                             $timeline['ordered'],
@@ -202,7 +203,8 @@ final class AvoPaymentBackfill
                             $payload,
                             $timeline['ordered'],
                             $timeline['paid'],
-                            $contactId > 0 ? $contactId : null
+                            $contactId > 0 ? $contactId : null,
+                            $utm
                         );
                         if ($ok) {
                             $stats['payments_recorded']++;
