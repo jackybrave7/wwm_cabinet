@@ -216,7 +216,9 @@ final class CabinetMail
         $couponExpiresTs = time() + 24 * 3600;
         $couponExpiresLabel = gmdate('M j, Y H:i', $couponExpiresTs) . ' UTC';
         if (in_array($template, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
-            $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template);
+            $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template, 'elke-demo');
+        } elseif (in_array($template, ['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'], true)) {
+            $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template, 'cross-sell');
         }
 
         $context = [
@@ -272,7 +274,7 @@ final class CabinetMail
         return $ts !== false ? $ts : null;
     }
 
-    private static function saleCheckoutUrl(string $buyUrl, string $coupon, string $nodeHint): string
+    private static function saleCheckoutUrl(string $buyUrl, string $coupon, string $nodeHint, string $campaign = 'elke-demo'): string
     {
         if ($buyUrl === '' || !str_starts_with($buyUrl, 'https://')) {
             return $buyUrl;
@@ -280,7 +282,7 @@ final class CabinetMail
         $extra = [
             'promo' => $coupon,
             'utm_source' => 'email',
-            'utm_campaign' => 'elke-demo',
+            'utm_campaign' => $campaign,
             'utm_content' => $nodeHint,
         ];
         $sep = str_contains($buyUrl, '?') ? '&' : '?';

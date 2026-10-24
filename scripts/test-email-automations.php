@@ -53,6 +53,11 @@ try {
 foreach (['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'] as $tpl) {
     ok(\Wwm\Services\EmailTemplateCatalog::find($tpl) !== null, "template {$tpl} in catalog");
     ok(\Wwm\Services\MarketingEmailDelivery::isMarketingTemplate($tpl), "template {$tpl} is marketing");
+    $preview = \Wwm\Services\EmailTemplateCatalog::preview($tpl);
+    $blob = ($preview['subject'] ?? '') . "\n" . ($preview['text'] ?? '') . "\n" . ($preview['html'] ?? '');
+    ok(str_contains($blob, 'WWM5'), "template {$tpl} preview uses cross-sell coupon");
+    ok(!str_contains($blob, 'SPECWWM4'), "template {$tpl} preview is not the demo coupon");
+    ok(str_contains($blob, 'promo=WWM5'), "template {$tpl} checkout link carries WWM5");
 }
 
 $converted = \Wwm\Services\AvoAutomationImporter::canonicalElkeDemoDefinition('elke-en');

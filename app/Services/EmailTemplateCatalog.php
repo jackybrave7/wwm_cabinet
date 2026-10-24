@@ -272,9 +272,11 @@ final class EmailTemplateCatalog
         $password = trim((string)($context['password'] ?? ''));
         $expiresLabel = (string)($context['expires_label'] ?? '');
         $buyUrl = trim((string)($context['buy_url'] ?? $context['course_page_url'] ?? ''));
-        $couponCode = trim((string)($context['coupon_code'] ?? 'SPECWWM4'));
+        $couponCode = trim((string)($context['coupon_code'] ?? ''));
         if ($couponCode === '') {
-            $couponCode = 'SPECWWM4';
+            $couponCode = in_array($id, ['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'], true)
+                ? MarketingEmailDelivery::crosssellCouponCode()
+                : 'SPECWWM4';
         }
         $magicLink = (string)($context['magic_link'] ?? wwm_base_url() . '/auth/magic?token=sample');
         $resetLink = (string)($context['reset_link'] ?? wwm_base_url() . '/reset?token=sample');
@@ -391,6 +393,16 @@ final class EmailTemplateCatalog
         if ($password === '') {
             $password = 'sample-password';
         }
+        $isCrossSell = in_array($templateId, ['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'], true);
+        $couponCode = $isCrossSell ? MarketingEmailDelivery::crosssellCouponCode() : 'SPECWWM4';
+        if ($isCrossSell && $coursePageUrl !== '' && str_starts_with($coursePageUrl, 'https://')) {
+            $sep = str_contains($coursePageUrl, '?') ? '&' : '?';
+            $coursePageUrl .= $sep . http_build_query([
+                'promo' => $couponCode,
+                'utm_source' => 'email',
+                'utm_campaign' => 'cross-sell',
+            ], '', '&', PHP_QUERY_RFC3986);
+        }
 
         return [
             'name' => 'Alexandra',
@@ -405,7 +417,7 @@ final class EmailTemplateCatalog
             'magic_link' => wwm_base_url() . '/auth/magic?token=sample-token-for-preview',
             'reset_link' => wwm_base_url() . '/reset?token=sample-token-for-preview',
             'buy_url' => $coursePageUrl ?? '',
-            'coupon_code' => 'SPECWWM4',
+            'coupon_code' => $couponCode,
         ];
     }
 }
