@@ -188,7 +188,11 @@ final class EmailTemplateCatalog
         return match ($id) {
             'demo', 'reminder_demo_expiring'
                 => array_merge($common, $course),
-            'paid', 'reminder_demo_no_login', 'reminder_demo_no_lesson'
+            'paid' => array_merge(
+                ['{{name}}', '{{email}}', '{{base_url}}', '{{login_url}}', '{{forgot_url}}'],
+                ['{{course_title}}', '{{cover_url}}', '{{logo_url}}', '{{course_page_url}}']
+            ),
+            'reminder_demo_no_login', 'reminder_demo_no_lesson'
                 => array_merge($common, array_diff($course, ['{{expires_label}}'])),
             'sale_demo_discount_24h', 'sale_demo_discount_3h',
             'sale_crosssell_50_offer', 'sale_crosssell_50_reminder'
@@ -283,9 +287,6 @@ final class EmailTemplateCatalog
 
         if ($password === '' && in_array($id, ['demo', 'reminder_demo_no_login', 'reminder_demo_no_lesson', 'reminder_demo_expiring'], true)) {
             $password = '';
-        }
-        if ($password === '' && $id === 'paid') {
-            $password = 'your-password';
         }
         $permissionsList = trim((string)($context['permissions_list'] ?? ''));
         $passwordLine = trim((string)($context['password_line'] ?? ''));
@@ -404,6 +405,10 @@ final class EmailTemplateCatalog
             ], '', '&', PHP_QUERY_RFC3986);
         }
 
+        $loginUrl = $templateId === 'paid'
+            ? wwm_base_url() . '/auth/magic?token=sample-token-for-preview'
+            : wwm_login_url('student@example.com', $password, '/c/elke-en/1');
+
         return [
             'name' => 'Alexandra',
             'email' => 'student@example.com',
@@ -411,7 +416,7 @@ final class EmailTemplateCatalog
             'cover_url' => $coverUrl,
             'logo_url' => wwm_email_logo_url_for_template($templateId ?? ''),
             'course_page_url' => $coursePageUrl ?? '',
-            'login_url' => wwm_login_url('student@example.com', $password, '/c/elke-en/1'),
+            'login_url' => $loginUrl,
             'expires_label' => gmdate('M j, Y H:i', time() + 12 * 3600) . ' UTC',
             'password' => $password,
             'magic_link' => wwm_base_url() . '/auth/magic?token=sample-token-for-preview',

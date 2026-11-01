@@ -15,9 +15,48 @@ final class Mailer
     /**
      * @param list<string> $extraHeaders
      */
+    /**
+     * Headers every outgoing message must carry. Message-ID is generated here so
+     * Gmail does not have to add one (SMTPIN_ADDED_MISSING).
+     *
+     * @param list<string> $extraHeaders
+     * @return list<string>
+     */
+    public static function standardHeaders(array $extraHeaders = []): array
+    {
+        $hasMessageId = false;
+        $hasReplyTo = false;
+        foreach ($extraHeaders as $line) {
+            $name = strtolower(strtok(trim($line), ':'));
+            if ($name === 'message-id') {
+                $hasMessageId = true;
+            } elseif ($name === 'reply-to') {
+                $hasReplyTo = true;
+            }
+        }
+
+        $headers = [];
+        if (!$hasMessageId) {
+            $headers[] = 'Message-ID: <' . bin2hex(random_bytes(16)) . '@worldwatercolormasters.art>';
+        }
+        if (!$hasReplyTo) {
+            $headers[] = 'Reply-To: support@worldwatercolormasters.art';
+        }
+
+        foreach ($extraHeaders as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $headers[] = $line;
+            }
+        }
+
+        return $headers;
+    }
+
     public static function send(string $to, string $subject, string $body, ?string $htmlBody = null, array $extraHeaders = []): bool
     {
         self::$lastError = null;
+        $extraHeaders = self::standardHeaders($extraHeaders);
         $cfg = wwm_config()['mail'] ?? [];
         if (empty($cfg['enabled'])) {
             $logLine = sprintf("TO=%s SUBJECT=%s\n%s\n---\n", $to, $subject, $body);

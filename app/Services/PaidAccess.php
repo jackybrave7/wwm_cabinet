@@ -11,6 +11,8 @@ use Wwm\Services\EmailTemplateRenderer;
 
 final class PaidAccess
 {
+    /** One-time sign-in link in the purchase email. */
+    public const LOGIN_LINK_TTL_SECONDS = 604800;
     /**
      * @return array{
      *   user_id: int,
@@ -105,21 +107,12 @@ final class PaidAccess
         ));
 
         $nextPath = self::courseNextPath($courseSlug);
-        $loginUrl = LoginLink::issue($pdo, $userId, $nextPath, LoginLink::ttlSeconds());
+        $loginUrl = LoginLink::issue($pdo, $userId, $nextPath, self::LOGIN_LINK_TTL_SECONDS);
 
         $shouldSend = $sendEmail ?? self::shouldSendPaidEmail($courseSlug);
         $emailSent = false;
         if ($shouldSend) {
-            if ($plainPassword === null) {
-                $plainPassword = Password::generateReadable(8);
-            }
-            User::updatePassword($pdo, $userId, $plainPassword);
-            $emailSent = $this->sendPaidAccessEmail(
-                $user,
-                $course,
-                wwm_login_url((string)$user['email'], $plainPassword, $nextPath),
-                $plainPassword
-            );
+            $emailSent = $this->sendPaidAccessEmail($user, $course, $loginUrl);
         }
 
         return [
@@ -150,8 +143,7 @@ final class PaidAccess
     private function sendPaidAccessEmail(
         array $user,
         array $course,
-        string $prefilledLoginUrl,
-        string $password
+        string $loginUrl
     ): bool {
         $courseTitle = (string)($course['title'] ?? $course['slug'] ?? 'your course');
         $coverUrl = wwm_course_cover_url(isset($course['cover_image']) ? (string)$course['cover_image'] : null);
@@ -159,6 +151,7 @@ final class PaidAccess
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = '';
         }
+        $forgotUrl = wwm_base_url() . '/forgot';
 
         $message = EmailTemplateRenderer::render('paid', [
             'name' => trim((string)($user['name'] ?? '')),
@@ -166,12 +159,14 @@ final class PaidAccess
             'course_title' => $courseTitle,
             'cover_url' => $coverUrl ?? '',
             'course_page_url' => $coursePageUrl,
-            'login_url' => $prefilledLoginUrl,
-            'password' => $password,
+            'login_url' => $loginUrl,
+            'forgot_url' => $forgotUrl,
+            'password' => '',
         ]);
 
         $links = [
-            ['url' => $prefilledLoginUrl, 'label' => 'Sign in'],
+            ['url' => $loginUrl, 'label' => 'Sign in'],
+            ['url' => $forgotUrl, 'label' => 'Forgot password'],
         ];
         if ($coursePageUrl !== '') {
             $links[] = ['url' => $coursePageUrl, 'label' => 'Course page'];

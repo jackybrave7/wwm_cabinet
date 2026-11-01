@@ -46,13 +46,13 @@ final class EmailTemplateDrafts
                     '',
                     'Your full access to "{{course_title}}" is ready.',
                     '',
-                    'Sign in to your cabinet (email and password are prefilled):',
+                    'Sign in with this one-time link (valid for 7 days):',
                     '{{login_url}}',
                     '',
-                    'Manual sign-in:',
-                    '{{base_url}}/login',
-                    'Login: {{email}}',
-                    'Password: {{password}}',
+                    'Forgot your password?',
+                    '{{forgot_url}}',
+                    '',
+                    'Don\'t see the email? Check your Spam folder or write to support@worldwatercolormasters.art',
                     '',
                     'Questions? support@worldwatercolormasters.art',
                     '',
@@ -66,8 +66,15 @@ final class EmailTemplateDrafts
                         self::paragraph(
                             'Thank you for your purchase! Your full access to <span style="font-weight:700;">{{course_title}}</span> is ready.'
                         ),
-                        self::button('{{login_url}}', 'Sign in with saved password'),
-                        self::credentialsBoxDraft(true),
+                        self::button('{{login_url}}', 'Sign in'),
+                        self::paragraph(
+                            'This sign-in link works once and stays valid for 7 days. '
+                            . '<a href="{{forgot_url}}" style="color:#b81e16;text-decoration:underline;">Forgot password?</a>'
+                        ),
+                        self::paragraph(
+                            'Don\'t see the email? Check your Spam folder or write to '
+                            . '<a href="mailto:support@worldwatercolormasters.art" style="color:#b81e16;text-decoration:underline;">support@worldwatercolormasters.art</a>.'
+                        ),
                         self::courseLinkDraft(),
                         self::supportBlock(),
                     ])

@@ -55,6 +55,6 @@ final class EmailTrackingController
             return;
         }
 
-        wwm_redirect($target);
+        wwm_redirect(EmailTracker::safeRedirectTarget($target));
     }
 }

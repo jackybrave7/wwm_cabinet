@@ -94,6 +94,43 @@ final class EmailTracker
     }
 
     /**
+     * Drop a password query parameter so tracked clicks never land on /login?password=...
+     */
+    public static function safeRedirectTarget(string $target): string
+    {
+        $hash = '';
+        $hashPos = strpos($target, '#');
+        if ($hashPos !== false) {
+            $hash = substr($target, $hashPos);
+            $target = substr($target, 0, $hashPos);
+        }
+
+        $queryPos = strpos($target, '?');
+        if ($queryPos === false) {
+            return $target . $hash;
+        }
+
+        $base = substr($target, 0, $queryPos);
+        $kept = [];
+        foreach (explode('&', substr($target, $queryPos + 1)) as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            $name = rawurldecode(explode('=', $pair, 2)[0]);
+            if (strcasecmp($name, 'password') === 0) {
+                continue;
+            }
+            $kept[] = $pair;
+        }
+
+        if ($kept === []) {
+            return $base . $hash;
+        }
+
+        return $base . '?' . implode('&', $kept) . $hash;
+    }
+
+    /**
      * @param list<array{url: string, label?: string}> $links
      * @return array<string, string> original URL => tracked URL
      */

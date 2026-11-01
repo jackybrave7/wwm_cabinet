@@ -35,6 +35,7 @@ final class Database
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
+        self::dropPaidTemplateThatIncludesPassword($pdo);
     }
 
     /** Schema marker in SQLite survives FTP deploy (unlike data/.schema_version on some hosts). */
@@ -580,6 +581,32 @@ SQL);
             $now,
             $now,
         ]);
+    }
+
+    /**
+     * A saved copy of the purchase letter can still print the password after the built-in draft stopped doing that.
+     */
+    private static function dropPaidTemplateThatIncludesPassword(PDO $pdo): void
+    {
+        $stmt = $pdo->prepare(
+            'SELECT body_text, body_html FROM email_templates WHERE template_id = ? LIMIT 1'
+        );
+        $stmt->execute(['paid']);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            return;
+        }
+
+        $blob = (string)($row['body_text'] ?? '') . "\n" . (string)($row['body_html'] ?? '');
+        $exposesPassword = str_contains($blob, '{{password}}')
+            || str_contains($blob, 'password=')
+            || preg_match('/Password\s*:/i', $blob) === 1;
+        if (!$exposesPassword) {
+            return;
+        }
+
+        $pdo->prepare('DELETE FROM email_templates WHERE template_id = ?')->execute(['paid']);
+        wwm_log('email template paid reset to built-in: stored copy included a password');
     }
 
     private static function migrateEmailTemplatesLogo(PDO $pdo): void

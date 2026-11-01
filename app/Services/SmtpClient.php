@@ -17,6 +17,29 @@ final class SmtpClient
     }
 
     /**
+     * RFC message that send() transmits after DATA. Used by tests.
+     *
+     * @param list<string> $extraHeaders
+     */
+    public function previewMessage(
+        string $fromHeader,
+        string $to,
+        string $subject,
+        string $textBody,
+        ?string $htmlBody,
+        array $extraHeaders = []
+    ): string {
+        return implode("\r\n", $this->buildMessageHeaders(
+            $fromHeader,
+            $to,
+            $this->encodeHeader($subject),
+            $textBody,
+            $htmlBody,
+            $extraHeaders
+        ));
+    }
+
+    /**
      * @param array<string, mixed> $cfg
      */
     /**

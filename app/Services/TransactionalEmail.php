@@ -22,6 +22,7 @@ final class TransactionalEmail
         $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
         $subject = 'Your course access тАФ World Watercolor Masters';
 
+        $forgotUrl = wwm_base_url() . '/forgot';
         $text = implode("\n", [
             $greeting,
             '',
@@ -29,13 +30,13 @@ final class TransactionalEmail
             '',
             'Your full access to "' . $courseTitle . '" is ready.',
             '',
-            'Sign in to your cabinet (email and password are prefilled):',
+            'Sign in with this one-time link (valid for 7 days):',
             $prefilledLoginUrl,
             '',
-            'Manual sign-in:',
-            wwm_base_url() . '/login',
-            'Login: ' . $email,
-            'Password: ' . $password,
+            'Forgot your password?',
+            $forgotUrl,
+            '',
+            'Don\'t see the email? Check your Spam folder or write to support@worldwatercolormasters.art',
             '',
             'Questions? support@worldwatercolormasters.art',
             '',
@@ -54,8 +55,15 @@ final class TransactionalEmail
                     . self::e($courseTitle)
                     . '</strong> is ready.'
                 ),
-                self::button($prefilledLoginUrl, 'Sign in with saved password'),
-                self::credentialsBox($email, $password, $prefilledLoginUrl),
+                self::button($prefilledLoginUrl, 'Sign in'),
+                self::paragraph(
+                    'This sign-in link works once and stays valid for 7 days. '
+                    . '<a href="' . self::e($forgotUrl) . '" style="color:#b81e16;text-decoration:underline;">Forgot password?</a>'
+                ),
+                self::paragraph(
+                    'Don\'t see the email? Check your Spam folder or write to '
+                    . '<a href="mailto:support@worldwatercolormasters.art" style="color:#b81e16;text-decoration:underline;">support@worldwatercolormasters.art</a>.'
+                ),
                 self::courseLink($coursePageUrl),
                 self::supportBlock(),
             ])
