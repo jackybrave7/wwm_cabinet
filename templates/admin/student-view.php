@@ -382,7 +382,7 @@ $automationRuns = is_array($automation_runs ?? null) ? $automation_runs : [];
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
       <h2>Course access</h2>
-      <span class="field-hint"><?= count($accessCourses) ?> course<?= count($accessCourses) === 1 ? '' : 's' ?></span>
+      <span class="field-hint"><?= count($accessCourses) ?> course<?= count($accessCourses) === 1 ? '' : 's' ?> · No expiry clears the end date on both demo and full access</span>
     </span>
     <span class="admin-expander-chevron" aria-hidden="true">▼</span>
   </summary>

@@ -718,6 +718,8 @@ function wwm_repair_email_html(?string $html): ?string
         $out = preg_replace('/<\s+\/' . $tag . '\b/i', '</' . $tag, $out) ?? $out;
     }
 
+    $out = preg_replace('/&(?:amp;)?\s*#0*39\s*;/i', "'", $out) ?? $out;
+    $out = preg_replace('/&(?:amp;)?\s*apos\s*;/i', "'", $out) ?? $out;
     $out = preg_replace('/&\s+#(\d+);/', '&#$1;', $out) ?? $out;
     $out = preg_replace('/&\s+#x([0-9a-f]+);/i', '&#x$1;', $out) ?? $out;
     $out = wwm_email_repair_cta_blocks($out);

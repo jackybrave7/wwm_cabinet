@@ -191,6 +191,33 @@ final class Access
         ]);
     }
 
+    /**
+     * Admin "No expiry" means the course has no end date. The form updates one
+     * column (demo or full); the other column can still show a date. Clear that too.
+     */
+    public static function grantWithoutExpiry(
+        PDO $pdo,
+        int $userId,
+        string $courseSlug,
+        string $accessType,
+        string $source,
+        ?string $sourceRef = null
+    ): void {
+        self::grant($pdo, $userId, $courseSlug, $accessType, null, $source, $sourceRef);
+        $otherType = $accessType === 'paid' ? 'demo' : 'paid';
+        if (self::findGrant($pdo, $userId, $courseSlug, $otherType) !== null) {
+            self::clearExpiry($pdo, $userId, $courseSlug, $otherType);
+        }
+    }
+
+    public static function clearExpiry(PDO $pdo, int $userId, string $courseSlug, string $accessType): void
+    {
+        $stmt = $pdo->prepare(
+            'UPDATE access SET expires_at = NULL WHERE user_id = ? AND course_slug = ? AND access_type = ?'
+        );
+        $stmt->execute([$userId, $courseSlug, $accessType]);
+    }
+
     public static function revoke(PDO $pdo, int $userId, string $courseSlug, string $accessType): void
     {
         $stmt = $pdo->prepare(

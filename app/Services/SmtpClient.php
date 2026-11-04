@@ -263,13 +263,48 @@ final class SmtpClient
         $lines = explode("\n", $body);
         $normalized = [];
         foreach ($lines as $line) {
-            if (str_starts_with($line, '.')) {
-                $line = '.' . $line;
+            foreach ($this->foldSmtpLine($line) as $folded) {
+                if (str_starts_with($folded, '.')) {
+                    $folded = '.' . $folded;
+                }
+                $normalized[] = $folded;
             }
-            $normalized[] = $line;
         }
 
         return implode("\r\n", $normalized);
+    }
+
+    /**
+     * RFC 5321 allows at most 998 octets per line. The HTML part is one long
+     * line, and a relay that inserts a break inside &#039; makes the title
+     * show as "& #039;". Break on a space or after a tag instead.
+     *
+     * @return list<string>
+     */
+    private function foldSmtpLine(string $line, int $limit = 900): array
+    {
+        if (strlen($line) <= $limit) {
+            return [$line];
+        }
+
+        $out = [];
+        while (strlen($line) > $limit) {
+            $chunk = substr($line, 0, $limit);
+            $break = strrpos($chunk, ' ');
+            $tag = strrpos($chunk, '>');
+            $at = max($break === false ? -1 : $break, $tag === false ? -1 : $tag);
+            if ($at < 40) {
+                $amp = strrpos($chunk, '&');
+                $at = ($amp !== false && $amp > 40) ? $amp - 1 : $limit - 1;
+            }
+            $out[] = substr($line, 0, $at + 1);
+            $line = substr($line, $at + 1);
+        }
+        if ($line !== '') {
+            $out[] = $line;
+        }
+
+        return $out;
     }
 
     /**

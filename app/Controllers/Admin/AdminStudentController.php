@@ -455,7 +455,11 @@ final class AdminStudentController
             wwm_redirect('/admin/students/' . $id . '?error=period');
         }
 
-        Access::grant($pdo, $id, $courseSlug, $accessType, $expiresAt, 'admin', 'manual');
+        if ($expiresAt === null) {
+            Access::grantWithoutExpiry($pdo, $id, $courseSlug, $accessType, 'admin', 'manual');
+        } else {
+            Access::grant($pdo, $id, $courseSlug, $accessType, $expiresAt, 'admin', 'manual');
+        }
         wwm_log(sprintf('admin grant access user_id=%d course=%s type=%s', $id, $courseSlug, $accessType));
         if ($accessType === 'demo') {
             EmailAutomationEnrollment::onDemoGranted($id, $courseSlug);

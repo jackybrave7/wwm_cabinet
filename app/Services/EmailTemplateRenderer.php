@@ -138,7 +138,14 @@ final class EmailTemplateRenderer
     {
         $escaped = [];
         foreach ($vars as $key => $value) {
-            $escaped[$key] = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            // Apostrophes stay as UTF-8 characters. &#039; is six bytes, and a
+            // relay that folds a long HTML line can cut inside it. The letter
+            // then shows "& #039;" instead of '.
+            $escaped[$key] = str_replace(
+                ['&#039;', '&#39;', '&apos;'],
+                "'",
+                htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            );
         }
 
         return self::applyVars($template, $escaped);
