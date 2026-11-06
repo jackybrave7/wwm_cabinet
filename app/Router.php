@@ -248,6 +248,10 @@ final class Router
             (new AdminStudentController())->revokeAccess((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/payments/(\d+)/refund$#', $path, $m)) {
+            (new AdminStudentController())->refundPayment((int)$m[1], (int)$m[2]);
+            return;
+        }
         if ($method === 'POST' && preg_match('#^/admin/students/(\d+)/delete$#', $path, $m)) {
             (new AdminStudentController())->destroy((int)$m[1]);
             return;

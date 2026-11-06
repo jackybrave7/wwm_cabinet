@@ -219,6 +219,44 @@ final class Payment
     }
 
     /**
+     * @param array<string, mixed> $pay
+     */
+    public static function isRefunded(array $pay): bool
+    {
+        return trim((string)($pay['refunded_at'] ?? '')) !== '';
+    }
+
+    /**
+     * Refunded payments stay in the student profile and drop out of dashboard revenue.
+     * A later webhook upsert does not clear this flag.
+     */
+    public static function setRefunded(PDO $pdo, int $paymentId, int $userId, bool $refunded): bool
+    {
+        if ($paymentId <= 0 || $userId <= 0) {
+            return false;
+        }
+
+        $now = gmdate('c');
+        if ($refunded) {
+            $stmt = $pdo->prepare(
+                'UPDATE payments SET refunded_at = ?, updated_at = ?
+                 WHERE id = ? AND user_id = ? AND (refunded_at IS NULL OR refunded_at = \'\')'
+            );
+            $stmt->execute([$now, $now, $paymentId, $userId]);
+
+            return $stmt->rowCount() > 0;
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE payments SET refunded_at = NULL, updated_at = ?
+             WHERE id = ? AND user_id = ? AND refunded_at IS NOT NULL AND refunded_at != \'\''
+        );
+        $stmt->execute([$now, $paymentId, $userId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
      * Instant of the payment for dashboard windows. Offsets are real time, not string order.
      *
      * @param array<string, mixed> $row
@@ -273,6 +311,9 @@ final class Payment
         $estimatedCount = 0;
 
         foreach ($rows as $pay) {
+            if (self::isRefunded($pay)) {
+                continue;
+            }
             $rub = self::positiveFloat($pay['amount'] ?? null);
             $original = self::positiveFloat($pay['amount_original'] ?? null);
             $currencyOriginal = strtoupper(trim((string)($pay['currency_original'] ?? '')));

@@ -360,6 +360,8 @@ final class AdminStudentController
                 '1' => 'Student created.',
                 'access' => 'Access updated.',
                 'revoked' => 'Access removed.',
+                'refund' => 'Payment marked as refunded. It is left out of dashboard revenue.',
+                'refund_cleared' => 'Refund mark removed. The payment counts in revenue again.',
                 'avo' => 'AVO tags and UTM synced.',
                 'avo_name' => 'Name updated from AVO.',
                 'avo_name_utm' => 'Name, AVO tags, and UTM synced.',
@@ -374,6 +376,7 @@ final class AdminStudentController
                 'period' => 'Invalid access period or date.',
                 'automation_cancel' => 'Could not remove from process: run not found or not active.',
                 'login_mail' => 'Could not send email. Check SMTP and cabinet.log.',
+                'refund' => 'Could not update this payment.',
                 default => null,
             },
         ]);
@@ -495,6 +498,34 @@ final class AdminStudentController
         wwm_log(sprintf('admin revoke access user_id=%d course=%s type=%s', $id, $courseSlug, $accessType));
 
         wwm_redirect('/admin/students/' . $id . '?created=revoked');
+    }
+
+    public function refundPayment(int $id, int $paymentId): void
+    {
+        Session::requireAdminStudents();
+
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/students/' . $id . '?error=csrf');
+        }
+
+        $pdo = wwm_pdo();
+        if (User::findById($pdo, $id) === null) {
+            http_response_code(404);
+            return;
+        }
+
+        $refunded = (string)($_POST['undo'] ?? '') !== '1';
+        if (!Payment::setRefunded($pdo, $paymentId, $id, $refunded)) {
+            wwm_redirect('/admin/students/' . $id . '?error=refund');
+        }
+
+        wwm_log(sprintf(
+            'admin %s payment user_id=%d payment_id=%d',
+            $refunded ? 'refunded' : 'restored',
+            $id,
+            $paymentId
+        ));
+        wwm_redirect('/admin/students/' . $id . '?created=' . ($refunded ? 'refund' : 'refund_cleared'));
     }
 
     public function destroy(int $id): void

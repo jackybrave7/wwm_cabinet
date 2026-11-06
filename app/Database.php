@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 30;
+    public const SCHEMA_VERSION = 31;
 
     public static function connect(string $path): PDO
     {
@@ -375,6 +375,7 @@ SQL);
         self::ensureColumn($pdo, 'payments', 'amount_original', 'REAL');
         self::ensureColumn($pdo, 'payments', 'currency_original', "TEXT NOT NULL DEFAULT ''");
         self::ensureColumn($pdo, 'payments', 'fx_rate', 'REAL');
+        self::ensureColumn($pdo, 'payments', 'refunded_at', 'TEXT');
         \Wwm\Models\PaymentPricingPending::ensureTable($pdo);
         \Wwm\Models\BackgroundJob::ensureTable($pdo);
 

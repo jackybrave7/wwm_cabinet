@@ -168,13 +168,19 @@ $progressCourseCount = count($courseBlocksList);
 
 <?php
 $payments = is_array($payments ?? null) ? $payments : [];
+$refundedPayments = 0;
+foreach ($payments as $payRow) {
+    if (is_array($payRow) && \Wwm\Models\Payment::isRefunded($payRow)) {
+        $refundedPayments++;
+    }
+}
 $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
 ?>
 <details class="admin-card admin-expander">
   <summary class="admin-expander-summary">
     <span class="admin-expander-summary-text">
       <h2>Payments</h2>
-      <span class="field-hint"><?= $payments === [] ? 'No payments logged yet' : count($payments) . ' payment' . (count($payments) === 1 ? '' : 's') ?></span>
+      <span class="field-hint"><?php if ($payments === []): ?>No payments logged yet<?php else: ?><?= count($payments) ?> payment<?= count($payments) === 1 ? '' : 's' ?><?php if ($refundedPayments > 0): ?> · <?= (int)$refundedPayments ?> refunded, not in revenue<?php endif; ?><?php endif; ?></span>
     </span>
     <span class="admin-expander-chevron" aria-hidden="true">▼</span>
   </summary>
@@ -182,6 +188,7 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
   <?php if ($payments === []): ?>
     <p class="field-hint">Paid orders from the AVO payment webhook appear here (amount, order id, UTM at purchase).</p>
   <?php else: ?>
+    <p class="field-hint" style="margin-bottom:12px">Removing course access does not change revenue. Mark a payment as refunded to leave that amount out of the dashboard.</p>
     <div class="admin-table-wrap admin-table-wrap--profile">
       <table class="admin-table admin-table-compact admin-table--profile">
         <thead>
@@ -191,6 +198,7 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
             <th class="col-status">Amount</th>
             <th>AVO order</th>
             <th>UTM / campaign</th>
+            <th class="col-tight"></th>
           </tr>
         </thead>
         <tbody>
@@ -222,6 +230,22 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
               </td>
               <td class="admin-cell-muted"><?= wwm_escape((string)($pay['avo_account_id'] ?? '')) ?></td>
               <td class="col-subject"><?= $utmParts !== [] ? wwm_escape(implode(' · ', $utmParts)) : '—' ?></td>
+              <td class="col-tight">
+                <?php if (\Wwm\Models\Payment::isRefunded($pay)): ?>
+                  <span class="badge badge-draft">Refunded</span>
+                  <br><span class="field-hint"><?= wwm_escape($formatDate((string)($pay['refunded_at'] ?? ''))) ?></span>
+                  <form method="post" action="/admin/students/<?= $id ?>/payments/<?= (int)($pay['id'] ?? 0) ?>/refund" class="inline-form">
+                    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                    <input type="hidden" name="undo" value="1">
+                    <button type="submit" class="btn btn-ghost btn-sm">Undo refund</button>
+                  </form>
+                <?php else: ?>
+                  <form method="post" action="/admin/students/<?= $id ?>/payments/<?= (int)($pay['id'] ?? 0) ?>/refund" class="inline-form" data-confirm="Mark this payment as refunded? It will drop out of dashboard revenue. Course access stays as it is.">
+                    <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                    <button type="submit" class="btn btn-ghost btn-sm">Mark refund</button>
+                  </form>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
