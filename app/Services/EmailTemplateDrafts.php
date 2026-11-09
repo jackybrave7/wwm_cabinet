@@ -421,6 +421,120 @@ final class EmailTemplateDrafts
                     ])
                 ),
             ],
+            'v2_offer_open' => self::v2Letter(
+                '{{name}}, 40% off {{course_title}} — code {{coupon_code}}',
+                '40% off the full course',
+                [
+                    '{{sale_intro}}',
+                    'The full course is 40% off for the next 24 hours. Your code is {{coupon_code}}.',
+                    'Open the lesson first if you have not watched it yet. The price is the same either way.',
+                ],
+                'Get full access — 40% off',
+                true
+            ),
+            'v2_value_story' => self::v2Letter(
+                '{{name}}, what you paint in {{course_title}}',
+                'Two paintings, from the first drawing',
+                [
+                    'Elke paints two pictures in this course, from the first light drawing to the last wash.',
+                    'You watch how she chooses the colors, places the light, and builds the flower.',
+                    'When you want the whole course, the code is still {{coupon_code}} (40% off).',
+                ],
+                'See the full course',
+                true
+            ),
+            'v2_value_proof' => self::v2Letter(
+                '{{name}}, a note before you decide',
+                'If it is not what you expected',
+                [
+                    'If it is not what you expected — write to us within 30 days and we will refund every cent.',
+                    'The materials for the paintings are listed inside the course, next to the lessons.',
+                    'Your 40% code is {{coupon_code}}.',
+                ],
+                'Use code {{coupon_code}}',
+                true
+            ),
+            'v2_offer_final' => self::v2Letter(
+                '{{name}}, about 3 hours left on your 40% code',
+                'About 3 hours left',
+                [
+                    'This is the last note about the 40% off {{course_title}}.',
+                    'The code {{coupon_code}} ends in about 3 hours.',
+                ],
+                'Use the code now',
+                true
+            ),
+            'v2_demo_reopen' => self::v2Letter(
+                '{{name}}, your demo of {{course_title}} is open again',
+                'Your demo is open again',
+                [
+                    'You can watch the demo lesson again. Take the time you need.',
+                    'If you want the full course, the code {{coupon_code}} is 40% off.',
+                ],
+                'Watch the demo',
+                false,
+                '{{login_url}}'
+            ),
+            'v2_nurture_1' => self::v2Letter(
+                '{{name}}, keep the pencil drawing light',
+                'A light drawing',
+                [
+                    'Start with a light pencil drawing and keep it faint, so the watercolor stays bright.',
+                    'The full course is here when you want it: {{course_title}}. Code {{coupon_code}} is 40% off.',
+                ],
+                'Look at the course',
+                false
+            ),
+            'v2_nurture_2' => self::v2Letter(
+                '{{name}}, let the first wash dry',
+                'Let the wash dry',
+                [
+                    'Let the first wash dry before you add a darker layer. That keeps the edges clean.',
+                    'Elke shows this in {{course_title}}. Code {{coupon_code}} is 40% off the full course.',
+                ],
+                'Look at the course',
+                false
+            ),
+            'v2_nurture_3' => self::v2Letter(
+                '{{name}}, test the mix on a scrap',
+                'Test the color first',
+                [
+                    'Keep a scrap of the same paper beside you and test every mix before it goes on the painting.',
+                    'The full course is {{course_title}}. Code {{coupon_code}} is 40% off.',
+                ],
+                'Look at the course',
+                false
+            ),
+            'v2_nurture_4' => self::v2Letter(
+                '{{name}}, save the white of the paper',
+                'Leave the paper white',
+                [
+                    'Leave some paper white for the light. It is easier than painting the light back in later.',
+                    'You can see how Elke does this in {{course_title}}. Code {{coupon_code}} is 40% off.',
+                ],
+                'Look at the course',
+                false
+            ),
+            'v2_nurture_5' => self::v2Letter(
+                '{{name}}, mix fewer pigments',
+                'Fewer colors in one wash',
+                [
+                    'Use fewer pigments in one wash. Three colors mixed cleanly stay fresher than six.',
+                    'The full course is {{course_title}}. Code {{coupon_code}} is 40% off.',
+                ],
+                'Look at the course',
+                false
+            ),
+            'v2_nurture_6' => self::v2Letter(
+                '{{name}}, step back before the last details',
+                'Step back',
+                [
+                    'Step back from the painting before the last details. The big shapes matter more than the small ones.',
+                    'Whenever you want the full course, it is {{course_title}}. Code {{coupon_code}} is 40% off.',
+                ],
+                'Look at the course',
+                false
+            ),
             default => throw new \InvalidArgumentException('Unknown email template: ' . $id),
         };
     }
@@ -632,6 +746,41 @@ final class EmailTemplateDrafts
             . ' · <a href="mailto:support@worldwatercolormasters.art" style="color:#faf6f0;text-decoration:underline;">'
             . 'support@worldwatercolormasters.art</a></p>'
             . '</td></tr>';
+    }
+
+    /**
+     * @param list<string> $lines
+     * @return array{subject: string, text: string, html: ?string}
+     */
+    private static function v2Letter(
+        string $subject,
+        string $heading,
+        array $lines,
+        string $buttonLabel,
+        bool $withCoupon,
+        string $buttonUrl = '{{buy_url}}'
+    ): array {
+        $text = ['Hi {{name}},', ''];
+        $html = [self::paragraph('Hi {{name}},')];
+        foreach ($lines as $line) {
+            $text[] = $line;
+            $text[] = '';
+            $html[] = self::paragraph($line);
+        }
+        if ($withCoupon) {
+            $html[] = self::couponBoxDraft('Code {{coupon_code}}');
+        }
+        $text[] = $buttonUrl;
+        $text[] = '';
+        $text[] = 'World Watercolor Masters';
+        $html[] = self::button($buttonUrl, $buttonLabel);
+        $html[] = self::supportBlock();
+
+        return [
+            'subject' => $subject,
+            'text' => implode("\n", $text),
+            'html' => self::layoutDraft($heading, implode('', $html)),
+        ];
     }
 
     private static function paragraph(string $html): string

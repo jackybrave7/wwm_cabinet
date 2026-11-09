@@ -217,6 +217,8 @@ final class CabinetMail
         $couponExpiresLabel = gmdate('M j, Y H:i', $couponExpiresTs) . ' UTC';
         if (in_array($template, ['sale_demo_discount_24h', 'sale_demo_discount_3h'], true)) {
             $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template, 'elke-demo');
+        } elseif (str_starts_with($template, 'v2_')) {
+            $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template, 'elke-demo-v2');
         } elseif (in_array($template, ['sale_crosssell_50_offer', 'sale_crosssell_50_reminder'], true)) {
             $coursePageUrl = self::saleCheckoutUrl($coursePageUrl, $couponCode, $template, 'cross-sell');
         }

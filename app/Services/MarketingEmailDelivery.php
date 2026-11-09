@@ -31,6 +31,17 @@ final class MarketingEmailDelivery
             'reminder_demo_expiring',
             'sale_demo_discount_24h',
             'sale_demo_discount_3h',
+            'v2_offer_open',
+            'v2_value_story',
+            'v2_value_proof',
+            'v2_offer_final',
+            'v2_demo_reopen',
+            'v2_nurture_1',
+            'v2_nurture_2',
+            'v2_nurture_3',
+            'v2_nurture_4',
+            'v2_nurture_5',
+            'v2_nurture_6',
         ];
     }
 

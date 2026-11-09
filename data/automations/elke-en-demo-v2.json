@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Elke demo funnel v2",
+    "description": "New Elke demo sequence. Leave this off until you turn off the old Elke demo funnel. Offer is 40% with SPECWWM4.",
+    "course_slug": "elke-en",
+    "entry_mode": "demo_form",
+    "flow_revision": 1
+  },
+  "nodes": {
+    "start": {
+      "type": "trigger",
+      "entry_mode": "demo_form",
+      "process_course_slug": "elke-en",
+      "label": "Start: cabinet demo form (elke-en)"
+    },
+    "grant_demo": {
+      "type": "grant_demo",
+      "course_slug": "elke-en",
+      "skip_if_paid": true,
+      "skip_if_demo_active": true,
+      "label": "Grant demo (skip if already active or paid)"
+    },
+    "gate_paid_1": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased already?"
+    },
+    "end_paid": {
+      "type": "end",
+      "outcome": "converted",
+      "label": "End (purchased)"
+    },
+    "wait_view": {
+      "type": "wait_event",
+      "condition": "demo_lesson_opened",
+      "course_slug": "elke-en",
+      "timeout_seconds": 72000,
+      "then_delay_seconds": 5400,
+      "poll_seconds": 900,
+      "label": "Wait until the lesson is opened (then 90 min), or 20 hours"
+    },
+    "mail_not_opened": {
+      "type": "send_template",
+      "template": "reminder_demo_no_login",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "Reminder — lesson not opened (20h)"
+    },
+    "wait_view_rest": {
+      "type": "wait_event",
+      "condition": "demo_lesson_opened",
+      "course_slug": "elke-en",
+      "timeout_seconds": 14400,
+      "then_delay_seconds": 5400,
+      "poll_seconds": 900,
+      "label": "Wait until the lesson is opened (then 90 min), or 4 more hours"
+    },
+    "gate_paid_2": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before the offer?"
+    },
+    "mail_offer": {
+      "type": "send_template",
+      "template": "v2_offer_open",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "40% offer (SPECWWM4, 24h)"
+    },
+    "wait_12h": {
+      "type": "delay",
+      "seconds": 43200,
+      "label": "Pause 12 hours"
+    },
+    "gate_paid_3": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before the story?"
+    },
+    "mail_story": {
+      "type": "send_template",
+      "template": "v2_value_story",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "Letter — two paintings"
+    },
+    "wait_14h": {
+      "type": "delay",
+      "seconds": 50400,
+      "label": "Pause 14 hours"
+    },
+    "gate_paid_4": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before the guarantee?"
+    },
+    "mail_proof": {
+      "type": "send_template",
+      "template": "v2_value_proof",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "Letter — 30-day refund"
+    },
+    "wait_7h": {
+      "type": "delay",
+      "seconds": 25200,
+      "label": "Pause 7 hours"
+    },
+    "gate_paid_5": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before the demo reminder?"
+    },
+    "mail_expiring": {
+      "type": "send_template",
+      "template": "reminder_demo_expiring",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "Reminder — demo ending"
+    },
+    "wait_final": {
+      "type": "delay",
+      "seconds": 75600,
+      "wake_from_context": "offer_expires_at",
+      "wake_lead_seconds": 10800,
+      "label": "Pause until 3 hours before the offer ends"
+    },
+    "gate_paid_6": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before the last call?"
+    },
+    "mail_final": {
+      "type": "send_template",
+      "template": "v2_offer_final",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 3600,
+      "label": "Last call — about 3 hours left"
+    },
+    "wait_reopen": {
+      "type": "delay",
+      "seconds": 345600,
+      "label": "Pause 4 days (reopen around day 6)"
+    },
+    "gate_paid_7": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Purchased before reopen?"
+    },
+    "grant_reopen": {
+      "type": "grant_demo",
+      "course_slug": "elke-en",
+      "skip_if_paid": true,
+      "skip_if_demo_active": true,
+      "label": "Open the demo again"
+    },
+    "mail_reopen": {
+      "type": "send_template",
+      "template": "v2_demo_reopen",
+      "course_slug": "elke-en",
+      "skip_if_paid_course": true,
+      "stale_after_seconds": 604800,
+      "label": "Letter — demo is open again"
+    },
+    "wait_n1": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n1": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 1?" },
+    "mail_n1": { "type": "send_template", "template": "v2_nurture_1", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 1" },
+    "wait_n2": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n2": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 2?" },
+    "mail_n2": { "type": "send_template", "template": "v2_nurture_2", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 2" },
+    "wait_n3": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n3": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 3?" },
+    "mail_n3": { "type": "send_template", "template": "v2_nurture_3", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 3" },
+    "wait_n4": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n4": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 4?" },
+    "mail_n4": { "type": "send_template", "template": "v2_nurture_4", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 4" },
+    "wait_n5": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n5": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 5?" },
+    "mail_n5": { "type": "send_template", "template": "v2_nurture_5", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 5" },
+    "wait_n6": { "type": "delay", "seconds": 1036800, "label": "Pause 12 days" },
+    "gate_n6": { "type": "condition", "condition": "has_paid_any", "label": "Purchased before nurture 6?" },
+    "mail_n6": { "type": "send_template", "template": "v2_nurture_6", "course_slug": "elke-en", "skip_if_paid_course": true, "stale_after_seconds": 604800, "label": "Nurture 6" },
+    "staff_notify": {
+      "type": "notify_staff",
+      "label": "Notify staff (finished without purchase)",
+      "notify_subject": "WWM: demo funnel v2 ended without purchase — {{student_email}}",
+      "notify_body": "Student finished Elke demo funnel v2 without buying.\n\n{{student_name}} <{{student_email}}>\n\n{{admin_student_url}}"
+    },
+    "end_ok": {
+      "type": "end",
+      "outcome": "completed",
+      "label": "End"
+    }
+  },
+  "edges": [
+    { "from": "start", "to": "grant_demo" },
+    { "from": "grant_demo", "to": "gate_paid_1" },
+    { "from": "gate_paid_1", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_1", "to": "wait_view", "branch": "no" },
+    { "from": "wait_view", "to": "gate_paid_2", "branch": "yes" },
+    { "from": "wait_view", "to": "mail_not_opened", "branch": "no" },
+    { "from": "mail_not_opened", "to": "wait_view_rest" },
+    { "from": "wait_view_rest", "to": "gate_paid_2", "branch": "yes" },
+    { "from": "wait_view_rest", "to": "gate_paid_2", "branch": "no" },
+    { "from": "gate_paid_2", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_2", "to": "mail_offer", "branch": "no" },
+    { "from": "mail_offer", "to": "wait_12h" },
+    { "from": "wait_12h", "to": "gate_paid_3" },
+    { "from": "gate_paid_3", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_3", "to": "mail_story", "branch": "no" },
+    { "from": "mail_story", "to": "wait_14h" },
+    { "from": "wait_14h", "to": "gate_paid_4" },
+    { "from": "gate_paid_4", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_4", "to": "mail_proof", "branch": "no" },
+    { "from": "mail_proof", "to": "wait_7h" },
+    { "from": "wait_7h", "to": "gate_paid_5" },
+    { "from": "gate_paid_5", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_5", "to": "mail_expiring", "branch": "no" },
+    { "from": "mail_expiring", "to": "wait_final" },
+    { "from": "wait_final", "to": "gate_paid_6" },
+    { "from": "gate_paid_6", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_6", "to": "mail_final", "branch": "no" },
+    { "from": "mail_final", "to": "wait_reopen" },
+    { "from": "wait_reopen", "to": "gate_paid_7" },
+    { "from": "gate_paid_7", "to": "end_paid", "branch": "yes" },
+    { "from": "gate_paid_7", "to": "grant_reopen", "branch": "no" },
+    { "from": "grant_reopen", "to": "mail_reopen" },
+    { "from": "mail_reopen", "to": "wait_n1" },
+    { "from": "wait_n1", "to": "gate_n1" },
+    { "from": "gate_n1", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n1", "to": "mail_n1", "branch": "no" },
+    { "from": "mail_n1", "to": "wait_n2" },
+    { "from": "wait_n2", "to": "gate_n2" },
+    { "from": "gate_n2", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n2", "to": "mail_n2", "branch": "no" },
+    { "from": "mail_n2", "to": "wait_n3" },
+    { "from": "wait_n3", "to": "gate_n3" },
+    { "from": "gate_n3", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n3", "to": "mail_n3", "branch": "no" },
+    { "from": "mail_n3", "to": "wait_n4" },
+    { "from": "wait_n4", "to": "gate_n4" },
+    { "from": "gate_n4", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n4", "to": "mail_n4", "branch": "no" },
+    { "from": "mail_n4", "to": "wait_n5" },
+    { "from": "wait_n5", "to": "gate_n5" },
+    { "from": "gate_n5", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n5", "to": "mail_n5", "branch": "no" },
+    { "from": "mail_n5", "to": "wait_n6" },
+    { "from": "wait_n6", "to": "gate_n6" },
+    { "from": "gate_n6", "to": "end_ok", "branch": "yes" },
+    { "from": "gate_n6", "to": "mail_n6", "branch": "no" },
+    { "from": "mail_n6", "to": "staff_notify" },
+    { "from": "staff_notify", "to": "end_ok" }
+  ]
+}

@@ -35,6 +35,7 @@ final class Database
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
+        self::seedElkeDemoV2Automation($pdo);
         self::dropPaidTemplateThatIncludesPassword($pdo);
     }
 
@@ -481,6 +482,54 @@ SQL);
             $dbRev,
             $fileRev
         ));
+    }
+
+    private static function seedElkeDemoV2Automation(PDO $pdo): void
+    {
+        $slug = 'elke-en-demo-v2';
+        $stmt = $pdo->prepare('SELECT id FROM email_automations WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        if ($stmt->fetch()) {
+            return;
+        }
+
+        $path = WWM_ROOT . '/data/automations/elke-en-demo-v2.json';
+        if (!is_readable($path)) {
+            return;
+        }
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+        $decoded = json_decode($definition, true);
+        if (!is_array($decoded)) {
+            wwm_log('elke demo v2: invalid JSON');
+
+            return;
+        }
+        try {
+            \Wwm\Services\AutomationDefinitionValidator::validate($decoded);
+        } catch (\Throwable $e) {
+            wwm_log('elke demo v2: ' . $e->getMessage());
+
+            return;
+        }
+
+        $now = gmdate('c');
+        $pdo->prepare(
+            'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+        )->execute([
+            $slug,
+            (string)($decoded['meta']['title'] ?? 'Elke demo funnel v2'),
+            (string)($decoded['meta']['description'] ?? ''),
+            'elke-en',
+            'demo_form',
+            $definition,
+            $now,
+            $now,
+        ]);
+        wwm_log('elke demo v2 automation created (inactive)');
     }
 
     private static function seedPostPurchaseCrossSellAutomation(PDO $pdo): void

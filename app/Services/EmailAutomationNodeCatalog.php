@@ -74,6 +74,14 @@ final class EmailAutomationNodeCatalog
                 'class' => 'automation-node--delay',
             ],
             [
+                'id' => 'wait_event',
+                'label' => 'Ждать урок',
+                'short' => 'Ждать',
+                'description' => 'Ждать открытия демо-урока, затем паузу. Верхний выход — урок открыт, нижний — время вышло.',
+                'outputs' => 2,
+                'class' => 'automation-node--condition',
+            ],
+            [
                 'id' => 'condition',
                 'label' => 'Условие',
                 'short' => 'Условие',
@@ -249,6 +257,13 @@ final class EmailAutomationNodeCatalog
             ],
             'revoke_demo' => $data + ['course_slug' => $courseSlug],
             'delay' => $data + ['seconds' => 3600],
+            'wait_event' => $data + [
+                'course_slug' => $courseSlug,
+                'condition' => 'demo_lesson_opened',
+                'timeout_seconds' => 86400,
+                'then_delay_seconds' => 5400,
+                'poll_seconds' => 900,
+            ],
             'condition' => $data + ['condition' => 'has_paid_any', 'course_slug' => $courseSlug],
             'send_template' => $data + [
                 'template' => 'reminder_demo_no_login',

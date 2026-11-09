@@ -110,12 +110,12 @@ final class AutomationDefinitionValidator
                 $issues[] = '«' . $label . '»: нет исходящей связи (добавьте шаг или «Конец»).';
             }
 
-            if ($type === 'condition') {
+            if ($type === 'condition' || $type === 'wait_event') {
                 $branches = array_map(static fn (array $e): string => (string)($e['branch'] ?? 'next'), $out[$id] ?? []);
                 $hasYes = in_array('yes', $branches, true);
                 $hasNo = in_array('no', $branches, true);
                 if (!$hasYes || !$hasNo) {
-                    $issues[] = '«' . $label . '»: у условия должны быть обе ветки — «да» и «нет».';
+                    $issues[] = '«' . $label . '»: у блока должны быть обе ветки — «да» и «нет».';
                 }
             }
 
@@ -232,6 +232,16 @@ final class AutomationDefinitionValidator
             $sec = (int)($node['seconds'] ?? -1);
             if ($sec < 0) {
                 return '«' . $label . '»: укажите длительность паузы.';
+            }
+        }
+
+        if ($type === 'wait_event') {
+            $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
+            if ($slug === '') {
+                return '«' . $label . '»: укажите курс.';
+            }
+            if ((int)($node['timeout_seconds'] ?? 0) < 60) {
+                return '«' . $label . '»: укажите таймаут ожидания.';
             }
         }
 

@@ -1039,7 +1039,7 @@
     const edges = Array.isArray(definition.edges) ? definition.edges : [];
     let forkId = null;
     const cur = nodes[nodeId];
-    if (cur && String(cur.type || '') === 'condition') {
+    if (cur && (String(cur.type || '') === 'condition' || String(cur.type || '') === 'wait_event')) {
       forkId = nodeId;
     } else if (cur && String(cur.type || '') === 'delay') {
       const nextEdge = edges.find((e) => e && String(e.from || '') === nodeId
@@ -1855,7 +1855,7 @@
       }
       const fromNode = nodes[fromKey];
       let outputClass = 'output_1';
-      if (fromNode && fromNode.type === 'condition') {
+      if (fromNode && (fromNode.type === 'condition' || fromNode.type === 'wait_event')) {
         outputClass = edge.branch === 'yes' ? 'output_1' : 'output_2';
       }
       editor.addConnection(fromDf, toDf, outputClass, 'input_1');
@@ -1946,7 +1946,7 @@
   }
 
   function branchFromOutput(type, outputName) {
-    if (type !== 'condition') {
+    if (type !== 'condition' && type !== 'wait_event') {
       return 'next';
     }
     if (outputName === 'output_1') {

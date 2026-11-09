@@ -304,6 +304,15 @@ final class EmailAutomationRunner
                 continue;
             }
 
+            if ($type === 'wait_event') {
+                $next = self::handleWaitEvent($pdo, $run, $def, $nodeId, $node, $userId, $courseSlug);
+                if ($next === null) {
+                    return;
+                }
+                $nodeId = $next;
+                continue;
+            }
+
             if ($type === 'condition') {
                 $context = EmailAutomationRun::context($run);
                 $manual = strtolower(trim((string)($context['manual_branch'] ?? '')));
@@ -557,7 +566,7 @@ final class EmailAutomationRunner
             return ['next' => null, 'sent' => false, 'stop' => true];
         }
 
-        if ($template === 'sale_demo_discount_24h') {
+        if ($template === 'sale_demo_discount_24h' || $template === 'v2_offer_open') {
             $context = EmailAutomationRun::context($run);
             $context['coupon_expires_at'] = gmdate('c', time() + 24 * 3600);
             $context['coupon_code'] = trim((string)(wwm_config()['sale_coupon_code'] ?? 'SPECWWM4')) ?: 'SPECWWM4';
@@ -676,6 +685,86 @@ final class EmailAutomationRunner
                 return (string)($edge['to'] ?? '');
             }
         }
+
+        return null;
+    }
+
+    /**
+     * Wait until a lesson is opened, then hold for then_delay_seconds.
+     * Branch yes = event plus that hold. Branch no = timeout with no event.
+     *
+     * @param array<string, mixed> $run
+     * @param array<string, mixed> $def
+     * @param array<string, mixed> $node
+     */
+    private static function handleWaitEvent(
+        \PDO $pdo,
+        array &$run,
+        array $def,
+        string $nodeId,
+        array $node,
+        int $userId,
+        string $courseSlug
+    ): ?string {
+        $context = EmailAutomationRun::context($run);
+        $all = is_array($context['wait_event'] ?? null) ? $context['wait_event'] : [];
+        $state = is_array($all[$nodeId] ?? null) ? $all[$nodeId] : [];
+        $now = time();
+        $started = isset($state['started_at']) ? strtotime((string)$state['started_at']) : false;
+        if ($started === false) {
+            $started = $now;
+            $state['started_at'] = gmdate('c', $now);
+        }
+
+        $timeout = max(60, (int)($node['timeout_seconds'] ?? 86400));
+        $thenDelay = max(0, (int)($node['then_delay_seconds'] ?? 0));
+        $poll = max(60, (int)($node['poll_seconds'] ?? 900));
+        $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? $courseSlug)) ?: $courseSlug;
+        $opened = self::demoLessonOpened($pdo, $userId, $slug);
+        $armed = isset($state['armed_until']) ? strtotime((string)$state['armed_until']) : false;
+
+        $finish = function (string $branch) use ($pdo, &$run, $def, $nodeId, &$context, &$all): ?string {
+            unset($all[$nodeId]);
+            $context['wait_event'] = $all;
+            $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+            $next = self::nextNode($def, $nodeId, $branch) ?? self::nextNode($def, $nodeId, 'next');
+            self::logStep($pdo, $run, $nodeId, 'wait_event', $branch, null);
+            if ($next === null || $next === '') {
+                EmailAutomationRun::complete($pdo, (int)$run['id']);
+
+                return null;
+            }
+            $run['current_node_id'] = $next;
+            $run['next_run_at'] = gmdate('c');
+            EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $next, $run['next_run_at'], $context);
+
+            return $next;
+        };
+
+        if ($armed !== false && $armed <= $now) {
+            return $finish('yes');
+        }
+
+        if ($opened && $armed === false) {
+            $wake = $now + $thenDelay;
+            $state['armed_until'] = gmdate('c', $wake);
+            $all[$nodeId] = $state;
+            $context['wait_event'] = $all;
+            $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+            EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $nodeId, gmdate('c', $wake), $context);
+
+            return null;
+        }
+
+        if ($now >= $started + $timeout) {
+            return $finish('no');
+        }
+
+        $wake = min($started + $timeout, $now + $poll);
+        $all[$nodeId] = $state;
+        $context['wait_event'] = $all;
+        $run['context_json'] = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        EmailAutomationRun::saveProgress($pdo, (int)$run['id'], $nodeId, gmdate('c', $wake), $context);
 
         return null;
     }
