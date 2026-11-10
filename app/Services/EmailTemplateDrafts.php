@@ -475,66 +475,6 @@ final class EmailTemplateDrafts
                 false,
                 '{{login_url}}'
             ),
-            'v2_nurture_1' => self::v2Letter(
-                '{{name}}, keep the pencil drawing light',
-                'A light drawing',
-                [
-                    'Start with a light pencil drawing and keep it faint, so the watercolor stays bright.',
-                    'The full course is here when you want it: {{course_title}}. Code {{coupon_code}} is 40% off.',
-                ],
-                'Look at the course',
-                false
-            ),
-            'v2_nurture_2' => self::v2Letter(
-                '{{name}}, let the first wash dry',
-                'Let the wash dry',
-                [
-                    'Let the first wash dry before you add a darker layer. That keeps the edges clean.',
-                    'Elke shows this in {{course_title}}. Code {{coupon_code}} is 40% off the full course.',
-                ],
-                'Look at the course',
-                false
-            ),
-            'v2_nurture_3' => self::v2Letter(
-                '{{name}}, test the mix on a scrap',
-                'Test the color first',
-                [
-                    'Keep a scrap of the same paper beside you and test every mix before it goes on the painting.',
-                    'The full course is {{course_title}}. Code {{coupon_code}} is 40% off.',
-                ],
-                'Look at the course',
-                false
-            ),
-            'v2_nurture_4' => self::v2Letter(
-                '{{name}}, save the white of the paper',
-                'Leave the paper white',
-                [
-                    'Leave some paper white for the light. It is easier than painting the light back in later.',
-                    'You can see how Elke does this in {{course_title}}. Code {{coupon_code}} is 40% off.',
-                ],
-                'Look at the course',
-                false
-            ),
-            'v2_nurture_5' => self::v2Letter(
-                '{{name}}, mix fewer pigments',
-                'Fewer colors in one wash',
-                [
-                    'Use fewer pigments in one wash. Three colors mixed cleanly stay fresher than six.',
-                    'The full course is {{course_title}}. Code {{coupon_code}} is 40% off.',
-                ],
-                'Look at the course',
-                false
-            ),
-            'v2_nurture_6' => self::v2Letter(
-                '{{name}}, step back before the last details',
-                'Step back',
-                [
-                    'Step back from the painting before the last details. The big shapes matter more than the small ones.',
-                    'Whenever you want the full course, it is {{course_title}}. Code {{coupon_code}} is 40% off.',
-                ],
-                'Look at the course',
-                false
-            ),
             default => throw new \InvalidArgumentException('Unknown email template: ' . $id),
         };
     }

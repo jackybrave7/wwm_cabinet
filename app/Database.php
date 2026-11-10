@@ -487,12 +487,6 @@ SQL);
     private static function seedElkeDemoV2Automation(PDO $pdo): void
     {
         $slug = 'elke-en-demo-v2';
-        $stmt = $pdo->prepare('SELECT id FROM email_automations WHERE slug = ? LIMIT 1');
-        $stmt->execute([$slug]);
-        if ($stmt->fetch()) {
-            return;
-        }
-
         $path = WWM_ROOT . '/data/automations/elke-en-demo-v2.json';
         if (!is_readable($path)) {
             return;
@@ -515,21 +509,71 @@ SQL);
             return;
         }
 
+        $fileRev = (int)($decoded['meta']['flow_revision'] ?? 0);
+        $json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if ($json === false) {
+            return;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT id, definition_json FROM email_automations WHERE slug = ? LIMIT 1'
+        );
+        $stmt->execute([$slug]);
+        $row = $stmt->fetch();
         $now = gmdate('c');
+        $title = (string)($decoded['meta']['title'] ?? 'Elke demo funnel v2');
+        $description = (string)($decoded['meta']['description'] ?? '');
+
+        if (!is_array($row)) {
+            $pdo->prepare(
+                'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+            )->execute([
+                $slug,
+                $title,
+                $description,
+                'elke-en',
+                'demo_form',
+                $json,
+                $now,
+                $now,
+            ]);
+            wwm_log('elke demo v2 automation created (inactive)');
+
+            return;
+        }
+
+        $current = json_decode((string)($row['definition_json'] ?? ''), true);
+        $dbRev = is_array($current) ? (int)($current['meta']['flow_revision'] ?? 0) : 0;
+        if ($dbRev >= $fileRev) {
+            return;
+        }
+
         $pdo->prepare(
-            'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
-        )->execute([
-            $slug,
-            (string)($decoded['meta']['title'] ?? 'Elke demo funnel v2'),
-            (string)($decoded['meta']['description'] ?? ''),
-            'elke-en',
-            'demo_form',
-            $definition,
-            $now,
-            $now,
-        ]);
-        wwm_log('elke demo v2 automation created (inactive)');
+            'UPDATE email_automations
+             SET definition_json = ?, title = ?, description = ?, updated_at = ?
+             WHERE id = ?'
+        )->execute([$json, $title, $description, $now, (int)$row['id']]);
+
+        if ($fileRev >= 2) {
+            $removed = [
+                'wait_n1', 'gate_n1', 'mail_n1',
+                'wait_n2', 'gate_n2', 'mail_n2',
+                'wait_n3', 'gate_n3', 'mail_n3',
+                'wait_n4', 'gate_n4', 'mail_n4',
+                'wait_n5', 'gate_n5', 'mail_n5',
+                'wait_n6', 'gate_n6', 'mail_n6',
+                'staff_notify',
+            ];
+            $placeholders = implode(',', array_fill(0, count($removed), '?'));
+            $pdo->prepare(
+                "UPDATE email_automation_runs
+                 SET status = 'completed', completed_at = ?, next_run_at = NULL, updated_at = ?
+                 WHERE automation_id = ? AND status = 'active' AND current_node_id IN ($placeholders)"
+            )->execute(array_merge([$now, $now, (int)$row['id']], $removed));
+        }
+
+        wwm_log(sprintf('elke demo v2 automation synced flow_revision %d → %d', $dbRev, $fileRev));
     }
 
     private static function seedPostPurchaseCrossSellAutomation(PDO $pdo): void

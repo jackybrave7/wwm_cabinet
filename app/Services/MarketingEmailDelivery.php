@@ -36,12 +36,6 @@ final class MarketingEmailDelivery
             'v2_value_proof',
             'v2_offer_final',
             'v2_demo_reopen',
-            'v2_nurture_1',
-            'v2_nurture_2',
-            'v2_nurture_3',
-            'v2_nurture_4',
-            'v2_nurture_5',
-            'v2_nurture_6',
         ];
     }
 
