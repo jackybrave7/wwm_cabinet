@@ -78,7 +78,7 @@ return [
     ],
 
     // Bump on deploy when static assets change (cache bust for cabinet.css).
-    'asset_version' => '5',
+    'asset_version' => '6',
 
     // Shared password for new demo users (Account → change after login). Set via WWM_DEMO_DEFAULT_PASSWORD secret on prod.
     'demo_default_password' => 'CHANGE_ME_DEMO_PASSWORD',

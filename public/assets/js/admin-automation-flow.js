@@ -13,10 +13,9 @@
   const definition = JSON.parse((defEl && defEl.textContent) || root.dataset.definition || '{}');
   const initialProcessCourseSlug = root.dataset.courseSlug || 'elke-en';
   const ENTRY_MODES_NEED_COURSE = { demo_grant: true, payment_course: true, demo_form: true };
-  const marketingTemplates = new Set(config.marketing_templates || []);
 
   function templateNeedsCourseSlug(template) {
-    return marketingTemplates.has(String(template || '').trim());
+    return String(template || '').trim().indexOf('sale_crosssell_') === 0;
   }
   const jsonField = document.querySelector('textarea[name="definition_json"]');
   const jsonInline = document.getElementById('automation-flow-json-inline');
