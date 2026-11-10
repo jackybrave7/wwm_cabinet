@@ -6,6 +6,7 @@
 $slug = (string)($course['slug'] ?? '');
 $sections = is_array($course['sections'] ?? null) ? $course['sections'] : null;
 $lessons = is_array($course['lessons'] ?? null) ? $course['lessons'] : [];
+$completedLessons = is_array($completedLessons ?? null) ? $completedLessons : [];
 
 $lessonByNum = [];
 foreach ($lessons as $lessonItem) {
@@ -18,7 +19,7 @@ foreach ($lessons as $lessonItem) {
     }
 }
 
-$renderLesson = static function (array $navLesson, int $displayNum) use ($slug, $lessonAccess, $currentLessonNum): void {
+$renderLesson = static function (array $navLesson, int $displayNum) use ($slug, $lessonAccess, $currentLessonNum, $completedLessons): void {
     $num = (int)($navLesson['num'] ?? 0);
     if ($num === 0) {
         return;
@@ -38,19 +39,27 @@ $renderLesson = static function (array $navLesson, int $displayNum) use ($slug, 
     $title = wwm_escape((string)($navLesson['title'] ?? 'Lesson'));
     $duration = trim((string)($navLesson['duration'] ?? ''));
     $meta = $locked ? '🔒' : $duration;
+    $toggleDone = !empty($completedLessons[$num]);
     ?>
     <?php if ($locked): ?>
       <span class="<?= $classes ?>">
         <span class="lesson-nav-num"><?= $displayNum ?></span>
-        <span><?= $title ?></span>
+        <span class="lesson-nav-title"><?= $title ?></span>
         <?php if ($meta !== ''): ?><span class="lesson-nav-meta"><?= wwm_escape($meta) ?></span><?php endif; ?>
       </span>
     <?php else: ?>
-      <a class="<?= $classes ?>" href="/c/<?= wwm_escape($slug) ?>/<?= $num ?>">
-        <span class="lesson-nav-num"><?= $displayNum ?></span>
-        <span><?= $title ?></span>
-        <?php if ($meta !== ''): ?><span class="lesson-nav-meta"><?= wwm_escape($meta) ?></span><?php endif; ?>
-      </a>
+      <div class="<?= $classes ?>">
+        <a class="lesson-nav-open" href="/c/<?= wwm_escape($slug) ?>/<?= $num ?>">
+          <span class="lesson-nav-num"><?= $displayNum ?></span>
+          <span class="lesson-nav-title"><?= $title ?></span>
+          <?php if ($meta !== ''): ?><span class="lesson-nav-meta"><?= wwm_escape($meta) ?></span><?php endif; ?>
+        </a>
+        <?php
+          $toggleLessonNum = $num;
+          $toggleCourseSlug = $slug;
+          require __DIR__ . '/lesson-done-toggle.php';
+        ?>
+      </div>
     <?php endif; ?>
     <?php
 };
@@ -133,3 +142,48 @@ $sectionContainsCurrent = static function (array $sectionLessons, ?int $currentL
     </div>
   <?php endif; ?>
 </aside>
+<script>
+(function () {
+  var hintOff = 'Mark as done if you have completed this part of the lesson';
+  var hintOn = 'Marked as done. Click to clear.';
+  var csrf = <?= json_encode(wwm_csrf_token()) ?>;
+  function paint(num, done) {
+    document.querySelectorAll('.lesson-done-toggle[data-lesson-num="' + num + '"]').forEach(function (btn) {
+      btn.classList.toggle('is-done', done);
+      btn.setAttribute('aria-pressed', done ? 'true' : 'false');
+      var hint = done ? hintOn : hintOff;
+      btn.title = hint;
+      btn.setAttribute('aria-label', hint);
+    });
+  }
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest('.lesson-done-toggle');
+    if (!btn || btn.getAttribute('data-pending') === '1') return;
+    event.preventDefault();
+    event.stopPropagation();
+    var num = btn.getAttribute('data-lesson-num');
+    var url = btn.getAttribute('data-url');
+    var want = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('data-pending', '1');
+    paint(num, want);
+    var body = new FormData();
+    body.append('csrf', csrf);
+    body.append('done', want ? '1' : '0');
+    fetch(url, { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { ok: res.ok && data && data.ok, done: !!(data && data.done) };
+        });
+      })
+      .then(function (result) {
+        paint(num, result.ok ? result.done : !want);
+      })
+      .catch(function () {
+        paint(num, !want);
+      })
+      .then(function () {
+        btn.setAttribute('data-pending', '0');
+      });
+  });
+})();
+</script>

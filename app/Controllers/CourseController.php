@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Controllers;
 
 use Wwm\Auth\Session;
+use Wwm\Models\LessonProgress;
 use Wwm\Models\User;
 use Wwm\Services\AccessChecker;
 use Wwm\Services\CourseCatalog;
@@ -48,6 +49,12 @@ final class CourseController
             $lessonAccess[(int)($lesson['num'] ?? 0)] = $la;
         }
 
+        $completedLessons = LessonProgress::completedMap(wwm_pdo(), $userId, $slug);
+        $resumeNum = LessonProgress::resumeLessonNum(wwm_pdo(), $userId, $slug, $lessonAccess);
+        if ($resumeNum !== null) {
+            wwm_redirect('/c/' . rawurlencode($slug) . '/' . $resumeNum);
+        }
+
         foreach ($lessons as $lesson) {
             if (!is_array($lesson)) {
                 continue;
@@ -66,6 +73,7 @@ final class CourseController
             'lessonAccess' => $lessonAccess,
             'accessLabel' => $access['access_label'],
             'demoExpiresAt' => $access['demo_expires_at'] ?? null,
+            'completedLessons' => $completedLessons,
         ]);
     }
 }

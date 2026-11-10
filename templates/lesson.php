@@ -23,7 +23,15 @@ $lessonNum = (int)($lesson['num'] ?? 0);
 
     <div class="course-main">
       <article class="lesson-content">
-        <h2><?= wwm_escape((string)($lesson['title'] ?? 'Lesson')) ?></h2>
+        <div class="lesson-title-row">
+          <h2><?= wwm_escape((string)($lesson['title'] ?? 'Lesson')) ?></h2>
+          <?php
+            $toggleLessonNum = $lessonNum;
+            $toggleCourseSlug = (string)$course['slug'];
+            $toggleDone = !empty($completedLessons[$lessonNum]);
+            require __DIR__ . '/partials/lesson-done-toggle.php';
+          ?>
+        </div>
 
         <?php $bodyHtml = wwm_lesson_body_html($lesson); ?>
         <?php if ($bodyHtml !== ''): ?>

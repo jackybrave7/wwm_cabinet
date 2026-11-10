@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 31;
+    public const SCHEMA_VERSION = 32;
 
     public static function connect(string $path): PDO
     {
@@ -212,6 +212,18 @@ CREATE TABLE IF NOT EXISTS lesson_opens (
 CREATE INDEX IF NOT EXISTS idx_lesson_opens_user ON lesson_opens(user_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_opens_course ON lesson_opens(course_slug);
 CREATE INDEX IF NOT EXISTS idx_lesson_opens_user_course ON lesson_opens(user_id, course_slug);
+
+CREATE TABLE IF NOT EXISTS lesson_progress (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_slug TEXT NOT NULL,
+  lesson_num INTEGER NOT NULL,
+  last_opened_at TEXT,
+  completed_at TEXT,
+  PRIMARY KEY (user_id, course_slug, lesson_num)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lesson_progress_resume
+  ON lesson_progress(user_id, course_slug, last_opened_at);
 
 CREATE TABLE IF NOT EXISTS login_links (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

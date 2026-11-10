@@ -5,6 +5,7 @@ namespace Wwm\Controllers;
 
 use Wwm\Auth\Session;
 use Wwm\Models\LessonOpen;
+use Wwm\Models\LessonProgress;
 use Wwm\Models\User;
 use Wwm\Services\AccessChecker;
 use Wwm\Services\AvoEngagementSync;
@@ -56,6 +57,9 @@ final class LessonController
 
         // Opening the URL (including auto-login after signup) is not a view.
         // The page pings markViewed after dwell or video start.
+        // Last-opened is a separate resume pointer and is stored on every visit.
+        LessonProgress::touch(wwm_pdo(), $userId, $slug, $num);
+        $completedLessons = LessonProgress::completedMap(wwm_pdo(), $userId, $slug);
 
         $lessonAccess = [];
         foreach ($lessons as $item) {
@@ -87,7 +91,47 @@ final class LessonController
             'prevLocked' => $prevLocked,
             'nextLocked' => $nextLocked,
             'trackLessonView' => !empty($lesson['demo']),
+            'completedLessons' => $completedLessons,
         ]);
+    }
+
+    public function markDone(string $slug, int $num): void
+    {
+        $userId = Session::requireLogin();
+        header('Content-Type: application/json');
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            http_response_code(400);
+            echo '{"ok":false}';
+            return;
+        }
+
+        $catalog = new CourseCatalog();
+        $course = $catalog->get($slug);
+        $lesson = null;
+        if (is_array($course)) {
+            foreach (is_array($course['lessons'] ?? null) ? $course['lessons'] : [] as $item) {
+                if (is_array($item) && (int)($item['num'] ?? 0) === $num) {
+                    $lesson = $item;
+                    break;
+                }
+            }
+        }
+        if (!is_array($course) || $lesson === null) {
+            http_response_code(404);
+            echo '{"ok":false}';
+            return;
+        }
+
+        $access = (new AccessChecker(wwm_pdo()))->lesson($userId, $course, $lesson);
+        if (empty($access['can_view_lesson'])) {
+            http_response_code(403);
+            echo '{"ok":false}';
+            return;
+        }
+
+        $done = (string)($_POST['done'] ?? '') === '1';
+        LessonProgress::setCompleted(wwm_pdo(), $userId, $slug, $num, $done);
+        echo json_encode(['ok' => true, 'done' => $done]);
     }
 
     public function markViewed(string $slug, int $num): void
