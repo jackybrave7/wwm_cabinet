@@ -285,12 +285,94 @@
     }
   }
 
-  function insertAtCursor(textarea, text) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
-    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+  function insertAtCursor(textarea, text, start, end) {
+    const from = typeof start === 'number' ? start : textarea.selectionStart;
+    const to = typeof end === 'number' ? end : textarea.selectionEnd;
+    textarea.value = textarea.value.slice(0, from) + text + textarea.value.slice(to);
+    const caret = from + text.length;
+    textarea.selectionStart = textarea.selectionEnd = caret;
     textarea.focus();
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    return caret;
+  }
+
+  function readMessageCaret() {
+    if (textInput && document.activeElement === textInput && (contentMode === 'plain' || activeTab === 'text')) {
+      return { kind: 'text', start: textInput.selectionStart, end: textInput.selectionEnd };
+    }
+    if (htmlInput && document.activeElement === htmlInput && contentMode === 'html' && activeTab === 'html') {
+      return { kind: 'html', start: htmlInput.selectionStart, end: htmlInput.selectionEnd };
+    }
+    const doc = visualDocument();
+    if (doc && contentMode === 'html' && activeTab === 'visual' && (document.activeElement === visualFrame || doc.hasFocus())) {
+      const selection = doc.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        return { kind: 'visual', range: selection.getRangeAt(0).cloneRange() };
+      }
+    }
+    return null;
+  }
+
+  function insertAtMessageCaret(caret, variable) {
+    if (caret.kind === 'text' && textInput) {
+      insertAtCursor(textInput, variable, caret.start, caret.end);
+      return;
+    }
+    if (caret.kind === 'html' && htmlInput) {
+      insertAtCursor(htmlInput, variable, caret.start, caret.end);
+      syncHtmlHighlight();
+      return;
+    }
+    if (caret.kind === 'visual') {
+      const doc = visualDocument();
+      const selection = doc && doc.getSelection();
+      if (!doc || !selection) {
+        return;
+      }
+      visualFrame.contentWindow.focus();
+      selection.removeAllRanges();
+      selection.addRange(caret.range);
+      doc.execCommand('insertText', false, variable);
+      syncVisualToHtml();
+    }
+  }
+
+  function showVariableStatus(text) {
+    const status = document.getElementById('broadcast-variable-status');
+    if (!status) {
+      return;
+    }
+    status.hidden = false;
+    status.textContent = text;
+    window.clearTimeout(showVariableStatus.timer);
+    showVariableStatus.timer = window.setTimeout(() => {
+      status.hidden = true;
+    }, 2000);
+  }
+
+  function copyVariable(variable) {
+    const done = () => showVariableStatus('Copied ' + variable);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(variable).then(done).catch(() => {
+        fallbackCopy(variable);
+        done();
+      });
+      return;
+    }
+    fallbackCopy(variable);
+    done();
+  }
+
+  function fallbackCopy(variable) {
+    const helper = document.createElement('textarea');
+    helper.value = variable;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.left = '-9999px';
+    document.body.appendChild(helper);
+    helper.select();
+    document.execCommand('copy');
+    helper.remove();
   }
 
   function normalizeImageUrl(url) {
@@ -585,33 +667,32 @@
   });
 
   document.querySelectorAll('.email-variable-chip').forEach((chip) => {
+    let caretFromPointer = null;
+    let pointerArmed = false;
+
+    chip.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      pointerArmed = true;
+      caretFromPointer = readMessageCaret();
+    });
+
     chip.addEventListener('click', () => {
       const variable = chip.getAttribute('data-variable') || '';
+      const caret = pointerArmed ? caretFromPointer : null;
+      pointerArmed = false;
+      caretFromPointer = null;
       if (!variable) {
         return;
       }
-      const subjectInput = form.querySelector('input[name="subject"]');
-      if (document.activeElement === subjectInput && subjectInput) {
-        insertAtCursor(subjectInput, variable);
-        return;
-      }
-      if (activeTab === 'text' && textInput) {
-        insertAtCursor(textInput, variable);
-        return;
-      }
-      if (activeTab === 'html' && htmlInput) {
-        insertAtCursor(htmlInput, variable);
-        syncHtmlHighlight();
-        return;
-      }
-      if (activeTab === 'visual') {
-        const doc = visualDocument();
-        if (doc) {
-          visualFrame.contentWindow.focus();
-          doc.execCommand('insertText', false, variable);
-          syncVisualToHtml();
+      if (caret) {
+        insertAtMessageCaret(caret, variable);
+        const status = document.getElementById('broadcast-variable-status');
+        if (status) {
+          status.hidden = true;
         }
+        return;
       }
+      copyVariable(variable);
     });
   });
 

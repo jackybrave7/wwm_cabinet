@@ -131,6 +131,7 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
           <button type="button" class="email-variable-chip" data-variable="<?= wwm_escape($variable) ?>"><?= wwm_escape($variable) ?></button>
         <?php endforeach; ?>
       </div>
+      <p class="field-hint" id="broadcast-variable-status" hidden></p>
     </div>
 
     <label class="field">
