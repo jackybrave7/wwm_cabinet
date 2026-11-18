@@ -18,8 +18,19 @@ final class EmailTracker
         private string $to,
         private string $subject,
         private string $type,
-        private ?int $userId
+        private ?int $userId,
+        private ?int $automationId = null,
+        private ?string $automationNodeId = null,
     ) {
+    }
+
+    public function forAutomation(int $automationId, string $nodeId): self
+    {
+        $this->automationId = $automationId > 0 ? $automationId : null;
+        $nodeId = trim($nodeId);
+        $this->automationNodeId = $nodeId !== '' ? $nodeId : null;
+
+        return $this;
     }
 
     public static function compose(?int $userId, string $to, string $type, string $subject): self
@@ -45,6 +56,7 @@ final class EmailTracker
     /**
      * @param list<array{url: string, label?: string}> $links
      * @param list<string> $extraHeaders
+     * @param array<string, mixed>|null $mailConfig
      */
     public function deliver(
         string $textBody,
@@ -52,9 +64,19 @@ final class EmailTracker
         array $links = [],
         array $extraHeaders = [],
         ?int $broadcastId = null,
+        ?array $mailConfig = null,
     ): bool {
         $pdo = wwm_pdo();
-        $created = EmailMessage::create($pdo, $this->userId, $this->to, $this->type, $this->subject, $broadcastId);
+        $created = EmailMessage::create(
+            $pdo,
+            $this->userId,
+            $this->to,
+            $this->type,
+            $this->subject,
+            $broadcastId,
+            $this->automationId,
+            $this->automationNodeId,
+        );
         $this->messageId = $created['id'];
         $this->openToken = $created['open_token'];
 
@@ -72,7 +94,7 @@ final class EmailTracker
         $this->lastTextBody = $textBody;
         $this->lastHtmlBody = $htmlBody;
 
-        $ok = Mailer::send($this->to, $this->subject, $textBody, $htmlBody, $extraHeaders);
+        $ok = Mailer::send($this->to, $this->subject, $textBody, $htmlBody, $extraHeaders, $mailConfig);
         EmailMessage::markStatus($pdo, $this->messageId, $ok, $ok ? null : Mailer::lastError());
 
         return $ok;

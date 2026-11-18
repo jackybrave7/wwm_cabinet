@@ -17,11 +17,16 @@ final class EmailMessage
         string $type,
         string $subject,
         ?int $broadcastId = null,
+        ?int $automationId = null,
+        ?string $automationNodeId = null,
     ): array {
         $openToken = bin2hex(random_bytes(16));
+        $nodeId = trim((string)$automationNodeId);
         $stmt = $pdo->prepare(
-            'INSERT INTO email_messages (user_id, to_email, email_type, subject, status, sent_at, open_token, broadcast_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO email_messages (
+                user_id, to_email, email_type, subject, status, sent_at, open_token, broadcast_id,
+                automation_id, automation_node_id
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $userId,
@@ -32,6 +37,8 @@ final class EmailMessage
             gmdate('c'),
             $openToken,
             $broadcastId,
+            $automationId !== null && $automationId > 0 ? $automationId : null,
+            $nodeId !== '' ? $nodeId : null,
         ]);
 
         return [
@@ -330,5 +337,88 @@ final class EmailMessage
             'sale_crosssell_50_reminder' => 'Cross-sell — 50% reminder (5h)',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
+    }
+
+    /**
+     * Sent / opened / clicked letters for each block of one automation.
+     *
+     * @return array<string, array{sent: int, opened: int, clicked: int}>
+     */
+    public static function automationNodeStats(PDO $pdo, int $automationId): array
+    {
+        $stmt = $pdo->prepare(
+            "SELECT automation_node_id AS node_id,
+                    SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent,
+                    SUM(CASE WHEN status = 'sent' AND opened_at IS NOT NULL AND opened_at != '' THEN 1 ELSE 0 END) AS opened
+             FROM email_messages
+             WHERE automation_id = ?
+               AND automation_node_id IS NOT NULL
+               AND automation_node_id != ''
+             GROUP BY automation_node_id"
+        );
+        $stmt->execute([$automationId]);
+        $map = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $map[(string)$row['node_id']] = [
+                'sent' => (int)$row['sent'],
+                'opened' => (int)$row['opened'],
+                'clicked' => 0,
+            ];
+        }
+
+        $clicks = $pdo->prepare(
+            "SELECT m.automation_node_id AS node_id, COUNT(DISTINCT m.id) AS clicked
+             FROM email_messages m
+             INNER JOIN email_links l ON l.message_id = m.id
+             WHERE m.automation_id = ?
+               AND m.status = 'sent'
+               AND l.clicked_at IS NOT NULL
+               AND l.clicked_at != ''
+             GROUP BY m.automation_node_id"
+        );
+        $clicks->execute([$automationId]);
+        foreach ($clicks->fetchAll() ?: [] as $row) {
+            $nodeId = (string)$row['node_id'];
+            if (!isset($map[$nodeId])) {
+                $map[$nodeId] = ['sent' => 0, 'opened' => 0, 'clicked' => 0];
+            }
+            $map[$nodeId]['clicked'] = (int)$row['clicked'];
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<int, array{opened: bool, clicked: bool}>
+     */
+    public static function automationNodeEngagement(PDO $pdo, int $automationId, string $nodeId): array
+    {
+        $nodeId = trim($nodeId);
+        if ($nodeId === '') {
+            return [];
+        }
+
+        $stmt = $pdo->prepare(
+            "SELECT m.user_id,
+                    MAX(CASE WHEN m.opened_at IS NOT NULL AND m.opened_at != '' THEN 1 ELSE 0 END) AS opened,
+                    MAX(CASE WHEN l.clicked_at IS NOT NULL AND l.clicked_at != '' THEN 1 ELSE 0 END) AS clicked
+             FROM email_messages m
+             LEFT JOIN email_links l ON l.message_id = m.id
+             WHERE m.automation_id = ?
+               AND m.automation_node_id = ?
+               AND m.status = 'sent'
+               AND m.user_id IS NOT NULL
+             GROUP BY m.user_id"
+        );
+        $stmt->execute([$automationId, $nodeId]);
+        $map = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $map[(int)$row['user_id']] = [
+                'opened' => (int)$row['opened'] === 1,
+                'clicked' => (int)$row['clicked'] === 1,
+            ];
+        }
+
+        return $map;
     }
 }

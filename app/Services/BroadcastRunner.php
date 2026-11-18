@@ -82,6 +82,60 @@ final class BroadcastRunner
         )->execute([$total, gmdate('c'), $broadcastId]);
     }
 
+    /**
+     * Mark a slice of pending rows as taken before any SMTP call.
+     * A second worker sees those rows as claimed and takes the next ones.
+     * A claim older than 15 minutes is released so a crash can be retried.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function claimPending(PDO $pdo, int $broadcastId, int $limit): array
+    {
+        $limit = max(1, min(100, $limit));
+        $now = self::claimStamp();
+        $staleBefore = gmdate('Y-m-d\TH:i:s', time() - 900) . '.000000Z';
+
+        try {
+            $pdo->exec('BEGIN IMMEDIATE');
+            $pdo->prepare(
+                'UPDATE broadcast_recipients
+                 SET claimed_at = NULL
+                 WHERE broadcast_id = ? AND status = \'pending\'
+                   AND claimed_at IS NOT NULL AND claimed_at < ?'
+            )->execute([$broadcastId, $staleBefore]);
+
+            $pdo->prepare(
+                'UPDATE broadcast_recipients
+                 SET claimed_at = ?
+                 WHERE id IN (
+                   SELECT id FROM broadcast_recipients
+                   WHERE broadcast_id = ? AND status = \'pending\' AND claimed_at IS NULL
+                   ORDER BY id ASC
+                   LIMIT ' . $limit . '
+                 )'
+            )->execute([$now, $broadcastId]);
+
+            $stmt = $pdo->prepare(
+                'SELECT id, user_id, email FROM broadcast_recipients
+                 WHERE broadcast_id = ? AND status = \'pending\' AND claimed_at = ?
+                 ORDER BY id ASC'
+            );
+            $stmt->execute([$broadcastId, $now]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $pdo->exec('COMMIT');
+
+            return $rows;
+        } catch (\Throwable $e) {
+            try {
+                $pdo->exec('ROLLBACK');
+            } catch (\Throwable) {
+            }
+            wwm_log('broadcast claim failed: ' . $e->getMessage());
+
+            return [];
+        }
+    }
+
     public static function processBatch(PDO $pdo, int $broadcastId, int $limit = self::BATCH_SIZE): array
     {
         $limit = max(1, min(100, $limit));
@@ -90,14 +144,7 @@ final class BroadcastRunner
             return ['sent' => 0, 'failed' => 0, 'skipped' => 0, 'done' => true];
         }
 
-        $stmt = $pdo->prepare(
-            'SELECT id, user_id, email FROM broadcast_recipients
-             WHERE broadcast_id = ? AND status = \'pending\'
-             ORDER BY id ASC
-             LIMIT ' . $limit
-        );
-        $stmt->execute([$broadcastId]);
-        $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $pending = self::claimPending($pdo, $broadcastId, $limit);
 
         $sent = 0;
         $failed = 0;
@@ -149,6 +196,19 @@ final class BroadcastRunner
         ];
     }
 
+    private static function claimStamp(): string
+    {
+        $micro = microtime(true);
+        $seconds = (int)floor($micro);
+        $fraction = (int)round(($micro - $seconds) * 1000000);
+        if ($fraction >= 1000000) {
+            $seconds++;
+            $fraction -= 1000000;
+        }
+
+        return gmdate('Y-m-d\TH:i:s', $seconds) . sprintf('.%06dZ', $fraction) . '|' . bin2hex(random_bytes(4));
+    }
+
     /**
      * @param array<string, mixed> $broadcast
      */
@@ -184,7 +244,7 @@ final class BroadcastRunner
         $links = BroadcastTracking::trackableLinks($text, $html, [$unsubUrl]);
 
         $tracker = EmailTracker::compose($userId, $email, 'broadcast', $subject);
-        $ok = $tracker->deliver($text, $html, $links, $headers, $broadcastId);
+        $ok = $tracker->deliver($text, $html, $links, $headers, $broadcastId, Mailer::broadcastConfig());
 
         return [
             'ok' => $ok,
@@ -240,8 +300,7 @@ final class BroadcastRunner
      */
     private static function complianceHeaders(string $unsubscribeUrl, int $broadcastId): array
     {
-        $cfg = wwm_config()['mail'] ?? [];
-        $from = trim((string)($cfg['from_email'] ?? ''));
+        $from = Mailer::broadcastFromAddress();
         $headers = [
             'List-Unsubscribe: <' . $unsubscribeUrl . '>',
             'List-Unsubscribe-Post: List-Unsubscribe=One-Click',

@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 32;
+    public const SCHEMA_VERSION = 34;
 
     public static function connect(string $path): PDO
     {
@@ -195,7 +195,12 @@ SQL);
 
         self::ensureColumn($pdo, 'email_broadcasts', 'audience_filter_json', 'TEXT NOT NULL DEFAULT \'\'');
         self::ensureColumn($pdo, 'email_messages', 'broadcast_id', 'INTEGER REFERENCES email_broadcasts(id) ON DELETE SET NULL');
+        self::ensureColumn($pdo, 'email_messages', 'automation_id', 'INTEGER');
+        self::ensureColumn($pdo, 'email_messages', 'automation_node_id', 'TEXT');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_email_messages_automation_node ON email_messages(automation_id, automation_node_id)');
+        self::backfillAutomationMailLinks($pdo);
         self::ensureColumn($pdo, 'broadcast_recipients', 'email_message_id', 'INTEGER REFERENCES email_messages(id) ON DELETE SET NULL');
+        self::ensureColumn($pdo, 'broadcast_recipients', 'claimed_at', 'TEXT');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_email_messages_broadcast ON email_messages(broadcast_id)');
 
         $pdo->exec(<<<'SQL'
@@ -741,6 +746,59 @@ SQL);
                 gmdate('c'),
                 (string)$row['template_id'],
             ]);
+        }
+    }
+
+    /**
+     * Tie already-sent automation letters to the step that sent them,
+     * so the editor can show opens and clicks on that block.
+     */
+    private static function backfillAutomationMailLinks(PDO $pdo): void
+    {
+        $events = $pdo->query(
+            "SELECT automation_id, user_id, node_id, detail, created_at
+             FROM email_automation_step_events
+             WHERE node_type = 'send_template' AND branch = 'sent'
+               AND detail IS NOT NULL AND detail != ''
+             ORDER BY created_at ASC, id ASC"
+        );
+        $rows = $events ? $events->fetchAll() : [];
+        if ($rows === []) {
+            return;
+        }
+
+        $find = $pdo->prepare(
+            "SELECT id, sent_at FROM email_messages
+             WHERE user_id = ? AND email_type = ? AND status = 'sent' AND automation_id IS NULL"
+        );
+        $claim = $pdo->prepare(
+            'UPDATE email_messages SET automation_id = ?, automation_node_id = ? WHERE id = ? AND automation_id IS NULL'
+        );
+
+        foreach ($rows as $event) {
+            $find->execute([(int)$event['user_id'], (string)$event['detail']]);
+            $candidates = $find->fetchAll() ?: [];
+            $eventTs = strtotime((string)$event['created_at']);
+            $bestId = null;
+            $bestDelta = null;
+            foreach ($candidates as $message) {
+                $sentTs = strtotime((string)($message['sent_at'] ?? ''));
+                if ($eventTs === false || $sentTs === false) {
+                    continue;
+                }
+                $delta = abs($sentTs - $eventTs);
+                if ($delta > 86400) {
+                    continue;
+                }
+                if ($bestDelta === null || $delta < $bestDelta) {
+                    $bestDelta = $delta;
+                    $bestId = (int)$message['id'];
+                }
+            }
+            if ($bestId === null) {
+                continue;
+            }
+            $claim->execute([(int)$event['automation_id'], (string)$event['node_id'], $bestId]);
         }
     }
 

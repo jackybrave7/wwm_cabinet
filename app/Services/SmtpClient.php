@@ -62,6 +62,8 @@ final class SmtpClient
         }
 
         $fromEmail = trim((string)($cfg['from_email'] ?? $user));
+        // Envelope and header stay the authenticated mailbox. A different From
+        // is a separate SMTP login (see Mailer::broadcastConfig), not a label.
         if (strcasecmp($fromEmail, $user) !== 0) {
             $fromEmail = $user;
         }

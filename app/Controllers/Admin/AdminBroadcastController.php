@@ -126,12 +126,16 @@ final class AdminBroadcastController
             return;
         }
 
-        if ((string)$broadcast['status'] === 'sending') {
-            BroadcastRunner::processBatch(wwm_pdo(), $id, BroadcastRunner::BATCH_SIZE);
-            $broadcast = EmailBroadcast::find(wwm_pdo(), $id) ?? $broadcast;
-        }
-
         $pdo = wwm_pdo();
+        $pendingCount = 0;
+        if ((string)$broadcast['status'] === 'sending') {
+            $pendingStmt = $pdo->prepare(
+                'SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = ? AND status = \'pending\''
+            );
+            $pendingStmt->execute([$id]);
+            $pendingCount = (int)$pendingStmt->fetchColumn();
+        }
+        $audienceFilter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
         $engagement = EmailMessage::broadcastEngagementSummary($pdo, $id);
         $linkStats = EmailMessage::broadcastLinkStats($pdo, $id);
         $recipientEngagement = EmailMessage::broadcastRecipientEngagement($pdo, $id, 200);
@@ -145,6 +149,15 @@ final class AdminBroadcastController
             'linkStats' => $linkStats,
             'recipientEngagement' => $recipientEngagement,
             'message' => $this->flashMessage(),
+            'error' => $this->errorMessage((string)($_GET['error'] ?? '')),
+            'pendingCount' => $pendingCount,
+            'audienceSize' => BroadcastAudience::countForBroadcast(
+                $pdo,
+                (string)$broadcast['audience'],
+                $audienceFilter
+            ),
+            'broadcastFrom' => Mailer::broadcastFromAddress(),
+            'broadcastOwnMailbox' => Mailer::broadcastUsesOwnMailbox(),
         ]);
     }
 
@@ -165,7 +178,7 @@ final class AdminBroadcastController
             $this->formViewVars($user, $broadcast, '/admin/broadcasts/' . $id),
             [
                 'message' => $this->flashMessage(),
-                'error' => (string)($_GET['error'] ?? ''),
+                'error' => $this->errorMessage((string)($_GET['error'] ?? '')),
             ]
         ));
     }
@@ -277,15 +290,21 @@ final class AdminBroadcastController
             wwm_redirect('/admin/broadcasts/' . $id);
         }
 
-        BroadcastRunner::beginSending(wwm_pdo(), $id);
-        $loops = 0;
-        while ($loops < 5) {
-            $result = BroadcastRunner::processBatch(wwm_pdo(), $id, BroadcastRunner::BATCH_SIZE);
-            $loops++;
-            if ($result['done']) {
-                break;
-            }
+        $pdo = wwm_pdo();
+        $filter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
+        $count = BroadcastAudience::countForBroadcast($pdo, (string)$broadcast['audience'], $filter);
+        $confirmed = filter_var($_POST['confirm_count'] ?? null, FILTER_VALIDATE_INT);
+        $back = (string)($_POST['from'] ?? '') === 'view'
+            ? '/admin/broadcasts/' . $id
+            : '/admin/broadcasts/' . $id . '/edit';
+        if ($count < 1) {
+            wwm_redirect($back . '?error=empty');
         }
+        if ($confirmed === false || (int)$confirmed !== $count) {
+            wwm_redirect($back . '?error=audience');
+        }
+
+        BroadcastRunner::beginSending($pdo, $id);
 
         wwm_redirect('/admin/broadcasts/' . $id . '?sending=1');
     }
@@ -370,7 +389,7 @@ final class AdminBroadcastController
             return 'Broadcast scheduled.';
         }
         if (isset($_GET['sending'])) {
-            return 'Sending started. Refresh this page to see progress.';
+            return 'Sending started. The queue goes out in the background. Refresh this page to see progress.';
         }
         if (isset($_GET['cancelled'])) {
             return 'Broadcast cancelled.';
@@ -383,6 +402,17 @@ final class AdminBroadcastController
         }
 
         return null;
+    }
+
+    private function errorMessage(string $code): string
+    {
+        return match ($code) {
+            'csrf' => 'The form expired. Reload the page and try again.',
+            'schedule' => 'Pick a future date and time to schedule.',
+            'audience' => 'The recipient count changed. Check the number and confirm again.',
+            'empty' => 'There is nobody to send to.',
+            default => '',
+        };
     }
 
     /**
@@ -451,6 +481,8 @@ final class AdminBroadcastController
             'listFilter' => $listFilter,
             'contentMode' => $contentMode,
             'audienceSize' => BroadcastAudience::countForBroadcast($pdo, $audience, $listFilter),
+            'broadcastFrom' => Mailer::broadcastFromAddress(),
+            'broadcastOwnMailbox' => Mailer::broadcastUsesOwnMailbox(),
         ];
     }
 

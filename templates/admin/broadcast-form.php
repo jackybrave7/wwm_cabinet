@@ -36,14 +36,16 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
 <div class="admin-card" style="margin-bottom:16px">
   <p class="field-hint" style="margin:0">
     Unsubscribe link and List-Unsubscribe headers are added automatically.
-    Estimated recipients: <strong id="broadcast-audience-count"><?= (int)($audienceSize ?? 0) ?></strong>
-    <span class="field-hint">(excludes admins and suppressed addresses; student filter narrows any audience preset)</span>
+    Estimated recipients: <strong id="broadcast-audience-count"><?= (int)($audienceSize ?? 0) ?></strong>.
+    Admins are excluded. Unsubscribed addresses are skipped when the letter is sent.
+    From: <strong><?= wwm_escape((string)($broadcastFrom ?? '')) ?></strong><?php if (empty($broadcastOwnMailbox)): ?>. This is the same mailbox as course-access mail. A separate broadcast mailbox is not configured yet<?php endif; ?>.
   </p>
 </div>
 
 <div class="admin-card">
   <form method="post" action="<?= wwm_escape((string)$formAction) ?>" class="form admin-team-form" id="broadcast-editor-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+    <input type="hidden" name="confirm_count" id="broadcast-confirm-count" value="<?= (int)($audienceSize ?? 0) ?>">
 
     <label class="field">
       <span>Internal title <span class="field-hint">(optional)</span></span>
@@ -138,9 +140,9 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
 
     <div class="admin-form-footer" style="flex-wrap:wrap;gap:8px">
       <button type="submit" name="action" value="save" class="btn btn-primary">Save draft</button>
-      <button type="submit" name="action" value="schedule" class="btn btn-ghost">Schedule</button>
+      <button type="submit" name="action" value="schedule" class="btn btn-ghost" data-broadcast-schedule>Schedule</button>
       <?php if ($isEdit): ?>
-        <button type="submit" name="action" value="send" class="btn btn-danger" onclick="return confirm('Send this broadcast now to all recipients in the audience?');">Send now</button>
+        <button type="submit" name="action" value="send" class="btn btn-danger" data-broadcast-send>Send to <?= (int)($audienceSize ?? 0) ?> people</button>
       <?php endif; ?>
       <a href="/admin/broadcasts" class="btn btn-ghost">Cancel</a>
     </div>

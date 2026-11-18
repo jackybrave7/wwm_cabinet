@@ -57,7 +57,7 @@
       })
       .then((data) => {
         if (typeof data.count === 'number') {
-          countEl.textContent = String(data.count);
+          applyCount(data.count);
         }
       })
       .catch(() => {});
@@ -78,6 +78,44 @@
     el.addEventListener('input', scheduleRefresh);
   });
 
+  function applyCount(count) {
+    countEl.textContent = String(count);
+    form.dataset.audienceCount = String(count);
+    const hidden = document.getElementById('broadcast-confirm-count');
+    if (hidden) {
+      hidden.value = String(count);
+    }
+    const send = form.querySelector('[data-broadcast-send]');
+    if (send) {
+      send.textContent = 'Send to ' + count + ' people';
+    }
+  }
+
+  form.addEventListener('submit', (event) => {
+    const submitter = event.submitter;
+    if (!submitter || submitter.getAttribute('name') !== 'action') {
+      return;
+    }
+    const count = Number(form.dataset.audienceCount || countEl.textContent || '0');
+    if (submitter.value === 'send') {
+      if (count < 1) {
+        event.preventDefault();
+        window.alert('There is nobody to send to.');
+        return;
+      }
+      if (!window.confirm('Send this broadcast to ' + count + ' people?')) {
+        event.preventDefault();
+      }
+      return;
+    }
+    if (submitter.value === 'schedule') {
+      if (!window.confirm('Schedule this broadcast for ' + count + ' people?')) {
+        event.preventDefault();
+      }
+    }
+  });
+
+  form.dataset.audienceCount = countEl.textContent || '0';
   syncFilterPanel();
   refreshCount();
 })();

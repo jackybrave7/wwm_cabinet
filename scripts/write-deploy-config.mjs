@@ -92,12 +92,16 @@ return [
         'smtp_verify_ssl' => ${envBool('WWM_SMTP_VERIFY_SSL', false) ? 'true' : 'false'},
         'smtp_user' => ${phpString(smtpUser)},
         'smtp_pass' => ${phpString(smtpPass)},
+        'broadcast_from_email' => ${phpString(env('WWM_BROADCAST_FROM', 'news@worldwatercolormasters.art'))},
+        'broadcast_from_name' => ${phpString(env('WWM_BROADCAST_FROM_NAME', 'World Watercolor Masters'))},
+        'broadcast_smtp_user' => ${phpString(env('WWM_BROADCAST_SMTP_USER', ''))},
+        'broadcast_smtp_pass' => ${phpString(env('WWM_BROADCAST_SMTP_PASS', ''))},
     ],
 
     'demo_hours' => ${Number(env('WWM_DEMO_HOURS', '48')) || 48},
     'magic_link_hours' => ${Number(env('WWM_MAGIC_LINK_HOURS', '72')) || 72},
 
-    'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '6'))},
+    'asset_version' => ${phpString(env('WWM_ASSET_VERSION', '8'))},
 
     'sale_coupon_code' => ${phpString(env('WWM_SALE_COUPON_CODE', 'SPECWWM4'))},
     'crosssell_coupon_code' => ${phpString(env('WWM_CROSSSELL_COUPON_CODE', 'WWM5'))},

@@ -32,6 +32,10 @@ jobs:
           WWM_SMTP_PORT: ${{ secrets.WWM_SMTP_PORT }}
           WWM_SMTP_FROM: ${{ secrets.WWM_SMTP_FROM }}
           WWM_SMTP_FROM_NAME: ${{ secrets.WWM_SMTP_FROM_NAME }}
+          WWM_BROADCAST_FROM: ${{ secrets.WWM_BROADCAST_FROM }}
+          WWM_BROADCAST_FROM_NAME: ${{ secrets.WWM_BROADCAST_FROM_NAME }}
+          WWM_BROADCAST_SMTP_USER: ${{ secrets.WWM_BROADCAST_SMTP_USER }}
+          WWM_BROADCAST_SMTP_PASS: ${{ secrets.WWM_BROADCAST_SMTP_PASS }}
           WWM_SMTP_ENCRYPTION: ${{ secrets.WWM_SMTP_ENCRYPTION }}
           WWM_SMTP_VERIFY_SSL: ${{ secrets.WWM_SMTP_VERIFY_SSL }}
           WWM_MAIL_ENABLED: ${{ secrets.WWM_MAIL_ENABLED }}

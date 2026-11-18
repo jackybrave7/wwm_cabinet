@@ -13,8 +13,54 @@ final class Mailer
     }
 
     /**
-     * @param list<string> $extraHeaders
+     * Mail settings for a marketing broadcast. Course-access mail keeps the
+     * main mailbox. A separate From is used only when that mailbox has its own
+     * SMTP login, because the host accepts mail only from the authenticated user.
+     *
+     * @return array<string, mixed>
      */
+    public static function broadcastConfig(): array
+    {
+        $cfg = wwm_config()['mail'] ?? [];
+        if (!is_array($cfg)) {
+            return [];
+        }
+        if (!self::broadcastUsesOwnMailbox()) {
+            return $cfg;
+        }
+
+        $user = trim((string)($cfg['broadcast_smtp_user'] ?? ''));
+        $from = trim((string)($cfg['broadcast_from_email'] ?? ''));
+        $name = trim((string)($cfg['broadcast_from_name'] ?? ''));
+        $cfg['smtp_user'] = $user;
+        $cfg['smtp_pass'] = (string)($cfg['broadcast_smtp_pass'] ?? '');
+        $cfg['from_email'] = ($from !== '' && filter_var($from, FILTER_VALIDATE_EMAIL)) ? $from : $user;
+        if ($name !== '') {
+            $cfg['from_name'] = $name;
+        }
+
+        return $cfg;
+    }
+
+    public static function broadcastUsesOwnMailbox(): bool
+    {
+        $cfg = wwm_config()['mail'] ?? [];
+        if (!is_array($cfg)) {
+            return false;
+        }
+        $user = trim((string)($cfg['broadcast_smtp_user'] ?? ''));
+        $pass = (string)($cfg['broadcast_smtp_pass'] ?? '');
+
+        return $user !== '' && $pass !== '';
+    }
+
+    public static function broadcastFromAddress(): string
+    {
+        $cfg = self::broadcastConfig();
+
+        return trim((string)($cfg['from_email'] ?? ''));
+    }
+
     /**
      * Headers every outgoing message must carry. Message-ID is generated here so
      * Gmail does not have to add one (SMTPIN_ADDED_MISSING).
@@ -53,11 +99,14 @@ final class Mailer
         return $headers;
     }
 
-    public static function send(string $to, string $subject, string $body, ?string $htmlBody = null, array $extraHeaders = []): bool
+    /**
+     * @param array<string, mixed>|null $mailConfig
+     */
+    public static function send(string $to, string $subject, string $body, ?string $htmlBody = null, array $extraHeaders = [], ?array $mailConfig = null): bool
     {
         self::$lastError = null;
         $extraHeaders = self::standardHeaders($extraHeaders);
-        $cfg = wwm_config()['mail'] ?? [];
+        $cfg = $mailConfig ?? (wwm_config()['mail'] ?? []);
         if (empty($cfg['enabled'])) {
             $logLine = sprintf("TO=%s SUBJECT=%s\n%s\n---\n", $to, $subject, $body);
             if ($htmlBody !== null && $htmlBody !== '') {

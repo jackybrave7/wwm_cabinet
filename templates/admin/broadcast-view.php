@@ -50,6 +50,9 @@ $formatWhen = static function (?string $iso): string {
 <?php if (!empty($message)): ?>
   <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
 <?php endif; ?>
+<?php if (!empty($error)): ?>
+  <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
+<?php endif; ?>
 
 <div class="admin-student-profile admin-broadcast-detail">
 
@@ -57,11 +60,15 @@ $formatWhen = static function (?string $iso): string {
   <dl class="admin-kv">
     <dt>Subject</dt><dd><?= wwm_escape((string)$b['subject']) ?></dd>
     <dt>Audience</dt><dd><?= wwm_escape(EmailBroadcast::audienceLabel($b)) ?></dd>
+    <dt>From</dt><dd><?= wwm_escape((string)($broadcastFrom ?? '')) ?><?php if (empty($broadcastOwnMailbox)): ?> <span class="field-hint">(same mailbox as course-access mail)</span><?php endif; ?></dd>
     <dt>Recipients</dt>
     <dd>
       <?= (int)($b['sent_count'] ?? 0) ?> sent,
       <?= (int)($b['failed_count'] ?? 0) ?> failed,
       <?= (int)($b['skipped_unsub_count'] ?? 0) ?> skipped (unsubscribed),
+      <?php if ($status === 'sending'): ?>
+        <?= (int)($pendingCount ?? 0) ?> waiting,
+      <?php endif; ?>
       <?= (int)($b['recipients_total'] ?? 0) ?> total
     </dd>
   </dl>
@@ -164,7 +171,7 @@ $formatWhen = static function (?string $iso): string {
 
 <?php if ($status === 'sending'): ?>
   <div class="admin-card" style="margin-bottom:16px">
-    <p class="field-hint">Sending in progress. This page processes a small batch on each load; keep refreshing or rely on cron (<code>scripts/run-broadcasts.php</code>).</p>
+    <p class="field-hint">Sending in progress. <?= (int)($pendingCount ?? 0) ?> still waiting. Cron (<code>scripts/run-broadcasts.php</code>) sends the queue, about 200 letters every few minutes. Refresh only reloads these numbers.</p>
     <a href="/admin/broadcasts/<?= $id ?>" class="btn btn-ghost btn-sm">Refresh</a>
   </div>
 <?php endif; ?>
@@ -244,9 +251,11 @@ if ($htmlPreview !== '') {
 <?php if ($canCancel && $status !== 'sent'): ?>
   <div class="admin-card">
     <?php if (in_array($status, ['draft', 'scheduled'], true)): ?>
-      <form method="post" action="/admin/broadcasts/<?= $id ?>/send" style="display:inline;margin-right:12px" onsubmit="return confirm('Send now?');">
+      <form method="post" action="/admin/broadcasts/<?= $id ?>/send" style="display:inline;margin-right:12px" onsubmit="return confirm('Send this broadcast to <?= (int)($audienceSize ?? 0) ?> people?');">
         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
-        <button type="submit" class="btn btn-danger btn-sm">Send now</button>
+        <input type="hidden" name="confirm_count" value="<?= (int)($audienceSize ?? 0) ?>">
+        <input type="hidden" name="from" value="view">
+        <button type="submit" class="btn btn-danger btn-sm">Send to <?= (int)($audienceSize ?? 0) ?> people</button>
       </form>
     <?php endif; ?>
     <form method="post" action="/admin/broadcasts/<?= $id ?>/cancel" style="display:inline" onsubmit="return confirm('Cancel this broadcast?');">

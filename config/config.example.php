@@ -78,7 +78,7 @@ return [
     ],
 
     // Bump on deploy when static assets change (cache bust for cabinet.css).
-    'asset_version' => '6',
+    'asset_version' => '8',
 
     // Shared password for new demo users (Account → change after login). Set via WWM_DEMO_DEFAULT_PASSWORD secret on prod.
     'demo_default_password' => 'CHANGE_ME_DEMO_PASSWORD',
@@ -104,6 +104,12 @@ return [
         'smtp_verify_ssl' => false,
         'smtp_user' => 'robot@worldwatercolormasters.art',
         'smtp_pass' => '',
+        // Marketing broadcasts. Used only when both SMTP user and password are set,
+        // so course-access mail keeps robot@ until this mailbox exists.
+        'broadcast_from_email' => 'news@worldwatercolormasters.art',
+        'broadcast_from_name' => 'World Watercolor Masters',
+        'broadcast_smtp_user' => '',
+        'broadcast_smtp_pass' => '',
     ],
 
     // Yandex Metrika Reporting API (admin Dashboard). Can also be set in Admin → Analytics.
