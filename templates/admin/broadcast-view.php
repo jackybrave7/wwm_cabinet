@@ -189,11 +189,15 @@ $htmlPreview = $bodyHtmlRaw !== ''
     ? str_replace(array_keys($previewVars), array_values($previewVars), $bodyHtmlRaw)
     : '';
 if ($htmlPreview !== '') {
-    $htmlPreview = preg_replace('#\scontenteditable\s*=\s*("true"|"false"|true|false)#i', '', $htmlPreview) ?? $htmlPreview;
-    $htmlPreview = \Wwm\Services\BroadcastEmailLayout::forDelivery(
-        \Wwm\Services\BroadcastHtmlSanitizer::sanitize($htmlPreview),
-        (string)($b['subject'] ?? '')
-    );
+    try {
+        $htmlPreview = preg_replace('#\scontenteditable\s*=\s*("true"|"false"|true|false)#i', '', $htmlPreview) ?? $htmlPreview;
+        $htmlPreview = \Wwm\Services\BroadcastEmailLayout::forDelivery(
+            \Wwm\Services\BroadcastHtmlSanitizer::sanitize($htmlPreview),
+            (string)($b['subject'] ?? '')
+        );
+    } catch (Throwable $e) {
+        $htmlPreview = '';
+    }
 }
 ?>
 <div class="admin-card" style="margin-bottom:16px">

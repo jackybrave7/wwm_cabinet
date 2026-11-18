@@ -37,7 +37,7 @@ final class BroadcastEmailLayout
     private static function stripDarkColorSchemeMeta(string $html): string
     {
         $html = preg_replace('#<meta[^>]+name=["\']color-scheme["\'][^>]*>#i', '', $html) ?? $html;
-        $html = preg_replace(
+        $html = preg_replace_callback(
             '#<body\b([^>]*)\bstyle=["\']([^"\']*)["\']#i',
             static function (array $m): string {
                 $style = (string)$m[2];
