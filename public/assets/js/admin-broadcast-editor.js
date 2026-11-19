@@ -235,7 +235,11 @@
   }
 
   function bodyStartsWithTitle(inner) {
-    return /^\s*<h1\b/i.test(inner);
+    const snippet = String(inner || '').replace(/^\s+/, '').slice(0, 1200);
+    if (/^<h1\b/i.test(snippet)) {
+      return true;
+    }
+    return /class="email-(?:logo|title)"/i.test(snippet);
   }
 
   function wrapBroadcastHtml(html, subject) {

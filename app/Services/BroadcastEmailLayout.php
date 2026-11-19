@@ -83,8 +83,11 @@ final class BroadcastEmailLayout
 
     private static function bodyStartsWithTitle(string $inner): bool
     {
-        $snippet = mb_substr(ltrim($inner), 0, 400);
+        $snippet = mb_substr(ltrim($inner), 0, 1200);
+        if (preg_match('/^<h1\b/i', $snippet)) {
+            return true;
+        }
 
-        return (bool)preg_match('/^<h1\b/i', $snippet);
+        return (bool)preg_match('/class="email-(?:logo|title)"/i', $snippet);
     }
 }
