@@ -2,6 +2,7 @@
 use Wwm\Models\EmailBroadcast;
 
 $engagementById = is_array($engagementById ?? null) ? $engagementById : [];
+$plannedCounts = is_array($plannedCounts ?? null) ? $plannedCounts : [];
 
 $formatWhen = static function (string $iso): string {
     $iso = trim($iso);
@@ -72,9 +73,16 @@ $formatWhen = static function (string $iso): string {
               <strong><?= wwm_escape((string)($row['title'] !== '' ? $row['title'] : $row['subject'])) ?></strong><br>
               <span class="field-hint"><?= wwm_escape((string)$row['subject']) ?></span>
             </td>
-            <td><span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($status)) ?>"><?= wwm_escape($label) ?></span></td>
             <td>
-              <?php if ($total > 0 || $sent > 0 || $status === 'sending'): ?>
+              <span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($status)) ?>"><?= wwm_escape($label) ?></span>
+              <?php if ($status === 'scheduled' && !empty($row['scheduled_at'])): ?>
+                <br><span class="field-hint"><?= wwm_escape($formatWhen((string)$row['scheduled_at'])) ?></span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($status === 'scheduled'): ?>
+                <strong><?= (int)($plannedCounts[$id] ?? 0) ?></strong> planned
+              <?php elseif ($total > 0 || $sent > 0 || $status === 'sending'): ?>
                 <strong><?= $sent ?></strong> / <?= $total ?> sent
                 <?php if ($failed > 0): ?>
                   <br><span class="field-hint"><?= $failed ?> failed</span>

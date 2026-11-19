@@ -34,8 +34,8 @@ $formatWhen = static function (?string $iso): string {
     <p class="badge badge-admin">Broadcast #<?= $id ?></p>
     <h1 class="page-title page-title-sm"><?= wwm_escape((string)($b['title'] !== '' ? $b['title'] : $b['subject'])) ?></h1>
     <p class="field-hint">Status: <span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($status)) ?>"><?= wwm_escape(EmailBroadcast::statusLabel($status)) ?></span>
-      <?php if (!empty($b['scheduled_at'])): ?>
-        · scheduled <?= wwm_escape((string)$b['scheduled_at']) ?> UTC
+      <?php if ($status === 'scheduled' && !empty($b['scheduled_at'])): ?>
+        · <?= wwm_escape($formatWhen((string)$b['scheduled_at'])) ?>
       <?php endif; ?>
     </p>
   </div>
@@ -67,13 +67,17 @@ $formatWhen = static function (?string $iso): string {
     <dt>From</dt><dd><?= wwm_escape((string)($broadcastFrom ?? '')) ?><?php if (empty($broadcastOwnMailbox)): ?> <span class="field-hint">(same mailbox as course-access mail)</span><?php endif; ?></dd>
     <dt>Recipients</dt>
     <dd>
-      <?= (int)($b['sent_count'] ?? 0) ?> sent,
-      <?= (int)($b['failed_count'] ?? 0) ?> failed,
-      <?= (int)($b['skipped_unsub_count'] ?? 0) ?> skipped (unsubscribed),
-      <?php if ($status === 'sending'): ?>
-        <?= (int)($pendingCount ?? 0) ?> waiting,
+      <?php if ($status === 'scheduled'): ?>
+        <strong><?= (int)($audienceSize ?? 0) ?></strong> planned
+      <?php else: ?>
+        <?= (int)($b['sent_count'] ?? 0) ?> sent,
+        <?= (int)($b['failed_count'] ?? 0) ?> failed,
+        <?= (int)($b['skipped_unsub_count'] ?? 0) ?> skipped (unsubscribed),
+        <?php if ($status === 'sending'): ?>
+          <?= (int)($pendingCount ?? 0) ?> waiting,
+        <?php endif; ?>
+        <?= (int)($b['recipients_total'] ?? 0) ?> total
       <?php endif; ?>
-      <?= (int)($b['recipients_total'] ?? 0) ?> total
     </dd>
   </dl>
 </div>

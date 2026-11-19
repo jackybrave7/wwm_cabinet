@@ -27,6 +27,17 @@ final class AdminBroadcastController
         $broadcasts = EmailBroadcast::listRecent($pdo);
         $ids = array_map(static fn (array $row): int => (int)$row['id'], $broadcasts);
         $engagementById = EmailMessage::broadcastEngagementSummaries($pdo, $ids);
+        $plannedCounts = [];
+        foreach ($broadcasts as $row) {
+            if ((string)($row['status'] ?? '') !== 'scheduled') {
+                continue;
+            }
+            $plannedCounts[(int)$row['id']] = BroadcastAudience::countForBroadcast(
+                $pdo,
+                (string)($row['audience'] ?? 'all_students'),
+                EmailBroadcast::decodeAudienceFilter((string)($row['audience_filter_json'] ?? ''))
+            );
+        }
 
         wwm_render_admin('broadcasts', [
             'title' => 'Broadcasts — Admin',
@@ -34,6 +45,7 @@ final class AdminBroadcastController
             'user' => $user,
             'broadcasts' => $broadcasts,
             'engagementById' => $engagementById,
+            'plannedCounts' => $plannedCounts,
             'message' => $this->flashMessage(),
         ]);
     }
