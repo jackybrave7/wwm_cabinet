@@ -836,6 +836,12 @@ body.admin-body {
 .badge-admin { background: #eef2ff; color: #3730a3; }
 .badge-paid { background: #e8f5e9; color: #1b5e20; }
 .badge-draft { background: #f5f5f5; color: #616161; }
+.badge-scheduled { background: #e8f1fb; color: #1d4e89; }
+.badge-sending { background: #fff4e5; color: #9a5b00; }
+.badge-pending { background: #fff8e1; color: #8a6a00; }
+.badge-cancelled { background: #fdecea; color: #8b2e2a; }
+.badge-failed { background: #fde8e8; color: #b71c1c; }
+.badge-skipped { background: #f3f0ea; color: #6e6e6e; }
 
 .btn-sm { padding: 8px 14px; font-size: 0.82rem; }
 .btn-block { width: 100%; justify-content: center; }

@@ -23,7 +23,15 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
     <p class="badge badge-admin">Broadcasts</p>
     <h1 class="page-title page-title-sm"><?= $isEdit ? 'Edit broadcast' : 'New broadcast' ?></h1>
   </div>
-  <a href="/admin/broadcasts" class="btn btn-ghost">← All broadcasts</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <?php if ($isEdit): ?>
+      <form method="post" action="/admin/broadcasts/<?= (int)$b['id'] ?>/copy" class="inline-form">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+      </form>
+    <?php endif; ?>
+    <a href="/admin/broadcasts" class="btn btn-ghost">← All broadcasts</a>
+  </div>
 </div>
 
 <?php if (!empty($message)): ?>

@@ -247,6 +247,22 @@ final class AdminBroadcastController
         $this->startSend($id);
     }
 
+    public function duplicate(int $id): void
+    {
+        $adminId = Session::requireAdminBroadcasts();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/broadcasts/' . $id . '?error=csrf');
+        }
+
+        $newId = EmailBroadcast::duplicate(wwm_pdo(), $id, $adminId);
+        if ($newId === null) {
+            $this->notFound();
+            return;
+        }
+
+        wwm_redirect('/admin/broadcasts/' . $newId . '/edit?copied=1');
+    }
+
     public function cancel(int $id): void
     {
         Session::requireAdminBroadcasts();
@@ -382,6 +398,9 @@ final class AdminBroadcastController
 
     private function flashMessage(): ?string
     {
+        if (isset($_GET['copied'])) {
+            return 'Copy saved as a new draft. Nothing has been sent.';
+        }
         if (isset($_GET['saved'])) {
             return 'Draft saved.';
         }

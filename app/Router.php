@@ -445,6 +445,10 @@ final class Router
             (new AdminBroadcastController())->testSend((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)/copy$#', $path, $m)) {
+            (new AdminBroadcastController())->duplicate((int)$m[1]);
+            return;
+        }
 
         if ($method === 'GET' && $path === '/email/unsubscribe') {
             (new BroadcastUnsubscribeController())->show();

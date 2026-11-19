@@ -60,6 +60,60 @@ final class EmailBroadcast
         return (int)$pdo->lastInsertId();
     }
 
+    public static function duplicate(PDO $pdo, int $id, ?int $createdBy): ?int
+    {
+        $row = self::find($pdo, $id);
+        if ($row === null) {
+            return null;
+        }
+
+        $title = trim((string)$row['title']);
+        if ($title === '') {
+            $title = trim((string)$row['subject']);
+        }
+        if ($title !== '' && !str_ends_with($title, '(copy)')) {
+            $title .= ' (copy)';
+        }
+
+        return self::createDraft($pdo, [
+            'title' => $title,
+            'subject' => (string)$row['subject'],
+            'body_text' => (string)$row['body_text'],
+            'body_html' => (string)$row['body_html'],
+            'audience' => (string)$row['audience'],
+            'audience_filter_json' => (string)($row['audience_filter_json'] ?? ''),
+        ], $createdBy);
+    }
+
+    public static function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => 'Draft',
+            'scheduled' => 'Scheduled',
+            'sending' => 'Sending',
+            'sent' => 'Sent',
+            'cancelled' => 'Cancelled',
+            'pending' => 'Waiting',
+            'failed' => 'Failed',
+            'skipped' => 'Skipped',
+            default => $status,
+        };
+    }
+
+    public static function statusBadgeClass(string $status): string
+    {
+        return match ($status) {
+            'scheduled' => 'badge-scheduled',
+            'sending' => 'badge-sending',
+            'sent' => 'badge-paid',
+            'cancelled' => 'badge-cancelled',
+            'pending' => 'badge-pending',
+            'failed' => 'badge-failed',
+            'skipped' => 'badge-skipped',
+            default => 'badge-draft',
+        };
+    }
+
     /**
      * @param array{title?: string, subject?: string, body_text?: string, body_html?: string, audience?: string, audience_filter_json?: string, scheduled_at?: ?string} $data
      */

@@ -1,11 +1,6 @@
 <?php
-$statusLabels = [
-    'draft' => 'Draft',
-    'scheduled' => 'Scheduled',
-    'sending' => 'Sending',
-    'sent' => 'Sent',
-    'cancelled' => 'Cancelled',
-];
+use Wwm\Models\EmailBroadcast;
+
 $engagementById = is_array($engagementById ?? null) ? $engagementById : [];
 
 $formatWhen = static function (string $iso): string {
@@ -56,7 +51,7 @@ $formatWhen = static function (string $iso): string {
           <?php
             $id = (int)$row['id'];
             $status = (string)($row['status'] ?? 'draft');
-            $label = $statusLabels[$status] ?? $status;
+            $label = EmailBroadcast::statusLabel($status);
             $eng = $engagementById[$id] ?? [
                 'tracked_sent' => 0,
                 'unique_opens' => 0,
@@ -77,7 +72,7 @@ $formatWhen = static function (string $iso): string {
               <strong><?= wwm_escape((string)($row['title'] !== '' ? $row['title'] : $row['subject'])) ?></strong><br>
               <span class="field-hint"><?= wwm_escape((string)$row['subject']) ?></span>
             </td>
-            <td><span class="badge badge-draft"><?= wwm_escape($label) ?></span></td>
+            <td><span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($status)) ?>"><?= wwm_escape($label) ?></span></td>
             <td>
               <?php if ($total > 0 || $sent > 0 || $status === 'sending'): ?>
                 <strong><?= $sent ?></strong> / <?= $total ?> sent
@@ -117,6 +112,10 @@ $formatWhen = static function (string $iso): string {
             <td class="field-hint"><?= wwm_escape($formatWhen((string)($row['updated_at'] ?? ''))) ?></td>
             <td class="admin-table-actions">
               <a href="/admin/broadcasts/<?= $id ?>" class="btn btn-ghost btn-sm">Open</a>
+              <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form">
+                <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+              </form>
             </td>
           </tr>
         <?php endforeach; ?>

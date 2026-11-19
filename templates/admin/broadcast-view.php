@@ -33,7 +33,7 @@ $formatWhen = static function (?string $iso): string {
   <div>
     <p class="badge badge-admin">Broadcast #<?= $id ?></p>
     <h1 class="page-title page-title-sm"><?= wwm_escape((string)($b['title'] !== '' ? $b['title'] : $b['subject'])) ?></h1>
-    <p class="field-hint">Status: <strong><?= wwm_escape($status) ?></strong>
+    <p class="field-hint">Status: <span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($status)) ?>"><?= wwm_escape(EmailBroadcast::statusLabel($status)) ?></span>
       <?php if (!empty($b['scheduled_at'])): ?>
         · scheduled <?= wwm_escape((string)$b['scheduled_at']) ?> UTC
       <?php endif; ?>
@@ -43,6 +43,10 @@ $formatWhen = static function (?string $iso): string {
     <?php if ($canEdit): ?>
       <a href="/admin/broadcasts/<?= $id ?>/edit" class="btn btn-primary btn-sm">Edit</a>
     <?php endif; ?>
+    <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form">
+      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+      <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+    </form>
     <a href="/admin/broadcasts" class="btn btn-ghost btn-sm">← All</a>
   </div>
 </div>
@@ -146,7 +150,8 @@ $formatWhen = static function (?string $iso): string {
               <?php foreach ($recipientEngagement as $row): ?>
                 <tr>
                   <td class="col-subject"><?= wwm_escape((string)($row['email'] ?? '')) ?></td>
-                  <td class="col-status"><span class="field-hint"><?= wwm_escape((string)($row['delivery_status'] ?? '')) ?></span></td>
+                  <?php $delivery = (string)($row['delivery_status'] ?? ''); ?>
+                  <td class="col-status"><span class="badge <?= wwm_escape(EmailBroadcast::statusBadgeClass($delivery)) ?>"><?= wwm_escape(EmailBroadcast::statusLabel($delivery)) ?></span></td>
                   <td class="col-date">
                     <?php if (!empty($row['opened_at'])): ?>
                       <span class="badge badge-demo" style="margin:0">Yes</span>
