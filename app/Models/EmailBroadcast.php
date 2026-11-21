@@ -85,6 +85,22 @@ final class EmailBroadcast
         ], $createdBy);
     }
 
+    public static function isDeletable(string $status): bool
+    {
+        return in_array($status, ['draft', 'scheduled'], true);
+    }
+
+    /** Removes a draft or scheduled broadcast. Sent and in-progress rows stay. */
+    public static function deleteIfUnsent(PDO $pdo, int $id): bool
+    {
+        $stmt = $pdo->prepare(
+            'DELETE FROM email_broadcasts WHERE id = ? AND status IN (\'draft\', \'scheduled\')'
+        );
+        $stmt->execute([$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
     public static function statusLabel(string $status): string
     {
         return match ($status) {

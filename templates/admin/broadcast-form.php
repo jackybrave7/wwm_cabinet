@@ -25,9 +25,13 @@ $variables = ['{{name}}', '{{email}}', '{{unsubscribe_url}}', '{{base_url}}'];
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <?php if ($isEdit): ?>
-      <form method="post" action="/admin/broadcasts/<?= (int)$b['id'] ?>/copy" class="inline-form">
+      <form method="post" action="/admin/broadcasts/<?= (int)$b['id'] ?>/copy" class="inline-form" data-confirm-title="Copy broadcast?" data-confirm="Create a new draft from this broadcast? Nothing will be sent." data-confirm-ok="Copy">
         <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
         <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+      </form>
+      <form method="post" action="/admin/broadcasts/<?= (int)$b['id'] ?>/delete" class="inline-form" data-confirm-danger data-confirm-title="Delete broadcast?" data-confirm="Delete this unsent broadcast? This cannot be undone." data-confirm-ok="Delete">
+        <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+        <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
       </form>
     <?php endif; ?>
     <a href="/admin/broadcasts" class="btn btn-ghost">← All broadcasts</a>

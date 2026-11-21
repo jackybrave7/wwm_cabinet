@@ -43,10 +43,16 @@ $formatWhen = static function (?string $iso): string {
     <?php if ($canEdit): ?>
       <a href="/admin/broadcasts/<?= $id ?>/edit" class="btn btn-primary btn-sm">Edit</a>
     <?php endif; ?>
-    <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form">
+    <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form" data-confirm-title="Copy broadcast?" data-confirm="Create a new draft from this broadcast? Nothing will be sent." data-confirm-ok="Copy">
       <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
       <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
     </form>
+    <?php if ($canEdit): ?>
+    <form method="post" action="/admin/broadcasts/<?= $id ?>/delete" class="inline-form" data-confirm-danger data-confirm-title="Delete broadcast?" data-confirm="Delete this unsent broadcast? This cannot be undone." data-confirm-ok="Delete">
+      <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+      <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
+    </form>
+    <?php endif; ?>
     <a href="/admin/broadcasts" class="btn btn-ghost btn-sm">← All</a>
   </div>
 </div>

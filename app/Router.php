@@ -449,6 +449,10 @@ final class Router
             (new AdminBroadcastController())->duplicate((int)$m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/broadcasts/(\d+)/delete$#', $path, $m)) {
+            (new AdminBroadcastController())->destroy((int)$m[1]);
+            return;
+        }
 
         if ($method === 'GET' && $path === '/email/unsubscribe') {
             (new BroadcastUnsubscribeController())->show();

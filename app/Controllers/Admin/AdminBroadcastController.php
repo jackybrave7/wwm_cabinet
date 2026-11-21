@@ -47,6 +47,7 @@ final class AdminBroadcastController
             'engagementById' => $engagementById,
             'plannedCounts' => $plannedCounts,
             'message' => $this->flashMessage(),
+            'error' => $this->errorMessage((string)($_GET['error'] ?? '')),
         ]);
     }
 
@@ -275,6 +276,20 @@ final class AdminBroadcastController
         wwm_redirect('/admin/broadcasts/' . $newId . '/edit?copied=1');
     }
 
+    public function destroy(int $id): void
+    {
+        Session::requireAdminBroadcasts();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_redirect('/admin/broadcasts/' . $id . '?error=csrf');
+        }
+
+        if (!EmailBroadcast::deleteIfUnsent(wwm_pdo(), $id)) {
+            wwm_redirect('/admin/broadcasts/' . $id . '?error=not_deletable');
+        }
+
+        wwm_redirect('/admin/broadcasts?deleted=1');
+    }
+
     public function cancel(int $id): void
     {
         Session::requireAdminBroadcasts();
@@ -413,6 +428,9 @@ final class AdminBroadcastController
         if (isset($_GET['copied'])) {
             return 'Copy saved as a new draft. Nothing has been sent.';
         }
+        if (isset($_GET['deleted'])) {
+            return 'Unsent broadcast deleted.';
+        }
         if (isset($_GET['saved'])) {
             return 'Draft saved.';
         }
@@ -442,6 +460,7 @@ final class AdminBroadcastController
             'schedule' => 'Pick a future date and time to schedule.',
             'audience' => 'The recipient count changed. Check the number and confirm again.',
             'empty' => 'There is nobody to send to.',
+            'not_deletable' => 'Only a draft or a scheduled broadcast that has not started sending can be deleted.',
             default => '',
         };
     }

@@ -29,6 +29,9 @@ $formatWhen = static function (string $iso): string {
 <?php if (!empty($message)): ?>
   <div class="alert alert-success"><?= wwm_escape((string)$message) ?></div>
 <?php endif; ?>
+<?php if (!empty($error)): ?>
+  <div class="alert alert-error"><?= wwm_escape((string)$error) ?></div>
+<?php endif; ?>
 
 <div class="admin-card">
   <div class="admin-table-wrap">
@@ -120,10 +123,16 @@ $formatWhen = static function (string $iso): string {
             <td class="field-hint"><?= wwm_escape($formatWhen((string)($row['updated_at'] ?? ''))) ?></td>
             <td class="admin-table-actions">
               <a href="/admin/broadcasts/<?= $id ?>" class="btn btn-ghost btn-sm">Open</a>
-              <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form">
+              <form method="post" action="/admin/broadcasts/<?= $id ?>/copy" class="inline-form" data-confirm-title="Copy broadcast?" data-confirm="Create a new draft from this broadcast? Nothing will be sent." data-confirm-ok="Copy">
                 <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                 <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
               </form>
+              <?php if (EmailBroadcast::isDeletable($status)): ?>
+              <form method="post" action="/admin/broadcasts/<?= $id ?>/delete" class="inline-form" data-confirm-danger data-confirm-title="Delete broadcast?" data-confirm="Delete this unsent broadcast? This cannot be undone." data-confirm-ok="Delete">
+                <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+                <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
+              </form>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
