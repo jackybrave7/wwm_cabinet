@@ -7,7 +7,7 @@ use PDO;
 
 final class Database
 {
-    public const SCHEMA_VERSION = 34;
+    public const SCHEMA_VERSION = 35;
 
     public static function connect(string $path): PDO
     {
@@ -400,6 +400,11 @@ SQL);
         self::seedEmailAutomations($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::migrateEmailTemplatesLogo($pdo);
+
+        $collapsed = \Wwm\Models\Payment::collapseAliasDuplicates($pdo);
+        if ($collapsed > 0) {
+            wwm_log('collapsed duplicate payment rows: ' . $collapsed);
+        }
     }
 
     /**

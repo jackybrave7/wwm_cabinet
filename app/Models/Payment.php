@@ -134,6 +134,90 @@ final class Payment
     }
 
     /**
+     * One Tilda checkout is notified twice: the Tilda order key and the AVO invoice id.
+     * Returns the account id the new row should use, moving an existing alias onto it.
+     *
+     * @param list<string> $externalKeys
+     */
+    public static function canonicalAccountId(
+        PDO $pdo,
+        int $userId,
+        string $courseSlug,
+        string $incomingAccountId,
+        array $externalKeys = [],
+        ?string $paidAt = null,
+        ?float $amountOriginal = null,
+        ?float $amountRub = null
+    ): string {
+        $incomingAccountId = trim($incomingAccountId);
+        $courseSlug = trim($courseSlug);
+        if ($incomingAccountId === '' || $userId <= 0 || $courseSlug === '') {
+            return $incomingAccountId;
+        }
+
+        $exact = self::findByAccount($pdo, $incomingAccountId, $courseSlug);
+        if ($exact !== null) {
+            return $incomingAccountId;
+        }
+
+        $match = null;
+        foreach (self::forUser($pdo, $userId) as $row) {
+            if ((string)($row['course_slug'] ?? '') !== $courseSlug) {
+                continue;
+            }
+            if ((string)($row['avo_account_id'] ?? '') === $incomingAccountId || self::isRefunded($row)) {
+                continue;
+            }
+            if (!self::samePurchase($row, $incomingAccountId, $externalKeys, $paidAt, $amountOriginal, $amountRub)) {
+                continue;
+            }
+            if ($match !== null) {
+                return $incomingAccountId;
+            }
+            $match = $row;
+        }
+        if ($match === null) {
+            return $incomingAccountId;
+        }
+
+        $existingId = (string)$match['avo_account_id'];
+        $canonical = self::preferredAccountId($existingId, $incomingAccountId);
+        if ($canonical !== $existingId) {
+            self::rekeyAccount($pdo, (int)$match['id'], $existingId, $canonical, $courseSlug);
+        }
+
+        return $canonical;
+    }
+
+    /**
+     * Drops a tilda:* payment when the same checkout already has an AVO invoice row.
+     * Returns how many extra rows were removed.
+     */
+    public static function collapseAliasDuplicates(PDO $pdo): int
+    {
+        $rows = $pdo->query('SELECT * FROM payments ORDER BY user_id, course_slug, id')->fetchAll(PDO::FETCH_ASSOC);
+        if ($rows === []) {
+            return 0;
+        }
+
+        $groups = [];
+        foreach ($rows as $row) {
+            $key = (int)$row['user_id'] . "\0" . (string)$row['course_slug'];
+            $groups[$key][] = $row;
+        }
+
+        $removed = 0;
+        foreach ($groups as $group) {
+            if (count($group) < 2) {
+                continue;
+            }
+            $removed += self::collapseGroup($pdo, $group);
+        }
+
+        return $removed;
+    }
+
+    /**
      * @param array{
      *   amount_original: ?float,
      *   currency_original: string,
@@ -471,6 +555,285 @@ final class Payment
         ]);
 
         return $update->rowCount() > 0;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string> $externalKeys
+     */
+    private static function samePurchase(
+        array $row,
+        string $incomingAccountId,
+        array $externalKeys,
+        ?string $paidAt,
+        ?float $amountOriginal,
+        ?float $amountRub
+    ): bool {
+        $siblingId = trim((string)($row['avo_account_id'] ?? ''));
+        if ($siblingId === '' || $siblingId === $incomingAccountId) {
+            return false;
+        }
+        if (!self::amountsCompatible($row, $amountOriginal, $amountRub)) {
+            return false;
+        }
+
+        $linked = false;
+        foreach ($externalKeys as $key) {
+            if (trim((string)$key) === $siblingId) {
+                $linked = true;
+                break;
+            }
+        }
+        if ($linked) {
+            return true;
+        }
+
+        $siblingIsTilda = self::isTildaAccountId($siblingId);
+        $incomingIsTilda = self::isTildaAccountId($incomingAccountId);
+        $oneIsTilda = $siblingIsTilda !== $incomingIsTilda;
+        $otherIsPlain = $siblingIsTilda
+            ? self::isPlainAccountId($incomingAccountId)
+            : self::isPlainAccountId($siblingId);
+        if (!$oneIsTilda || !$otherIsPlain) {
+            return false;
+        }
+
+        return self::timesCompatible($row, $paidAt);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function amountsCompatible(array $row, ?float $amountOriginal, ?float $amountRub): bool
+    {
+        $theirOriginal = self::positiveFloat($row['amount_original'] ?? null);
+        $theirRub = self::positiveFloat($row['amount'] ?? null);
+        if ($theirOriginal !== null && $amountOriginal !== null && abs($theirOriginal - $amountOriginal) > 0.02) {
+            return false;
+        }
+        if ($theirRub !== null && $amountRub !== null && abs($theirRub - $amountRub) > 1.0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function timesCompatible(array $row, ?string $paidAt): bool
+    {
+        $their = self::eventTimestamp($row);
+        if ($their === null) {
+            return false;
+        }
+        $incoming = $their;
+        $paidAt = trim((string)$paidAt);
+        if ($paidAt !== '') {
+            try {
+                $incoming = (new \DateTimeImmutable($paidAt))->getTimestamp();
+            } catch (\Throwable) {
+                $parsed = strtotime($paidAt);
+                $incoming = $parsed !== false ? $parsed : time();
+            }
+        } else {
+            $incoming = time();
+        }
+
+        return abs($their - $incoming) <= 3 * 3600;
+    }
+
+    private static function preferredAccountId(string $existing, string $incoming): string
+    {
+        if (self::isPlainAccountId($incoming) && !self::isPlainAccountId($existing)) {
+            return $incoming;
+        }
+
+        return $existing;
+    }
+
+    private static function isTildaAccountId(string $id): bool
+    {
+        return str_starts_with($id, 'tilda:');
+    }
+
+    private static function isPlainAccountId(string $id): bool
+    {
+        return $id !== '' && !self::isTildaAccountId($id);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private static function findByAccount(PDO $pdo, string $accountId, string $courseSlug): ?array
+    {
+        $stmt = $pdo->prepare('SELECT * FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1');
+        $stmt->execute([$accountId, $courseSlug]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    private static function rekeyAccount(PDO $pdo, int $paymentId, string $fromAccountId, string $toAccountId, string $courseSlug): void
+    {
+        if ($paymentId <= 0 || $fromAccountId === '' || $toAccountId === '' || $fromAccountId === $toAccountId) {
+            return;
+        }
+        if (self::findByAccount($pdo, $toAccountId, $courseSlug) !== null) {
+            return;
+        }
+
+        PaymentPricingPending::applyForPayment($pdo, $fromAccountId, $courseSlug);
+        $stmt = $pdo->prepare('UPDATE payments SET avo_account_id = ?, updated_at = ? WHERE id = ? AND avo_account_id = ?');
+        $stmt->execute([$toAccountId, gmdate('c'), $paymentId, $fromAccountId]);
+        self::movePendingAccount($pdo, $fromAccountId, $toAccountId, $courseSlug);
+    }
+
+    private static function movePendingAccount(PDO $pdo, string $fromAccountId, string $toAccountId, string $courseSlug): void
+    {
+        PaymentPricingPending::ensureTable($pdo);
+        if (self::pendingExists($pdo, $toAccountId, $courseSlug)) {
+            return;
+        }
+        $stmt = $pdo->prepare(
+            'UPDATE payment_pricing_pending SET avo_account_id = ? WHERE avo_account_id = ? AND course_slug = ?'
+        );
+        $stmt->execute([$toAccountId, $fromAccountId, $courseSlug]);
+    }
+
+    private static function pendingExists(PDO $pdo, string $accountId, string $courseSlug): bool
+    {
+        PaymentPricingPending::ensureTable($pdo);
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM payment_pricing_pending WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
+        );
+        $stmt->execute([$accountId, $courseSlug]);
+
+        return (bool)$stmt->fetchColumn();
+    }
+
+    /**
+     * @param list<array<string, mixed>> $group
+     */
+    private static function collapseGroup(PDO $pdo, array $group): int
+    {
+        $removed = 0;
+        $open = array_values($group);
+        $guard = 0;
+        while (count($open) >= 2 && $guard < 20) {
+            $guard++;
+            $pair = self::aliasPair($open);
+            if ($pair === null) {
+                break;
+            }
+            [$keepIndex, $dropIndex] = $pair;
+            $keeper = $open[$keepIndex];
+            $donor = $open[$dropIndex];
+            self::copyMissingPaymentFields($pdo, $keeper, $donor);
+            PaymentPricingPending::applyForPayment($pdo, (string)$donor['avo_account_id'], (string)$donor['course_slug']);
+            self::copyMissingPaymentFields($pdo, $keeper, self::findByAccount($pdo, (string)$donor['avo_account_id'], (string)$donor['course_slug']) ?? $donor);
+            $del = $pdo->prepare('DELETE FROM payments WHERE id = ?');
+            $del->execute([(int)$donor['id']]);
+            $pending = $pdo->prepare('DELETE FROM payment_pricing_pending WHERE avo_account_id = ? AND course_slug = ?');
+            $pending->execute([(string)$donor['avo_account_id'], (string)$donor['course_slug']]);
+            array_splice($open, $dropIndex, 1);
+            $fresh = self::findByAccount($pdo, (string)$keeper['avo_account_id'], (string)$keeper['course_slug']);
+            if ($fresh !== null) {
+                $open[$keepIndex > $dropIndex ? $keepIndex - 1 : $keepIndex] = $fresh;
+            }
+            $removed++;
+        }
+
+        return $removed;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array{0: int, 1: int}|null
+     */
+    private static function aliasPair(array $rows): ?array
+    {
+        $count = count($rows);
+        for ($i = 0; $i < $count; $i++) {
+            for ($j = $i + 1; $j < $count; $j++) {
+                if (self::isRefunded($rows[$i]) || self::isRefunded($rows[$j])) {
+                    continue;
+                }
+                $leftId = (string)($rows[$i]['avo_account_id'] ?? '');
+                $rightId = (string)($rows[$j]['avo_account_id'] ?? '');
+                $leftPlain = self::isPlainAccountId($leftId);
+                $rightPlain = self::isPlainAccountId($rightId);
+                if ($leftPlain === $rightPlain) {
+                    continue;
+                }
+                $plain = $leftPlain ? $rows[$i] : $rows[$j];
+                $alias = $leftPlain ? $rows[$j] : $rows[$i];
+                $plainPaid = trim((string)($plain['paid_at'] ?? '')) !== ''
+                    ? (string)$plain['paid_at']
+                    : (string)($plain['created_at'] ?? '');
+                if (!self::samePurchase(
+                    $alias,
+                    (string)$plain['avo_account_id'],
+                    [],
+                    $plainPaid,
+                    self::positiveFloat($plain['amount_original'] ?? null),
+                    self::positiveFloat($plain['amount'] ?? null)
+                )) {
+                    continue;
+                }
+
+                return $leftPlain ? [$i, $j] : [$j, $i];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $keeper
+     * @param array<string, mixed> $donor
+     */
+    private static function copyMissingPaymentFields(PDO $pdo, array $keeper, array $donor): void
+    {
+        $stmt = $pdo->prepare(
+            'UPDATE payments SET
+                id_goods = COALESCE(id_goods, ?),
+                amount = COALESCE(amount, ?),
+                currency = CASE WHEN TRIM(COALESCE(currency, \'\')) = \'\' THEN ? ELSE currency END,
+                ordered_at = COALESCE(ordered_at, ?),
+                paid_at = COALESCE(paid_at, ?),
+                utm_source = COALESCE(NULLIF(utm_source, \'\'), ?),
+                utm_medium = COALESCE(NULLIF(utm_medium, \'\'), ?),
+                utm_campaign = COALESCE(NULLIF(utm_campaign, \'\'), ?),
+                utm_term = COALESCE(NULLIF(utm_term, \'\'), ?),
+                utm_content = COALESCE(NULLIF(utm_content, \'\'), ?),
+                ad_snapshot = CASE WHEN ad_snapshot IS NULL OR ad_snapshot = \'\' THEN ? ELSE ad_snapshot END,
+                avo_contact_id = COALESCE(avo_contact_id, ?),
+                amount_original = COALESCE(amount_original, ?),
+                currency_original = CASE WHEN TRIM(COALESCE(currency_original, \'\')) = \'\' THEN ? ELSE currency_original END,
+                fx_rate = COALESCE(fx_rate, ?),
+                updated_at = ?
+             WHERE id = ?'
+        );
+        $stmt->execute([
+            $donor['id_goods'] ?? null,
+            $donor['amount'] ?? null,
+            (string)($donor['currency'] ?? ''),
+            $donor['ordered_at'] ?? null,
+            $donor['paid_at'] ?? null,
+            $donor['utm_source'] ?? null,
+            $donor['utm_medium'] ?? null,
+            $donor['utm_campaign'] ?? null,
+            $donor['utm_term'] ?? null,
+            $donor['utm_content'] ?? null,
+            $donor['ad_snapshot'] ?? null,
+            $donor['avo_contact_id'] ?? null,
+            $donor['amount_original'] ?? null,
+            (string)($donor['currency_original'] ?? ''),
+            $donor['fx_rate'] ?? null,
+            gmdate('c'),
+            (int)$keeper['id'],
+        ]);
     }
 
     private static function positiveFloat(mixed $value): ?float

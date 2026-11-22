@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Services;
 
 use Wwm\Models\Payment;
+use Wwm\Models\PaymentExternalKey;
 
 /**
  * Persists AVO payment webhooks for revenue / ROAS analytics.
@@ -33,9 +34,24 @@ final class PaymentRecorder
 
         $payload = AvoInvoiceAmounts::mergeMissing($payload);
         [$utm, $origin] = self::chooseUtm($pdo, $userId, $payload, $utmOverride);
-        $adSnapshot = self::adSnapshotJson($pdo, $accountId, $courseSlug, $payload, $origin);
         $pricing = Payment::pricingFromPayload($payload);
         $amountRub = $pricing['amount_rub'] ?? self::amount($payload);
+        $accountId = Payment::canonicalAccountId(
+            $pdo,
+            $userId,
+            $courseSlug,
+            $accountId,
+            PaymentExternalKey::collectFromPayload($payload),
+            $paidAt,
+            $pricing['amount_original'],
+            $amountRub
+        );
+        $prior = $pdo->prepare(
+            'SELECT paid_at FROM payments WHERE avo_account_id = ? AND course_slug = ? LIMIT 1'
+        );
+        $prior->execute([$accountId, $courseSlug]);
+        $alreadyPaid = trim((string)$prior->fetchColumn()) !== '';
+        $adSnapshot = self::adSnapshotJson($pdo, $accountId, $courseSlug, $payload, $origin);
 
         $wrote = Payment::upsert($pdo, [
             'user_id' => $userId,
@@ -59,7 +75,7 @@ final class PaymentRecorder
             'avo_contact_id' => $avoContactId,
         ]);
 
-        if ($wrote && $paidAt !== null && trim($paidAt) !== '') {
+        if ($wrote && !$alreadyPaid && $paidAt !== null && trim($paidAt) !== '') {
             self::enqueueMetaPurchase($pdo, $userId, $accountId, $courseSlug, $pricing, $amountRub);
         }
 

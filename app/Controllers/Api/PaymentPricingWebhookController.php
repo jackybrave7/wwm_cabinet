@@ -37,6 +37,18 @@ final class PaymentPricingWebhookController
         $pdo = wwm_pdo();
 
         $user = User::findByEmail($pdo, $email);
+        if ($user !== null) {
+            $accountId = Payment::canonicalAccountId(
+                $pdo,
+                (int)$user['id'],
+                $courseSlug,
+                $accountId,
+                [],
+                null,
+                $pricing['amount_original'],
+                $pricing['amount_rub']
+            );
+        }
         if ($user !== null && Payment::applyPricingFields($pdo, $accountId, $courseSlug, $pricing)) {
             wwm_log(sprintf(
                 'payment pricing applied user_id=%d account=%s course=%s',
