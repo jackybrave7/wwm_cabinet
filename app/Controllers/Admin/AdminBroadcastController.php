@@ -151,6 +151,14 @@ final class AdminBroadcastController
         $audienceFilter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
         $engagement = EmailMessage::broadcastEngagementSummary($pdo, $id);
         $linkStats = EmailMessage::broadcastLinkStats($pdo, $id);
+        $linkSort = (string)($_GET['lsort'] ?? '');
+        if (!in_array($linkSort, ['url', 'unique', 'total'], true)) {
+            $linkSort = '';
+        }
+        $linkDir = (string)($_GET['ldir'] ?? '') === 'asc' ? 'asc' : 'desc';
+        if ($linkSort !== '') {
+            $linkStats = self::sortLinkStats($linkStats, $linkSort, $linkDir);
+        }
         $recipientTotal = EmailMessage::broadcastRecipientCount($pdo, $id);
         $recipientPageSize = 100;
         $recipientPages = max(1, (int)ceil($recipientTotal / $recipientPageSize));
@@ -158,11 +166,18 @@ final class AdminBroadcastController
         if ($recipientPage > $recipientPages) {
             $recipientPage = $recipientPages;
         }
+        $recipientSort = (string)($_GET['rsort'] ?? '');
+        if (!in_array($recipientSort, ['email', 'delivery', 'opened', 'clicks'], true)) {
+            $recipientSort = '';
+        }
+        $recipientDir = (string)($_GET['rdir'] ?? '') === 'desc' ? 'desc' : 'asc';
         $recipientEngagement = EmailMessage::broadcastRecipientEngagement(
             $pdo,
             $id,
             $recipientPageSize,
-            ($recipientPage - 1) * $recipientPageSize
+            ($recipientPage - 1) * $recipientPageSize,
+            $recipientSort,
+            $recipientDir
         );
 
         wwm_render_admin('broadcast-view', [
@@ -172,11 +187,16 @@ final class AdminBroadcastController
             'broadcast' => $broadcast,
             'engagement' => $engagement,
             'linkStats' => $linkStats,
+            'linkSort' => $linkSort,
+            'linkDir' => $linkDir,
+            'linksOpen' => $linkSort !== '',
             'recipientEngagement' => $recipientEngagement,
             'recipientTotal' => $recipientTotal,
             'recipientPage' => $recipientPage,
             'recipientPages' => $recipientPages,
-            'recipientsOpen' => isset($_GET['rpage']),
+            'recipientSort' => $recipientSort,
+            'recipientDir' => $recipientDir,
+            'recipientsOpen' => isset($_GET['rpage']) || $recipientSort !== '',
             'message' => $this->flashMessage(),
             'error' => $this->errorMessage((string)($_GET['error'] ?? '')),
             'pendingCount' => $pendingCount,
@@ -334,6 +354,26 @@ final class AdminBroadcastController
         $name = trim((string)($admin['name'] ?? ''));
         $send = BroadcastRunner::sendToRecipient($broadcast, $adminId, $email, $name);
         wwm_redirect('/admin/broadcasts/' . $id . '/edit?' . ($send['ok'] ? 'test_ok=1' : 'test_fail=1'));
+    }
+
+    /**
+     * @param list<array{target_url: string, link_label: string, total_clicks: int, unique_clickers: int}> $rows
+     * @return list<array{target_url: string, link_label: string, total_clicks: int, unique_clickers: int}>
+     */
+    private static function sortLinkStats(array $rows, string $sort, string $dir): array
+    {
+        $factor = $dir === 'asc' ? 1 : -1;
+        usort($rows, static function (array $a, array $b) use ($sort, $factor): int {
+            $cmp = match ($sort) {
+                'unique' => ((int)$a['unique_clickers']) <=> ((int)$b['unique_clickers']),
+                'total' => ((int)$a['total_clicks']) <=> ((int)$b['total_clicks']),
+                default => strcasecmp((string)$a['target_url'], (string)$b['target_url']),
+            };
+
+            return $cmp * $factor;
+        });
+
+        return $rows;
     }
 
     private function startSend(int $id): void

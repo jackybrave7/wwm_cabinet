@@ -308,10 +308,24 @@ final class EmailMessage
     /**
      * @return list<array<string, mixed>>
      */
-    public static function broadcastRecipientEngagement(PDO $pdo, int $broadcastId, int $limit = 100, int $offset = 0): array
-    {
+    public static function broadcastRecipientEngagement(
+        PDO $pdo,
+        int $broadcastId,
+        int $limit = 100,
+        int $offset = 0,
+        string $sort = '',
+        string $dir = 'asc'
+    ): array {
         $limit = max(1, min(500, $limit));
         $offset = max(0, $offset);
+        $dirSql = $dir === 'desc' ? 'DESC' : 'ASC';
+        $order = match ($sort) {
+            'email' => 'br.email COLLATE NOCASE ' . $dirSql . ', br.id ASC',
+            'delivery' => 'br.status COLLATE NOCASE ' . $dirSql . ', br.id ASC',
+            'opened' => "CASE WHEN em.opened_at IS NULL OR TRIM(em.opened_at) = '' THEN 1 ELSE 0 END ASC, em.opened_at " . $dirSql . ', br.id ASC',
+            'clicks' => '(SELECT COALESCE(SUM(el.click_count), 0) FROM email_links el WHERE el.message_id = em.id) ' . $dirSql . ', br.id ASC',
+            default => 'br.id ASC',
+        };
         $stmt = $pdo->prepare(
             'SELECT br.email, br.status AS delivery_status, br.sent_at,
                     em.opened_at, em.open_count, em.id AS message_id,
@@ -319,7 +333,7 @@ final class EmailMessage
              FROM broadcast_recipients br
              LEFT JOIN email_messages em ON em.id = br.email_message_id
              WHERE br.broadcast_id = ?
-             ORDER BY br.id ASC
+             ORDER BY ' . $order . '
              LIMIT ' . $limit . ' OFFSET ' . $offset
         );
         $stmt->execute([$broadcastId]);

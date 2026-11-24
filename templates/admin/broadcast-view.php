@@ -190,8 +190,26 @@ if ($htmlPreview !== '') {
 </script>
 <?php endif; ?>
 
+<?php
+$linkSort = (string)($linkSort ?? '');
+$linkDir = (string)($linkDir ?? 'desc');
+$linkSortHref = static function (string $column) use ($id, $linkSort, $linkDir): string {
+    $next = $linkSort === $column
+        ? ($linkDir === 'asc' ? 'desc' : 'asc')
+        : ($column === 'url' ? 'asc' : 'desc');
+
+    return '/admin/broadcasts/' . $id . '?lsort=' . rawurlencode($column) . '&ldir=' . $next . '#broadcast-links';
+};
+$linkSortMark = static function (string $column) use ($linkSort, $linkDir): string {
+    if ($linkSort !== $column) {
+        return '';
+    }
+
+    return $linkDir === 'asc' ? ' ↑' : ' ↓';
+};
+?>
 <?php if ($linkStats !== []): ?>
-  <details class="admin-card admin-expander" style="margin-bottom:16px">
+  <details class="admin-card admin-expander" id="broadcast-links" style="margin-bottom:16px"<?= !empty($linksOpen) ? ' open' : '' ?>>
     <summary class="admin-expander-summary">
       <span class="admin-expander-summary-text">
         <h2>Links</h2>
@@ -204,9 +222,9 @@ if ($htmlPreview !== '') {
         <table class="admin-table admin-table-compact admin-table--profile admin-table--broadcast-links">
           <thead>
             <tr>
-              <th>URL</th>
-              <th class="col-num">Unique clickers</th>
-              <th class="col-num">Total clicks</th>
+              <th class="admin-sort-th"><a href="<?= wwm_escape($linkSortHref('url')) ?>">URL<?= wwm_escape($linkSortMark('url')) ?></a></th>
+              <th class="col-num admin-sort-th"><a href="<?= wwm_escape($linkSortHref('unique')) ?>">Unique clickers<?= wwm_escape($linkSortMark('unique')) ?></a></th>
+              <th class="col-num admin-sort-th"><a href="<?= wwm_escape($linkSortHref('total')) ?>">Total clicks<?= wwm_escape($linkSortMark('total')) ?></a></th>
             </tr>
           </thead>
           <tbody>
@@ -232,6 +250,31 @@ $recipientTotal = (int)($recipientTotal ?? 0);
 $recipientPage = max(1, (int)($recipientPage ?? 1));
 $recipientPages = max(1, (int)($recipientPages ?? 1));
 $recipientsOpen = !empty($recipientsOpen);
+$recipientSort = (string)($recipientSort ?? '');
+$recipientDir = (string)($recipientDir ?? 'asc');
+$recipientSortHref = static function (string $column) use ($id, $recipientSort, $recipientDir): string {
+    $next = $recipientSort === $column
+        ? ($recipientDir === 'asc' ? 'desc' : 'asc')
+        : (in_array($column, ['email', 'delivery'], true) ? 'asc' : 'desc');
+
+    return '/admin/broadcasts/' . $id . '?rsort=' . rawurlencode($column) . '&rdir=' . $next . '#broadcast-recipients';
+};
+$recipientSortMark = static function (string $column) use ($recipientSort, $recipientDir): string {
+    if ($recipientSort !== $column) {
+        return '';
+    }
+
+    return $recipientDir === 'asc' ? ' ↑' : ' ↓';
+};
+$recipientPageUrl = static function (int $p) use ($id, $recipientSort, $recipientDir): string {
+    $query = ['rpage' => $p];
+    if ($recipientSort !== '') {
+        $query['rsort'] = $recipientSort;
+        $query['rdir'] = $recipientDir;
+    }
+
+    return '/admin/broadcasts/' . $id . '?' . http_build_query($query) . '#broadcast-recipients';
+};
 ?>
 <?php if ($recipientTotal > 0): ?>
   <details class="admin-card admin-expander" id="broadcast-recipients" style="margin-bottom:16px"<?= $recipientsOpen ? ' open' : '' ?>>
@@ -247,10 +290,10 @@ $recipientsOpen = !empty($recipientsOpen);
         <table class="admin-table admin-table-compact admin-table--profile admin-table--broadcast-recipients">
           <thead>
             <tr>
-              <th>Email</th>
-              <th class="col-status">Delivery</th>
-              <th class="col-date">Opened</th>
-              <th class="col-num">Clicks</th>
+              <th class="admin-sort-th"><a href="<?= wwm_escape($recipientSortHref('email')) ?>">Email<?= wwm_escape($recipientSortMark('email')) ?></a></th>
+              <th class="col-status admin-sort-th"><a href="<?= wwm_escape($recipientSortHref('delivery')) ?>">Delivery<?= wwm_escape($recipientSortMark('delivery')) ?></a></th>
+              <th class="col-date admin-sort-th"><a href="<?= wwm_escape($recipientSortHref('opened')) ?>">Opened<?= wwm_escape($recipientSortMark('opened')) ?></a></th>
+              <th class="col-num admin-sort-th"><a href="<?= wwm_escape($recipientSortHref('clicks')) ?>">Clicks<?= wwm_escape($recipientSortMark('clicks')) ?></a></th>
             </tr>
           </thead>
           <tbody>
@@ -276,11 +319,6 @@ $recipientsOpen = !empty($recipientsOpen);
         </table>
       </div>
       <?php if ($recipientPages > 1): ?>
-        <?php
-          $recipientPageUrl = static function (int $p) use ($id): string {
-              return '/admin/broadcasts/' . $id . '?rpage=' . $p . '#broadcast-recipients';
-          };
-        ?>
         <div class="admin-pagination">
           <?php if ($recipientPage > 1): ?>
             <a href="<?= wwm_escape($recipientPageUrl($recipientPage - 1)) ?>" class="btn btn-ghost btn-sm">← Prev</a>
