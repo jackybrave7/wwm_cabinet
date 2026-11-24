@@ -297,12 +297,21 @@ final class EmailMessage
         return $rows;
     }
 
+    public static function broadcastRecipientCount(PDO $pdo, int $broadcastId): int
+    {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM broadcast_recipients WHERE broadcast_id = ?');
+        $stmt->execute([$broadcastId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
-    public static function broadcastRecipientEngagement(PDO $pdo, int $broadcastId, int $limit = 100): array
+    public static function broadcastRecipientEngagement(PDO $pdo, int $broadcastId, int $limit = 100, int $offset = 0): array
     {
         $limit = max(1, min(500, $limit));
+        $offset = max(0, $offset);
         $stmt = $pdo->prepare(
             'SELECT br.email, br.status AS delivery_status, br.sent_at,
                     em.opened_at, em.open_count, em.id AS message_id,
@@ -311,7 +320,7 @@ final class EmailMessage
              LEFT JOIN email_messages em ON em.id = br.email_message_id
              WHERE br.broadcast_id = ?
              ORDER BY br.id ASC
-             LIMIT ' . $limit
+             LIMIT ' . $limit . ' OFFSET ' . $offset
         );
         $stmt->execute([$broadcastId]);
 

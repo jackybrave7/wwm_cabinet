@@ -2390,7 +2390,12 @@ td.admin-table-actions .inline-form {
   margin-top: 0;
 }
 
-.admin-broadcast-detail .admin-table--broadcast-links .col-num,
+.admin-broadcast-detail .admin-table--broadcast-links .col-num {
+  width: 148px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .admin-broadcast-detail .admin-table--broadcast-recipients .col-num {
   width: 96px;
   text-align: right;

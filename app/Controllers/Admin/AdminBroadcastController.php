@@ -151,7 +151,19 @@ final class AdminBroadcastController
         $audienceFilter = EmailBroadcast::decodeAudienceFilter((string)($broadcast['audience_filter_json'] ?? ''));
         $engagement = EmailMessage::broadcastEngagementSummary($pdo, $id);
         $linkStats = EmailMessage::broadcastLinkStats($pdo, $id);
-        $recipientEngagement = EmailMessage::broadcastRecipientEngagement($pdo, $id, 200);
+        $recipientTotal = EmailMessage::broadcastRecipientCount($pdo, $id);
+        $recipientPageSize = 100;
+        $recipientPages = max(1, (int)ceil($recipientTotal / $recipientPageSize));
+        $recipientPage = max(1, (int)($_GET['rpage'] ?? 1));
+        if ($recipientPage > $recipientPages) {
+            $recipientPage = $recipientPages;
+        }
+        $recipientEngagement = EmailMessage::broadcastRecipientEngagement(
+            $pdo,
+            $id,
+            $recipientPageSize,
+            ($recipientPage - 1) * $recipientPageSize
+        );
 
         wwm_render_admin('broadcast-view', [
             'title' => 'Broadcast #' . $id . ' — Admin',
@@ -161,6 +173,10 @@ final class AdminBroadcastController
             'engagement' => $engagement,
             'linkStats' => $linkStats,
             'recipientEngagement' => $recipientEngagement,
+            'recipientTotal' => $recipientTotal,
+            'recipientPage' => $recipientPage,
+            'recipientPages' => $recipientPages,
+            'recipientsOpen' => isset($_GET['rpage']),
             'message' => $this->flashMessage(),
             'error' => $this->errorMessage((string)($_GET['error'] ?? '')),
             'pendingCount' => $pendingCount,
