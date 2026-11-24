@@ -1218,7 +1218,9 @@
   function subtitleFor(data) {
     switch (data.type) {
       case 'delay':
-        return formatDelay(data.seconds);
+        return delayMode(data) === 'until'
+          ? formatUntilLabel(data.until)
+          : formatDelay(data.seconds);
       case 'send_template': {
         const bits = [templateLabel(data.template)];
         if (data.skip_if_paid_course) {
@@ -1405,6 +1407,82 @@
   function templateEditUrl(id) {
     const t = (config.templates || []).find((x) => x.value === id);
     return t && t.edit_url ? t.edit_url : (id ? '/admin/emails/' + id + '/edit' : '');
+  }
+
+  const DELAY_ZONES = [
+    { id: 'America/New_York', label: 'Нью-Йорк' },
+    { id: 'Europe/Moscow', label: 'Москва' },
+    { id: 'UTC', label: 'UTC' },
+  ];
+
+  function delayMode(data) {
+    if (data.delay_mode === 'until' || data.delay_mode === 'duration') {
+      return data.delay_mode;
+    }
+    return String(data.until || '').trim() !== '' ? 'until' : 'duration';
+  }
+
+  function zoneOffsetMinutes(timeZone, utcMs) {
+    const date = new Date(utcMs);
+    const wall = date.toLocaleString('sv-SE', { timeZone, hourCycle: 'h23' }).replace(' ', 'T');
+    const utc = date.toLocaleString('sv-SE', { timeZone: 'UTC', hourCycle: 'h23' }).replace(' ', 'T');
+    return Math.round((Date.parse(wall) - Date.parse(utc)) / 60000);
+  }
+
+  function formatOffset(minutes) {
+    const sign = minutes >= 0 ? '+' : '-';
+    const abs = Math.abs(minutes);
+    return sign
+      + String(Math.floor(abs / 60)).padStart(2, '0')
+      + ':'
+      + String(abs % 60).padStart(2, '0');
+  }
+
+  function zonedToIso(localValue, timeZone) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(String(localValue || ''));
+    if (!match || !timeZone) {
+      return '';
+    }
+    const wallUtc = Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5], 0);
+    let utc = wallUtc;
+    for (let i = 0; i < 3; i += 1) {
+      utc = wallUtc - zoneOffsetMinutes(timeZone, utc) * 60000;
+    }
+    return localValue + ':00' + formatOffset(zoneOffsetMinutes(timeZone, utc));
+  }
+
+  function parseUntil(until) {
+    const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2})?(Z|[+-]\d{2}:\d{2})?$/.exec(String(until || '').trim());
+    if (!match) {
+      return null;
+    }
+    return {
+      local: match[1] + 'T' + match[2],
+      offset: match[3] === 'Z' ? '+00:00' : (match[3] || ''),
+    };
+  }
+
+  function zoneForOffset(local, offset) {
+    if (!offset) {
+      return '';
+    }
+    const found = DELAY_ZONES.find((zone) => zonedToIso(local, zone.id).endsWith(offset));
+    return found ? found.id : '';
+  }
+
+  function formatUntilLabel(until) {
+    const parsed = parseUntil(until);
+    if (!parsed) {
+      return 'дата не задана';
+    }
+    const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const parts = parsed.local.split('T');
+    const date = parts[0].split('-');
+    const zoneId = zoneForOffset(parsed.local, parsed.offset);
+    const zone = DELAY_ZONES.find((item) => item.id === zoneId);
+    const where = zone ? zone.label : parsed.offset;
+    return 'до ' + Number(date[2]) + ' ' + months[Number(date[1]) - 1] + ' ' + date[0]
+      + ', ' + parts[1] + (where ? ' · ' + where : '');
   }
 
   function secondsToDhm(total) {
@@ -2024,6 +2102,8 @@
           const days = dhmRow.querySelector('[data-dhm="days"]')?.value;
           const hours = dhmRow.querySelector('[data-dhm="hours"]')?.value;
           const minutes = dhmRow.querySelector('[data-dhm="minutes"]')?.value;
+          d.delay_mode = 'duration';
+          delete d.until;
           d.seconds = dhmToSeconds(days, hours, minutes);
           editor.updateNodeDataFromId(dfId, d);
           updateNodeHtml(dfId);
@@ -2034,6 +2114,58 @@
           scheduleHistory();
         });
       });
+    }
+
+    propsPanel.querySelectorAll('[data-delay-mode]').forEach((el) => {
+      el.addEventListener('change', () => {
+        if (!el.checked) {
+          return;
+        }
+        ensurePropHistory();
+        const mode = el.getAttribute('data-delay-mode');
+        d.delay_mode = mode === 'until' ? 'until' : 'duration';
+        if (d.delay_mode === 'duration') {
+          delete d.until;
+        }
+        editor.updateNodeDataFromId(dfId, d);
+        updateNodeHtml(dfId);
+        scheduleHistory();
+        renderProps(dfId);
+      });
+    });
+
+    const untilInput = propsPanel.querySelector('[data-delay-until]');
+    const zoneSelect = propsPanel.querySelector('[data-delay-zone]');
+    const writeUntil = () => {
+      if (!untilInput) {
+        return;
+      }
+      ensurePropHistory();
+      const local = untilInput.value;
+      const zone = zoneSelect ? zoneSelect.value : '';
+      d.delay_mode = 'until';
+      if (!local) {
+        d.until = '';
+      } else if (zone) {
+        d.until = zonedToIso(local, zone);
+      } else {
+        const prev = parseUntil(d.until);
+        d.until = local + ':00' + (prev && prev.offset ? prev.offset : '');
+      }
+      editor.updateNodeDataFromId(dfId, d);
+      updateNodeHtml(dfId);
+      const untilHint = propsPanel.querySelector('.automation-until-label');
+      if (untilHint) {
+        untilHint.textContent = formatUntilLabel(d.until);
+      }
+      scheduleHistory();
+    };
+    if (untilInput) {
+      untilInput.addEventListener('input', writeUntil);
+      untilInput.addEventListener('change', writeUntil);
+    }
+    if (zoneSelect) {
+      zoneSelect.addEventListener('change', writeUntil);
     }
   }
 
@@ -2228,15 +2360,42 @@
     }
 
     if (d.type === 'delay') {
-      const parts = secondsToDhm(d.seconds);
-      html += '<div class="field"><span class="field-label">Ожидание</span>';
-      html += '<div class="automation-dhm-row">';
-      html += '<label class="automation-dhm-field"><span>Дни</span><input type="number" min="0" data-dhm="days" value="' + parts.days + '"></label>';
-      html += '<label class="automation-dhm-field"><span>Часы</span><input type="number" min="0" max="23" data-dhm="hours" value="' + parts.hours + '"></label>';
-      html += '<label class="automation-dhm-field"><span>Минуты</span><input type="number" min="0" max="59" data-dhm="minutes" value="' + parts.minutes + '"></label>';
-      html += '</div>';
-      html += '<p class="field-hint automation-dhm-total">' + escapeHtml(formatDelay(d.seconds)) + '</p>';
-      html += '<p class="field-hint">Обработка по cron (run-email-automations). Ученик «ждёт» на этом шаге до наступления времени.</p></div>';
+      const mode = delayMode(d);
+      html += '<div class="field"><span class="field-label">Режим паузы</span>';
+      html += '<div class="automation-delay-modes">';
+      html += '<label><input type="radio" name="automation-delay-mode" data-delay-mode="duration"'
+        + (mode === 'duration' ? ' checked' : '') + '> Ждать промежуток</label>';
+      html += '<label><input type="radio" name="automation-delay-mode" data-delay-mode="until"'
+        + (mode === 'until' ? ' checked' : '') + '> Ждать до даты и времени</label>';
+      html += '</div></div>';
+      if (mode === 'until') {
+        const parsed = parseUntil(d.until);
+        const local = parsed ? parsed.local : '';
+        const zone = parsed ? zoneForOffset(parsed.local, parsed.offset) : 'Europe/Moscow';
+        html += '<label class="field"><span class="field-label">Дата и время</span>';
+        html += '<input type="datetime-local" data-delay-until value="' + escapeHtml(local) + '"></label>';
+        html += '<label class="field"><span class="field-label">Часовой пояс</span><select data-delay-zone>';
+        DELAY_ZONES.forEach((item) => {
+          html += '<option value="' + escapeHtml(item.id) + '"' + (item.id === zone ? ' selected' : '') + '>'
+            + escapeHtml(item.label) + '</option>';
+        });
+        if (parsed && zone === '') {
+          html += '<option value="" selected>Как в схеме (' + escapeHtml(parsed.offset) + ')</option>';
+        }
+        html += '</select></label>';
+        html += '<p class="field-hint automation-until-label">' + escapeHtml(formatUntilLabel(d.until)) + '</p>';
+        html += '<p class="field-hint">Ученик стоит на этом блоке до этого момента. Дни, часы и минуты здесь не считаются.</p>';
+      } else {
+        const parts = secondsToDhm(d.seconds);
+        html += '<div class="field"><span class="field-label">Ожидание</span>';
+        html += '<div class="automation-dhm-row">';
+        html += '<label class="automation-dhm-field"><span>Дни</span><input type="number" min="0" data-dhm="days" value="' + parts.days + '"></label>';
+        html += '<label class="automation-dhm-field"><span>Часы</span><input type="number" min="0" max="23" data-dhm="hours" value="' + parts.hours + '"></label>';
+        html += '<label class="automation-dhm-field"><span>Минуты</span><input type="number" min="0" max="59" data-dhm="minutes" value="' + parts.minutes + '"></label>';
+        html += '</div>';
+        html += '<p class="field-hint automation-dhm-total">' + escapeHtml(formatDelay(d.seconds)) + '</p>';
+        html += '<p class="field-hint">Обработка по cron (run-email-automations). Ученик «ждёт» на этом шаге до наступления времени.</p></div>';
+      }
     }
     if (d.type === 'send_template') {
       html += '<label class="field"><span class="field-label">Шаблон письма</span><select data-prop="template">';
@@ -2431,6 +2590,7 @@
     }
     if (type === 'delay') {
       base.seconds = 3600;
+      base.delay_mode = 'duration';
     }
     if (type === 'send_template') {
       base.template = (config.templates && config.templates[0]?.value) || 'reminder_demo_no_login';
@@ -2654,8 +2814,18 @@
         }
       }
 
-      if (type === 'delay' && (parseInt(node.seconds, 10) || 0) < 0) {
-        issues.push('«' + label + '»: укажите длительность паузы.');
+      if (type === 'delay') {
+        const until = String(node.until || '').trim();
+        const mode = node.delay_mode === 'until' || node.delay_mode === 'duration'
+          ? node.delay_mode
+          : (until !== '' ? 'until' : 'duration');
+        if (mode === 'until') {
+          if (!until || Number.isNaN(Date.parse(until))) {
+            issues.push('«' + label + '»: укажите дату и время паузы.');
+          }
+        } else if ((parseInt(node.seconds, 10) || 0) < 0) {
+          issues.push('«' + label + '»: укажите длительность паузы.');
+        }
       }
 
       if (type === 'end') {

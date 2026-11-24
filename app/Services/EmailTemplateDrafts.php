@@ -597,10 +597,7 @@ final class EmailTemplateDrafts
             $lines[] = $course['label'] . ' — ' . $course['price'];
             $lines[] = $course['url'];
             $lines[] = '';
-            $items .= '<p style="margin:0 0 14px;font-size:16px;line-height:1.45;color:#faf6f0;">'
-                . '<a href="' . self::e($course['url']) . '" style="color:#e8b84a;font-weight:700;text-decoration:underline;">'
-                . self::e($course['label']) . '</a><br>'
-                . '<span style="color:#ffffff;">' . self::e($course['price']) . '</span></p>';
+            $items .= self::bfCourseRow($course);
         }
         $lines[] = 'Questions? support@worldwatercolormasters.art';
         $lines[] = '';
@@ -618,6 +615,11 @@ final class EmailTemplateDrafts
                 self::supportBlock(),
             ])
         );
+        $html = str_replace(
+            [self::coverImageDraft(), self::subtitleDraft()],
+            [self::bfBannerRow(), ''],
+            $html
+        );
 
         return [
             'subject' => $subject,
@@ -627,18 +629,54 @@ final class EmailTemplateDrafts
     }
 
     /**
-     * @return list<array{label: string, price: string, url: string}>
+     * @return list<array{label: string, price: string, url: string, thumb: string, w: int, h: int}>
      */
     private static function bfCourses(): array
     {
         return [
-            ['label' => 'Elke Memmler — Watercolor expressionism', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/elke-memmler'],
-            ['label' => 'Alvaro Castagnet — The Soul of Place', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/alvaro-castagnet'],
-            ['label' => 'Angus McEwan — Watercolor textures', 'price' => '$30 instead of $60', 'url' => 'https://worldwatercolormasters.art/angus-mcewan'],
-            ['label' => 'Alexander Votsmush — Watercolor worlds', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/votsmush'],
-            ['label' => 'La Fe — Watercolor roses', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/lafe'],
-            ['label' => 'Nono Garcia — Glowing watercolors', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/nono-garcia'],
+            ['label' => 'Elke Memmler — Watercolor expressionism', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/elke-memmler', 'thumb' => 'elke.jpg', 'w' => 96, 'h' => 68],
+            ['label' => 'Alvaro Castagnet — The Soul of Place', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/alvaro-castagnet', 'thumb' => 'alvaro.jpg', 'w' => 96, 'h' => 40],
+            ['label' => 'Angus McEwan — Watercolor textures', 'price' => '$30 instead of $60', 'url' => 'https://worldwatercolormasters.art/angus-mcewan', 'thumb' => 'angus.jpg', 'w' => 96, 'h' => 81],
+            ['label' => 'Alexander Votsmush — Watercolor worlds', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/votsmush', 'thumb' => 'votsmush.jpg', 'w' => 96, 'h' => 76],
+            ['label' => 'La Fe — Watercolor roses', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/lafe', 'thumb' => 'lafe.jpg', 'w' => 96, 'h' => 112],
+            ['label' => 'Nono Garcia — Glowing watercolors', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/nono-garcia', 'thumb' => 'nono.jpg', 'w' => 96, 'h' => 118],
         ];
+    }
+
+    private static function bfAsset(string $file): string
+    {
+        return rtrim(wwm_base_url(), '/') . '/assets/email/bf2026/' . $file;
+    }
+
+    private static function bfBannerRow(): string
+    {
+        return '<!-- cover:start --><tr><td style="padding:0;background:#000;line-height:0;">'
+            . '<img src="' . self::e(self::bfAsset('banner.jpg')) . '" width="600" height="300" alt="Black Friday, 50% off" '
+            . 'style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr><!-- cover:end -->';
+    }
+
+    /**
+     * @param array{label: string, price: string, url: string, thumb: string, w: int, h: int} $course
+     */
+    private static function bfCourseRow(array $course): string
+    {
+        $url = self::e($course['url']);
+        $thumb = self::e(self::bfAsset($course['thumb']));
+        $w = $course['w'];
+        $h = $course['h'];
+
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 14px;">'
+            . '<tr>'
+            . '<td width="' . ($w + 14) . '" valign="middle" style="width:' . ($w + 14) . 'px;padding:0 14px 0 0;">'
+            . '<a href="' . $url . '" style="text-decoration:none;">'
+            . '<img src="' . $thumb . '" width="' . $w . '" height="' . $h . '" alt="" '
+            . 'style="display:block;width:' . $w . 'px;height:auto;border:0;">'
+            . '</a></td>'
+            . '<td valign="middle" style="font-size:16px;line-height:1.45;">'
+            . '<a href="' . $url . '" style="color:#e8b84a;font-weight:700;text-decoration:underline;">'
+            . self::e($course['label']) . '</a><br>'
+            . '<span style="color:#ffffff;">' . self::e($course['price']) . '</span>'
+            . '</td></tr></table>';
     }
 
     private static function layoutDraft(string $titleHtml, string $bodyHtml): string

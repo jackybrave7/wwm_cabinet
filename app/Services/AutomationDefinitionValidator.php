@@ -229,9 +229,16 @@ final class AutomationDefinitionValidator
         }
 
         if ($type === 'delay') {
+            $mode = trim((string)($node['delay_mode'] ?? ''));
             $until = trim((string)($node['until'] ?? ''));
+            if ($mode === 'duration') {
+                $until = '';
+            }
+            if ($mode === 'until' && $until === '') {
+                return '«' . $label . '»: укажите дату и время паузы.';
+            }
             if ($until !== '' && strtotime($until) === false) {
-                return '«' . $label . '»: некорректное время until.';
+                return '«' . $label . '»: некорректное время паузы.';
             }
             $sec = (int)($node['seconds'] ?? -1);
             if ($until === '' && $sec < 0) {

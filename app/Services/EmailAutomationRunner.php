@@ -870,6 +870,9 @@ final class EmailAutomationRunner
         }
 
         $absolute = trim((string)($node['until'] ?? ''));
+        if (($node['delay_mode'] ?? '') === 'duration') {
+            $absolute = '';
+        }
         $absoluteTs = $absolute !== '' ? strtotime($absolute) : false;
         if ($absoluteTs !== false) {
             if ($absoluteTs <= $now) {

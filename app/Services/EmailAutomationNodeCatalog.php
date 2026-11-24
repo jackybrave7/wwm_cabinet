@@ -69,7 +69,7 @@ final class EmailAutomationNodeCatalog
                 'id' => 'delay',
                 'label' => 'Пауза',
                 'short' => 'Пауза',
-                'description' => 'Ждать указанное время, затем перейти к следующему блоку. Cron обрабатывает очередь.',
+                'description' => 'Ждать промежуток или до даты и времени, затем перейти к следующему блоку. Cron обрабатывает очередь.',
                 'outputs' => 1,
                 'class' => 'automation-node--delay',
             ],
@@ -260,7 +260,7 @@ final class EmailAutomationNodeCatalog
                 'skip_if_demo_active' => true,
             ],
             'revoke_demo' => $data + ['course_slug' => $courseSlug],
-            'delay' => $data + ['seconds' => 3600],
+            'delay' => $data + ['seconds' => 3600, 'delay_mode' => 'duration'],
             'wait_event' => $data + [
                 'course_slug' => $courseSlug,
                 'condition' => 'demo_lesson_opened',
