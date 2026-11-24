@@ -25,6 +25,10 @@ final class MarketingEmailDelivery
         return [
             'sale_crosssell_50_offer',
             'sale_crosssell_50_reminder',
+            'bf2026_announce',
+            'bf2026_reminder',
+            'bf2026_last_day',
+            'bf2026_hours_left',
             'demo',
             'reminder_demo_no_login',
             'reminder_demo_no_lesson',

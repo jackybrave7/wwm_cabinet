@@ -327,6 +327,26 @@ final class EmailTemplateDrafts
                     ])
                 ),
             ],
+            'bf2026_announce' => self::bfLetter(
+                'Black Friday: 50% off every course',
+                'Black Friday — 50% off',
+                'Every course is half price. Open the one you want — the discount is already on that page. There is no coupon code.'
+            ),
+            'bf2026_reminder' => self::bfLetter(
+                'In case you missed it: 50% off every course',
+                'In case you missed it',
+                'Yesterday we opened Black Friday. Every course is still half price, and the discount is on the course page. There is no coupon code.'
+            ),
+            'bf2026_last_day' => self::bfLetter(
+                'Last day: 50% off every course',
+                'Last day',
+                'Today is the last day of Black Friday. Every course is half price on its own page. There is no coupon code.'
+            ),
+            'bf2026_hours_left' => self::bfLetter(
+                'A few hours left: 50% off every course',
+                'A few hours left',
+                'Black Friday ends tonight. Every course is still half price on its own page. There is no coupon code.'
+            ),
             'magic' => [
                 'subject' => 'Your sign-in link — World Watercolor Masters',
                 'text' => implode("\n", [
@@ -564,6 +584,61 @@ final class EmailTemplateDrafts
             . '<p style="margin:14px 0 0;font-size:14px;line-height:1.5;color:#6e6e6e;">'
             . 'Forgot your password? <a href="{{forgot_url}}" style="color:#b81e16;text-decoration:underline;">Reset it here</a>.</p>'
             . '</div><!-- credentials:end -->';
+    }
+
+    /**
+     * @return array{subject: string, text: string, html: string}
+     */
+    private static function bfLetter(string $subject, string $heading, string $intro): array
+    {
+        $lines = ['Hi {{name}},', '', $intro, ''];
+        $items = '';
+        foreach (self::bfCourses() as $course) {
+            $lines[] = $course['label'] . ' — ' . $course['price'];
+            $lines[] = $course['url'];
+            $lines[] = '';
+            $items .= '<p style="margin:0 0 14px;font-size:16px;line-height:1.45;color:#faf6f0;">'
+                . '<a href="' . self::e($course['url']) . '" style="color:#e8b84a;font-weight:700;text-decoration:underline;">'
+                . self::e($course['label']) . '</a><br>'
+                . '<span style="color:#ffffff;">' . self::e($course['price']) . '</span></p>';
+        }
+        $lines[] = 'Questions? support@worldwatercolormasters.art';
+        $lines[] = '';
+        $lines[] = 'World Watercolor Masters';
+
+        $html = self::layoutDraft(
+            $heading,
+            implode('', [
+                self::paragraph('Hi {{name}},'),
+                self::paragraph(self::e($intro)),
+                '<div style="margin:0 0 20px;padding:18px 20px;background:#000;border:2px solid #e8b84a;">'
+                    . '<p style="margin:0 0 12px;font-size:13px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:#e8b84a;">Black Friday</p>'
+                    . $items
+                    . '</div>',
+                self::supportBlock(),
+            ])
+        );
+
+        return [
+            'subject' => $subject,
+            'text' => implode("\n", $lines),
+            'html' => $html,
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, price: string, url: string}>
+     */
+    private static function bfCourses(): array
+    {
+        return [
+            ['label' => 'Elke Memmler — Watercolor expressionism', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/elke-memmler'],
+            ['label' => 'Alvaro Castagnet — The Soul of Place', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/alvaro-castagnet'],
+            ['label' => 'Angus McEwan — Watercolor textures', 'price' => '$30 instead of $60', 'url' => 'https://worldwatercolormasters.art/angus-mcewan'],
+            ['label' => 'Alexander Votsmush — Watercolor worlds', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/votsmush'],
+            ['label' => 'La Fe — Watercolor roses', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/lafe'],
+            ['label' => 'Nono Garcia — Glowing watercolors', 'price' => '$49.50 instead of $99', 'url' => 'https://worldwatercolormasters.art/nono-garcia'],
+        ];
     }
 
     private static function layoutDraft(string $titleHtml, string $bodyHtml): string

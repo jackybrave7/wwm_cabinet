@@ -181,6 +181,9 @@ final class CabinetMail
         $email = (string)$user['email'];
         $courseTitle = (string)($course['title'] ?? $courseSlug);
         $coverUrl = wwm_course_cover_url(isset($course['cover_image']) ? (string)$course['cover_image'] : null);
+        if (str_starts_with($template, 'bf2026_')) {
+            $coverUrl = '';
+        }
         $coursePageUrl = trim((string)($course['buy_url'] ?? ''));
         if ($coursePageUrl !== '' && !str_starts_with($coursePageUrl, 'https://')) {
             $coursePageUrl = '';

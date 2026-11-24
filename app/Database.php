@@ -34,6 +34,7 @@ final class Database
         }
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
+        self::seedBlackFriday2026Automation($pdo);
         self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
         self::seedElkeDemoV2Automation($pdo);
         self::dropPaidTemplateThatIncludesPassword($pdo);
@@ -665,6 +666,66 @@ SQL);
             $now,
             $now,
         ]);
+    }
+
+    private static function seedBlackFriday2026Automation(PDO $pdo): void
+    {
+        $slug = 'black-friday-2026';
+        $path = WWM_ROOT . '/data/automations/black-friday-2026.json';
+        if (!is_readable($path)) {
+            return;
+        }
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+        $decoded = json_decode($definition, true);
+        if (!is_array($decoded)) {
+            wwm_log('black friday 2026: invalid JSON');
+
+            return;
+        }
+        try {
+            \Wwm\Services\AutomationDefinitionValidator::validate($decoded);
+        } catch (\Throwable $e) {
+            wwm_log('black friday 2026: ' . $e->getMessage());
+
+            return;
+        }
+
+        $fileRev = (int)($decoded['meta']['flow_revision'] ?? 0);
+        $json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if ($json === false) {
+            return;
+        }
+        $title = (string)($decoded['meta']['title'] ?? 'Black Friday 2026');
+        $description = (string)($decoded['meta']['description'] ?? '');
+        $now = gmdate('c');
+
+        $stmt = $pdo->prepare('SELECT id, definition_json FROM email_automations WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            $pdo->prepare(
+                'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+            )->execute([$slug, $title, $description, '', 'manual', $json, $now, $now]);
+            wwm_log('black friday 2026 automation created (inactive)');
+
+            return;
+        }
+
+        $current = json_decode((string)($row['definition_json'] ?? ''), true);
+        $dbRev = is_array($current) ? (int)($current['meta']['flow_revision'] ?? 0) : 0;
+        if ($dbRev >= $fileRev) {
+            return;
+        }
+        $pdo->prepare(
+            'UPDATE email_automations
+             SET definition_json = ?, title = ?, description = ?, entry_mode = ?, updated_at = ?
+             WHERE id = ?'
+        )->execute([$json, $title, $description, 'manual', $now, (int)$row['id']]);
+        wwm_log(sprintf('black friday 2026 automation synced flow_revision %d → %d', $dbRev, $fileRev));
     }
 
     private static function seedEmailAutomations(PDO $pdo): void

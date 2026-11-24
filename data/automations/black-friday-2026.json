@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Black Friday 2026",
+    "description": "Manual only. Letters at 10:00 New York on Nov 25, Nov 26 and Nov 27, then 18:00 New York on Nov 27. Each letter lists every course at half price and links to that course page. No coupon. Buying any course leaves the sequence. A letter whose slot has already passed is skipped. Turn the process on, then add people by hand.",
+    "entry_mode": "manual",
+    "flow_revision": 1
+  },
+  "nodes": {
+    "start": {
+      "type": "trigger",
+      "entry_mode": "manual",
+      "label": "Start: added by hand"
+    },
+    "wait_d1": {
+      "type": "delay",
+      "seconds": 0,
+      "until": "2026-11-25T10:00:00-05:00",
+      "label": "Wait until Nov 25, 10:00 New York"
+    },
+    "gate_1": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Bought any course before letter 1?"
+    },
+    "mail_1": {
+      "type": "send_template",
+      "template": "bf2026_announce",
+      "course_slug": "elke-en",
+      "skip_after": "2026-11-26T10:00:00-05:00",
+      "label": "Letter 1 — Black Friday announcement"
+    },
+    "wait_d2": {
+      "type": "delay",
+      "seconds": 0,
+      "until": "2026-11-26T10:00:00-05:00",
+      "label": "Wait until Nov 26, 10:00 New York"
+    },
+    "gate_2": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Bought any course before letter 2?"
+    },
+    "mail_2": {
+      "type": "send_template",
+      "template": "bf2026_reminder",
+      "course_slug": "elke-en",
+      "skip_after": "2026-11-27T10:00:00-05:00",
+      "label": "Letter 2 — in case you missed it"
+    },
+    "wait_d3": {
+      "type": "delay",
+      "seconds": 0,
+      "until": "2026-11-27T10:00:00-05:00",
+      "label": "Wait until Nov 27, 10:00 New York"
+    },
+    "gate_3": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Bought any course before letter 3?"
+    },
+    "mail_3": {
+      "type": "send_template",
+      "template": "bf2026_last_day",
+      "course_slug": "elke-en",
+      "skip_after": "2026-11-27T18:00:00-05:00",
+      "label": "Letter 3 — last day"
+    },
+    "wait_eve": {
+      "type": "delay",
+      "seconds": 0,
+      "until": "2026-11-27T18:00:00-05:00",
+      "label": "Wait until Nov 27, 18:00 New York"
+    },
+    "gate_4": {
+      "type": "condition",
+      "condition": "has_paid_any",
+      "label": "Bought any course before letter 4?"
+    },
+    "mail_4": {
+      "type": "send_template",
+      "template": "bf2026_hours_left",
+      "course_slug": "elke-en",
+      "skip_after": "2026-11-28T00:00:00-05:00",
+      "label": "Letter 4 — a few hours left"
+    },
+    "end_paid": {
+      "type": "end",
+      "outcome": "converted",
+      "label": "End — purchased"
+    },
+    "end_done": {
+      "type": "end",
+      "outcome": "completed",
+      "label": "End — sequence finished"
+    }
+  },
+  "edges": [
+    {"from": "start", "to": "wait_d1"},
+    {"from": "wait_d1", "to": "gate_1"},
+    {"from": "gate_1", "to": "end_paid", "branch": "yes"},
+    {"from": "gate_1", "to": "mail_1", "branch": "no"},
+    {"from": "mail_1", "to": "wait_d2"},
+    {"from": "wait_d2", "to": "gate_2"},
+    {"from": "gate_2", "to": "end_paid", "branch": "yes"},
+    {"from": "gate_2", "to": "mail_2", "branch": "no"},
+    {"from": "mail_2", "to": "wait_d3"},
+    {"from": "wait_d3", "to": "gate_3"},
+    {"from": "gate_3", "to": "end_paid", "branch": "yes"},
+    {"from": "gate_3", "to": "mail_3", "branch": "no"},
+    {"from": "mail_3", "to": "wait_eve"},
+    {"from": "wait_eve", "to": "gate_4"},
+    {"from": "gate_4", "to": "end_paid", "branch": "yes"},
+    {"from": "gate_4", "to": "mail_4", "branch": "no"},
+    {"from": "mail_4", "to": "end_done"}
+  ]
+}

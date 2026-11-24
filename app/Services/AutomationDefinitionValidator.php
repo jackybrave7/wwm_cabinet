@@ -229,8 +229,12 @@ final class AutomationDefinitionValidator
         }
 
         if ($type === 'delay') {
+            $until = trim((string)($node['until'] ?? ''));
+            if ($until !== '' && strtotime($until) === false) {
+                return '«' . $label . '»: некорректное время until.';
+            }
             $sec = (int)($node['seconds'] ?? -1);
-            if ($sec < 0) {
+            if ($until === '' && $sec < 0) {
                 return '«' . $label . '»: укажите длительность паузы.';
             }
         }

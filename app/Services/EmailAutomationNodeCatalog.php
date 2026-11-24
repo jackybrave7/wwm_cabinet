@@ -169,6 +169,10 @@ final class EmailAutomationNodeCatalog
                 'sale_demo_discount_3h',
                 'sale_crosssell_50_offer',
                 'sale_crosssell_50_reminder',
+                'bf2026_announce',
+                'bf2026_reminder',
+                'bf2026_last_day',
+                'bf2026_hours_left',
             ], true)) {
                 continue;
             }
