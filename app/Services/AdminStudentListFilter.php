@@ -151,7 +151,8 @@ final class AdminStudentListFilter
 
     public function isActive(): bool
     {
-        return $this->access !== ''
+        return $this->search !== ''
+            || $this->access !== ''
             || $this->courseSlug !== ''
             || $this->registeredFrom !== ''
             || $this->registeredTo !== ''

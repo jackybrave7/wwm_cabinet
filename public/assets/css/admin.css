@@ -1092,6 +1092,13 @@ body.admin-body {
   overflow: hidden;
 }
 
+/* The email typeahead hangs out of this card. overflow:hidden was clipping the rest of the matches. */
+#automation-runs.admin-expander {
+  overflow: visible;
+  position: relative;
+  z-index: 4;
+}
+
 .admin-expander > summary {
   list-style: none;
   cursor: pointer;
@@ -2249,7 +2256,7 @@ td.admin-table-actions .inline-form {
 
 .admin-student-suggest__list {
   position: absolute;
-  z-index: 20;
+  z-index: 40;
   left: 0;
   right: 0;
   top: calc(100% + 4px);
