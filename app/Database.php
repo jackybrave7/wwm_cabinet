@@ -35,6 +35,7 @@ final class Database
         self::persistSchemaVersion($pdo);
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::seedBlackFriday2026Automation($pdo);
+        self::seedBlackFriday2026Buyers($pdo);
         self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
         self::seedElkeDemoV2Automation($pdo);
         self::dropPaidTemplateThatIncludesPassword($pdo);
@@ -726,6 +727,145 @@ SQL);
              WHERE id = ?'
         )->execute([$json, $title, $description, 'manual', $now, (int)$row['id']]);
         wwm_log(sprintf('black friday 2026 automation synced flow_revision %d → %d', $dbRev, $fileRev));
+    }
+
+    private static function seedBlackFriday2026Buyers(PDO $pdo): void
+    {
+        $slug = 'black-friday-2026-buyers';
+        $path = WWM_ROOT . '/data/automations/black-friday-2026-buyers.json';
+        if (!is_readable($path)) {
+            return;
+        }
+        $definition = file_get_contents($path);
+        if ($definition === false || trim($definition) === '') {
+            return;
+        }
+        $decoded = json_decode($definition, true);
+        if (!is_array($decoded)) {
+            wwm_log('black friday 2026 buyers: invalid JSON');
+
+            return;
+        }
+        try {
+            \Wwm\Services\AutomationDefinitionValidator::validate($decoded);
+        } catch (\Throwable $e) {
+            wwm_log('black friday 2026 buyers: ' . $e->getMessage());
+
+            return;
+        }
+
+        $fileRev = (int)($decoded['meta']['flow_revision'] ?? 0);
+        $json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if ($json === false) {
+            return;
+        }
+        $title = (string)($decoded['meta']['title'] ?? 'Black Friday 2026 for buyers');
+        $description = (string)($decoded['meta']['description'] ?? '');
+        $now = gmdate('c');
+
+        $stmt = $pdo->prepare('SELECT id, definition_json, is_active FROM email_automations WHERE slug = ? LIMIT 1');
+        $stmt->execute([$slug]);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            $pdo->prepare(
+                'INSERT INTO email_automations (slug, title, description, course_slug, entry_mode, is_active, definition_json, avo_export_json, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)'
+            )->execute([$slug, $title, $description, '', 'manual', $json, $now, $now]);
+            wwm_log('black friday 2026 buyers automation created (inactive)');
+        } else {
+            $current = json_decode((string)($row['definition_json'] ?? ''), true);
+            $dbRev = is_array($current) ? (int)($current['meta']['flow_revision'] ?? 0) : 0;
+            if ($dbRev < $fileRev) {
+                $pdo->prepare(
+                    'UPDATE email_automations
+                     SET definition_json = ?, title = ?, description = ?, entry_mode = ?, updated_at = ?
+                     WHERE id = ?'
+                )->execute([$json, $title, $description, 'manual', $now, (int)$row['id']]);
+                wwm_log(sprintf('black friday 2026 buyers synced flow_revision %d → %d', $dbRev, $fileRev));
+            }
+        }
+
+        self::backfillBlackFridayBuyers($pdo);
+    }
+
+    /**
+     * Once: park people who left Black Friday 2026 because they already owned a course.
+     * Someone who paid after that enrollment stays out.
+     */
+    private static function backfillBlackFridayBuyers(PDO $pdo): void
+    {
+        $marker = 'bf2026-buyers-backfill';
+        $seen = $pdo->prepare('SELECT 1 FROM processed_events WHERE event_key = ?');
+        $seen->execute([$marker]);
+        if ($seen->fetchColumn()) {
+            return;
+        }
+
+        $source = \Wwm\Models\EmailAutomation::findBySlug($pdo, 'black-friday-2026');
+        $target = \Wwm\Models\EmailAutomation::findBySlug($pdo, 'black-friday-2026-buyers');
+        if ($source === null || $target === null) {
+            return;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT r.user_id, MIN(r.enrolled_at) AS enrolled_at, MIN(r.course_slug) AS course_slug
+             FROM email_automation_runs r
+             INNER JOIN email_automation_step_events e
+               ON e.run_id = r.id AND e.node_id = \'end_paid\'
+             WHERE r.automation_id = ?
+             GROUP BY r.user_id'
+        );
+        $stmt->execute([(int)$source['id']]);
+        $rows = $stmt->fetchAll() ?: [];
+        $parked = 0;
+        $kept = 0;
+        $failed = 0;
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $userId = (int)($row['user_id'] ?? 0);
+            $enrolledAt = (string)($row['enrolled_at'] ?? '');
+            $enrolledTs = strtotime($enrolledAt);
+            $boughtAfter = false;
+            if ($enrolledTs !== false) {
+                foreach (\Wwm\Models\Access::paidTimestamps($pdo, $userId) as $paidTs) {
+                    if ($paidTs > $enrolledTs) {
+                        $boughtAfter = true;
+                        break;
+                    }
+                }
+            }
+            if ($boughtAfter) {
+                $kept++;
+                continue;
+            }
+            $course = preg_replace('/[^a-z0-9\-]/', '', (string)($row['course_slug'] ?? '')) ?: 'elke-en';
+            try {
+                $runId = \Wwm\Services\EmailAutomationEnrollment::parkAtStart($pdo, $target, $userId, $course);
+                if ($runId !== null) {
+                    $parked++;
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+                wwm_log('black friday 2026 buyers park failed user=' . $userId . ' ' . $e->getMessage());
+            }
+        }
+
+        if ($failed > 0) {
+            wwm_log(sprintf('black friday 2026 buyers incomplete parked=%d failed=%d', $parked, $failed));
+
+            return;
+        }
+
+        $pdo->prepare(
+            'INSERT INTO processed_events (event_key, payload, created_at) VALUES (?, ?, ?)'
+        )->execute([
+            $marker,
+            json_encode(['parked' => $parked, 'bought_after_enroll' => $kept], JSON_UNESCAPED_UNICODE),
+            gmdate('c'),
+        ]);
+        wwm_log(sprintf('black friday 2026 buyers parked=%d already_bought_during=%d', $parked, $kept));
     }
 
     private static function seedEmailAutomations(PDO $pdo): void

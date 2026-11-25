@@ -160,6 +160,46 @@ final class EmailAutomationEnrollment
     }
 
     /**
+     * Put a student on the first block of an automation that is still off.
+     * Does not run the flow: an inactive process would otherwise cancel the run.
+     * A person who already has any run here is left as they are.
+     */
+    public static function parkAtStart(\PDO $pdo, array $automation, int $userId, string $courseSlug): ?int
+    {
+        if ($userId <= 0 || EmailAutomation::isArchived($automation)) {
+            return null;
+        }
+        $def = EmailAutomation::definition($automation);
+        if ($def === null) {
+            return null;
+        }
+        $entry = self::resolveEntryNodeId($def);
+        if ($entry === null) {
+            return null;
+        }
+        $automationId = (int)$automation['id'];
+        if (EmailAutomationRun::hasAnyRun($pdo, $automationId, $userId)) {
+            return null;
+        }
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?: 'elke-en';
+        $runId = EmailAutomationRun::enroll($pdo, $automationId, $userId, $courseSlug, $entry, [
+            'trigger' => 'bf2026_buyers_backfill',
+        ]);
+        $entryNode = $def['nodes'][$entry] ?? null;
+        EmailAutomationStepEvent::record($pdo, [
+            'automation_id' => $automationId,
+            'run_id' => $runId,
+            'user_id' => $userId,
+            'node_id' => $entry,
+            'node_type' => is_array($entryNode) ? (string)($entryNode['type'] ?? 'entry') : 'entry',
+            'branch' => 'enrolled',
+            'detail' => 'parked',
+        ]);
+
+        return $runId;
+    }
+
+    /**
      * Stop an active run. History stays; cron will not continue.
      * Demo/manual can enroll again (same run restarts from the first block);
      * payment flows still refuse a second run.

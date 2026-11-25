@@ -39,6 +39,9 @@ foreach (['bf2026_announce', 'bf2026_reminder', 'bf2026_last_day', 'bf2026_hours
 $pdo = wwm_pdo();
 $pdo->beginTransaction();
 try {
+    $futureUntil = (new DateTimeImmutable('+14 days', new DateTimeZone('America/New_York')))
+        ->setTime(10, 0, 0)
+        ->format('Y-m-d\TH:i:sP');
     $futureId = EmailAutomation::create($pdo, [
         'slug' => 'test-bf-future-' . bin2hex(random_bytes(3)),
         'title' => 'BF future',
@@ -50,7 +53,7 @@ try {
             'version' => 1,
             'nodes' => [
                 'start' => ['type' => 'trigger', 'entry_mode' => 'manual', 'label' => 'Start'],
-                'wait' => ['type' => 'delay', 'seconds' => 0, 'until' => '2026-11-25T10:00:00-05:00', 'label' => 'Wait'],
+                'wait' => ['type' => 'delay', 'seconds' => 0, 'until' => $futureUntil, 'label' => 'Wait'],
                 'end' => ['type' => 'end', 'label' => 'End'],
             ],
             'edges' => [
@@ -64,7 +67,7 @@ try {
     $row = EmailAutomationRun::find($pdo, (int)$runFuture);
     $ok(is_array($row) && (string)$row['current_node_id'] === 'wait', 'future until stays on the delay');
     $wake = strtotime((string)($row['next_run_at'] ?? ''));
-    $ok($wake === strtotime('2026-11-25T10:00:00-05:00'), 'future until wakes at Nov 25 10:00 New York');
+    $ok($wake === strtotime($futureUntil), 'future until wakes at the chosen New York time');
 
     $pastId = EmailAutomation::create($pdo, [
         'slug' => 'test-bf-past-' . bin2hex(random_bytes(3)),
@@ -108,6 +111,47 @@ try {
     );
     $skipped->execute([(int)$runPast]);
     $ok((int)$skipped->fetchColumn() === 1, 'past letter is skipped');
+
+    $gateDef = json_encode([
+        'version' => 1,
+        'nodes' => [
+            'start' => ['type' => 'trigger', 'entry_mode' => 'manual', 'label' => 'Start'],
+            'gate' => ['type' => 'condition', 'condition' => 'has_paid_since_enroll', 'label' => 'Since join'],
+            'end_yes' => ['type' => 'end', 'outcome' => 'converted', 'label' => 'Yes'],
+            'end_no' => ['type' => 'end', 'outcome' => 'completed', 'label' => 'No'],
+        ],
+        'edges' => [
+            ['from' => 'start', 'to' => 'gate'],
+            ['from' => 'gate', 'to' => 'end_yes', 'branch' => 'yes'],
+            ['from' => 'gate', 'to' => 'end_no', 'branch' => 'no'],
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    $sinceId = EmailAutomation::create($pdo, [
+        'slug' => 'test-bf-since-' . bin2hex(random_bytes(3)),
+        'title' => 'BF since',
+        'description' => 'test',
+        'course_slug' => 'elke-en',
+        'entry_mode' => EmailAutomation::ENTRY_MANUAL,
+        'is_active' => true,
+        'definition_json' => $gateDef,
+    ]);
+    $userOld = User::create($pdo, 'bf-old-' . bin2hex(random_bytes(3)) . '@example.com', 'x', 'Old');
+    \Wwm\Models\Access::grant($pdo, $userOld, 'elke-en', 'paid', null, 'test', null, null, '2020-01-01T00:00:00+00:00');
+    $runOld = EmailAutomationEnrollment::enrollManual($sinceId, $userOld, 'elke-en');
+    $oldBranch = $pdo->prepare(
+        "SELECT branch FROM email_automation_step_events WHERE run_id = ? AND node_id = 'gate'"
+    );
+    $oldBranch->execute([(int)$runOld]);
+    $ok($oldBranch->fetchColumn() === 'no', 'an older purchase does not count as bought after joining');
+
+    $userFresh = User::create($pdo, 'bf-fresh-' . bin2hex(random_bytes(3)) . '@example.com', 'x', 'Fresh');
+    \Wwm\Models\Access::grant($pdo, $userFresh, 'angus-en', 'paid', null, 'test', null, null, '2099-01-01T00:00:00+00:00');
+    $runFresh = EmailAutomationEnrollment::enrollManual($sinceId, $userFresh, 'elke-en');
+    $freshBranch = $pdo->prepare(
+        "SELECT branch FROM email_automation_step_events WHERE run_id = ? AND node_id = 'gate'"
+    );
+    $freshBranch->execute([(int)$runFresh]);
+    $ok($freshBranch->fetchColumn() === 'yes', 'a payment after enrollment leaves the sequence');
 } finally {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

@@ -125,7 +125,13 @@ final class EmailAutomationNodeCatalog
             [
                 'value' => 'has_paid_any',
                 'label' => 'Bought any course',
-                'hint' => 'Full access to at least one course.',
+                'hint' => 'Full access to at least one course, no matter when it was bought.',
+                'needs_course' => false,
+            ],
+            [
+                'value' => 'has_paid_since_enroll',
+                'label' => 'Bought any course after joining this process',
+                'hint' => 'A payment dated after this person was enrolled here. An older purchase does not count.',
                 'needs_course' => false,
             ],
             [

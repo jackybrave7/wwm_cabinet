@@ -2,9 +2,9 @@
   "version": 1,
   "meta": {
     "title": "Black Friday 2026",
-    "description": "Manual only. Letters at 10:00 New York on Nov 25, Nov 26 and Nov 27, then 18:00 New York on Nov 27. Each letter lists every course at half price and links to that course page. No coupon. Buying any course leaves the sequence. A letter whose slot has already passed is skipped. Turn the process on, then add people by hand.",
+    "description": "Manual only. Letters at 10:00 New York on Nov 25, Nov 26 and Nov 27, then 18:00 New York on Nov 27. Each letter lists every course at half price and links to that course page. No coupon. Buying any course after joining this process leaves the sequence. An older purchase does not. A letter whose slot has already passed is skipped. Turn the process on, then add people by hand.",
     "entry_mode": "manual",
-    "flow_revision": 1
+    "flow_revision": 2
   },
   "nodes": {
     "start": {
@@ -20,8 +20,8 @@
     },
     "gate_1": {
       "type": "condition",
-      "condition": "has_paid_any",
-      "label": "Bought any course before letter 1?"
+      "condition": "has_paid_since_enroll",
+      "label": "Bought since joining, before letter 1?"
     },
     "mail_1": {
       "type": "send_template",
@@ -38,8 +38,8 @@
     },
     "gate_2": {
       "type": "condition",
-      "condition": "has_paid_any",
-      "label": "Bought any course before letter 2?"
+      "condition": "has_paid_since_enroll",
+      "label": "Bought since joining, before letter 2?"
     },
     "mail_2": {
       "type": "send_template",
@@ -56,8 +56,8 @@
     },
     "gate_3": {
       "type": "condition",
-      "condition": "has_paid_any",
-      "label": "Bought any course before letter 3?"
+      "condition": "has_paid_since_enroll",
+      "label": "Bought since joining, before letter 3?"
     },
     "mail_3": {
       "type": "send_template",
@@ -74,8 +74,8 @@
     },
     "gate_4": {
       "type": "condition",
-      "condition": "has_paid_any",
-      "label": "Bought any course before letter 4?"
+      "condition": "has_paid_since_enroll",
+      "label": "Bought since joining, before letter 4?"
     },
     "mail_4": {
       "type": "send_template",

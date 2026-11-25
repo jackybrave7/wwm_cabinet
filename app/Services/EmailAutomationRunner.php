@@ -336,7 +336,7 @@ final class EmailAutomationRunner
                         'manual:' . (string)($node['condition'] ?? '')
                     );
                 } else {
-                    $branch = self::evaluateCondition($pdo, $userId, $courseSlug, $node) ? 'yes' : 'no';
+                    $branch = self::evaluateCondition($pdo, $userId, $courseSlug, $node, (string)($run['enrolled_at'] ?? '')) ? 'yes' : 'no';
                     self::logStep($pdo, $run, $nodeId, $type, $branch, (string)($node['condition'] ?? ''));
                 }
                 $next = self::nextNode($def, $nodeId, $branch) ?? self::nextNode($def, $nodeId, 'next');
@@ -786,19 +786,44 @@ final class EmailAutomationRunner
     /**
      * @param array<string, mixed> $node
      */
-    private static function evaluateCondition(\PDO $pdo, int $userId, string $courseSlug, array $node): bool
-    {
+    private static function evaluateCondition(
+        \PDO $pdo,
+        int $userId,
+        string $courseSlug,
+        array $node,
+        string $enrolledAt = ''
+    ): bool {
         $condition = (string)($node['condition'] ?? '');
         $slug = (string)($node['course_slug'] ?? $courseSlug);
         $stateMap = Access::stateMapForUser($pdo, $userId);
 
         return match ($condition) {
             'has_paid_any' => self::hasPaidAny($stateMap),
+            'has_paid_since_enroll' => self::hasPaidSinceEnroll($pdo, $userId, $enrolledAt),
             'has_paid_course' => !empty($stateMap[$slug]['has_paid']),
             'has_active_demo' => !empty($stateMap[$slug]['demo_active']),
             'demo_lesson_opened' => self::demoLessonOpened($pdo, $userId, $slug),
             default => false,
         };
+    }
+
+    /**
+     * True only when a paid course was paid for after this run started.
+     * An unreadable enrollment time does not count as a purchase.
+     */
+    private static function hasPaidSinceEnroll(\PDO $pdo, int $userId, string $enrolledAt): bool
+    {
+        $enrolledTs = strtotime($enrolledAt);
+        if ($enrolledAt === '' || $enrolledTs === false) {
+            return false;
+        }
+        foreach (Access::paidTimestamps($pdo, $userId) as $paidTs) {
+            if ($paidTs > $enrolledTs) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

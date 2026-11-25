@@ -251,6 +251,40 @@ final class Access
     }
 
     /**
+     * When each paid course was paid for. Uses the payment time, then the order time, then the cabinet grant.
+     *
+     * @return list<int> unix timestamps
+     */
+    public static function paidTimestamps(PDO $pdo, int $userId): array
+    {
+        $stmt = $pdo->prepare(
+            'SELECT avo_paid_at, avo_ordered_at, granted_at
+             FROM access
+             WHERE user_id = ? AND access_type = \'paid\''
+        );
+        $stmt->execute([$userId]);
+        $out = [];
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach (['avo_paid_at', 'avo_ordered_at', 'granted_at'] as $key) {
+                $raw = trim((string)($row[$key] ?? ''));
+                if ($raw === '') {
+                    continue;
+                }
+                $ts = strtotime($raw);
+                if ($ts !== false) {
+                    $out[] = $ts;
+                    break;
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array{has_paid: bool, has_demo: bool, demo_active: bool, paid_active: bool, demo_expires_at: ?string, demo_granted_at: ?string}
      */
     public static function courseState(PDO $pdo, int $userId, string $courseSlug): array
