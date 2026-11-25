@@ -912,6 +912,7 @@ body.automation-flow-rmb-pan .drawflow-node {
   white-space: nowrap;
 }
 
+.automation-identity textarea[name="description"],
 .automation-settings textarea[name="description"] {
   min-height: 76px;
 }

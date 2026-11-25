@@ -8,16 +8,16 @@ $focus = (string)($focusSection ?? '');
 <div class="admin-topbar">
   <div>
     <p class="badge badge-admin">Guide</p>
-    <h1 class="page-title page-title-sm"><?= wwm_escape((string)($meta['title'] ?? 'Инструкция')) ?></h1>
+    <h1 class="page-title page-title-sm"><?= wwm_escape((string)($meta['title'] ?? 'Guide')) ?></h1>
     <?php if ($revision !== ''): ?>
-      <p class="field-hint">Актуально на <?= wwm_escape($revision) ?><?php if ($changelog !== ''): ?> — <?= wwm_escape($changelog) ?><?php endif; ?></p>
+      <p class="field-hint">Updated <?= wwm_escape($revision) ?><?php if ($changelog !== ''): ?> — <?= wwm_escape($changelog) ?><?php endif; ?></p>
     <?php endif; ?>
   </div>
 </div>
 
 <div class="admin-guide-layout">
-  <nav class="admin-card admin-guide-toc" aria-label="Содержание">
-    <h2 class="admin-team-section-title">Содержание</h2>
+  <nav class="admin-card admin-guide-toc" aria-label="Contents">
+    <h2 class="admin-team-section-title">Contents</h2>
     <ol class="admin-guide-toc-list">
       <?php foreach ($sections as $section): ?>
         <?php $sid = (string)($section['id'] ?? ''); if ($sid === '') { continue; } ?>
@@ -26,7 +26,7 @@ $focus = (string)($focusSection ?? '');
         </li>
       <?php endforeach; ?>
     </ol>
-    <p class="field-hint admin-guide-toc-note">При обновлении кабинета разработчики дополняют этот раздел — смотрите дату «Актуально на».</p>
+    <p class="field-hint admin-guide-toc-note">When the cabinet is updated, this section is updated with it — check the “Updated” date.</p>
   </nav>
 
   <div class="admin-guide-main">

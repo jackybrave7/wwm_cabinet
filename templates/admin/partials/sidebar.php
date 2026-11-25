@@ -51,7 +51,7 @@ $canAdmins = is_array($navUser) && AdminAccess::canManageAdmins($navUser);
           <a href="/admin/settings" class="<?= ($adminNav ?? '') === 'settings' ? 'is-active' : '' ?>">Analytics</a>
         <?php endif; ?>
         <?php if ($canDashboard): ?>
-          <a href="/admin/guide" class="<?= ($adminNav ?? '') === 'guide' ? 'is-active' : '' ?>">Инструкция</a>
+          <a href="/admin/guide" class="<?= ($adminNav ?? '') === 'guide' ? 'is-active' : '' ?>">Guide</a>
         <?php endif; ?>
         <a href="/">← Student view</a>
       </nav>

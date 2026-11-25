@@ -113,7 +113,7 @@ $webhooksEnabled = !empty($webhooksEnabled);
         <h2>AVO sales webhook</h2>
         <p class="field-hint" style="margin-bottom:16px">
           Paste the payment URL into the AVO product (id_goods <?= (int)($course['avo_goods_id'] ?? 0) ?: '—' ?>)
-          → tab <strong>Дополнительно</strong> → URL for notifications.
+          → tab <strong>Additional</strong> → URL for notifications.
           After payment AVO calls the cabinet, which grants full access.
           Keep macros like <code>{email}</code> unencoded.
         </p>

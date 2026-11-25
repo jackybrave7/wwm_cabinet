@@ -318,6 +318,10 @@ final class Router
             (new AdminMailController())->save($m[1]);
             return;
         }
+        if ($method === 'POST' && preg_match('#^/admin/emails/([a-z0-9_]+)/test-send$#', $path, $m)) {
+            (new AdminMailController())->sendTest($m[1]);
+            return;
+        }
         if ($method === 'POST' && $path === '/admin/emails/save') {
             (new AdminMailController())->saveLegacy();
             return;
@@ -370,6 +374,10 @@ final class Router
         }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/runs/(\d+)/advance$#', $path, $m)) {
             (new AdminAutomationController())->advanceRun((int)$m[1], (int)$m[2]);
+            return;
+        }
+        if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/test-send$#', $path, $m)) {
+            (new AdminAutomationController())->testSend((int)$m[1]);
             return;
         }
         if ($method === 'POST' && preg_match('#^/admin/automations/(\d+)/enroll-audience$#', $path, $m)) {

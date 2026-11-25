@@ -81,6 +81,52 @@ final class CabinetMail
     }
 
     /**
+     * Send one copy of an automation template to an administrator. Not recorded on a process node.
+     *
+     * @param array<string, mixed> $user
+     */
+    public function sendEditorTest(string $template, array $user, string $courseSlug): bool
+    {
+        if (EmailTemplateCatalog::find($template) === null) {
+            throw new \InvalidArgumentException('Unknown template');
+        }
+
+        $email = strtolower(trim((string)($user['email'] ?? '')));
+        $userId = (int)($user['id'] ?? 0);
+        if ($userId <= 0 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('Invalid recipient');
+        }
+
+        $courseSlug = $this->resolveCourseSlug($courseSlug);
+        $course = (new CourseCatalog())->getAdmin($courseSlug);
+        if ($course === null) {
+            throw new \RuntimeException('Course not found');
+        }
+
+        $message = $this->buildMessage($template, $user, $course, $courseSlug);
+        $links = $this->trackedLinks($template, $message, $course);
+        $name = trim((string)($user['name'] ?? ''));
+        if (MarketingEmailDelivery::isMarketingTemplate($template)) {
+            return MarketingEmailDelivery::deliver(
+                $userId,
+                $email,
+                $template,
+                $message,
+                $links,
+                'editor-test',
+                $name,
+                null,
+                null,
+                false,
+            );
+        }
+
+        $sent = $this->deliverComposed($userId, $email, $template, $message, $links, $courseSlug);
+
+        return !empty($sent['email_sent']);
+    }
+
+    /**
      * @param array{subject: string, text: string, html: ?string, login_url: string, buy_url: string} $message
      * @param list<array{url: string, label: string}> $links
      * @return array{email_sent: bool, user_id: int, template: string, course_slug: string}

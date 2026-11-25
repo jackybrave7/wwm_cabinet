@@ -435,4 +435,63 @@
     loadVisualFromHtml(seed);
     syncHtmlHighlight();
   }
+
+  const sendTestBtn = document.getElementById('email-send-test');
+  const sendTestStatus = document.getElementById('email-send-test-status');
+  if (sendTestBtn && form) {
+    sendTestBtn.addEventListener('click', () => {
+      if (hasHtml) {
+        syncVisualToHtml();
+      }
+      const templateId = String(config.templateId || form.getAttribute('data-template-id') || '').trim();
+      const tokenInput = form.querySelector('[name="csrf"]');
+      const subjectInput = form.querySelector('[name="subject"]');
+      if (templateId === '' || !tokenInput) {
+        return;
+      }
+      sendTestBtn.disabled = true;
+      if (sendTestStatus) {
+        sendTestStatus.textContent = 'Sending…';
+      }
+      const body = new FormData();
+      body.append('csrf', tokenInput.value);
+      body.append('subject', subjectInput ? subjectInput.value : '');
+      body.append('body_text', textInput ? textInput.value : '');
+      body.append('body_html', htmlInput ? htmlInput.value : '');
+      fetch('/admin/emails/' + encodeURIComponent(templateId) + '/test-send', {
+        method: 'POST',
+        body,
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((res) => res.json().then((data) => ({ res, data })))
+        .then((payload) => {
+          const data = payload.data || {};
+          sendTestBtn.disabled = false;
+          if (!payload.res.ok || !data.ok) {
+            const code = String(data.error || '');
+            const msg = code === 'csrf'
+              ? 'The page expired. Refresh it and try again.'
+              : code === 'mail_disabled'
+                ? 'Outgoing mail is turned off.'
+                : code === 'empty'
+                  ? 'The letter has no text yet.'
+                  : 'The test letter could not be sent.';
+            if (sendTestStatus) {
+              sendTestStatus.textContent = msg;
+            }
+            return;
+          }
+          if (sendTestStatus) {
+            sendTestStatus.textContent = 'Sent to ' + String(data.email || 'you') + '.';
+          }
+        })
+        .catch(() => {
+          sendTestBtn.disabled = false;
+          if (sendTestStatus) {
+            sendTestStatus.textContent = 'The test letter could not be sent.';
+          }
+        });
+    });
+  }
 })();

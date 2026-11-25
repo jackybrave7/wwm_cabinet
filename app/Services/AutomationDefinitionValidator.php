@@ -19,16 +19,16 @@ final class AutomationDefinitionValidator
         $edges = $definition['edges'] ?? null;
 
         if (!is_array($nodes) || $nodes === []) {
-            return ['Добавьте хотя бы один блок на схему.'];
+            return ['Add at least one block to the flow.'];
         }
         if (!is_array($edges)) {
-            return ['Некорректный список связей (edges).'];
+            return ['The list of connections (edges) is invalid.'];
         }
 
         $entryIds = [];
         foreach ($nodes as $id => $node) {
             if (!is_array($node)) {
-                $issues[] = 'Узел «' . $id . '» повреждён.';
+                $issues[] = 'Block “' . $id . '” is damaged.';
                 continue;
             }
             $type = (string)($node['type'] ?? '');
@@ -37,7 +37,7 @@ final class AutomationDefinitionValidator
             }
         }
         if ($entryIds === []) {
-            $issues[] = 'Нужен блок «Старт» (type: trigger, обычно id start).';
+            $issues[] = 'A Start block is required (type: trigger, usually id start).';
         }
 
         $out = [];
@@ -49,21 +49,21 @@ final class AutomationDefinitionValidator
 
         foreach ($edges as $i => $edge) {
             if (!is_array($edge)) {
-                $issues[] = 'Связь #' . ($i + 1) . ' некорректна.';
+                $issues[] = 'Connection #' . ($i + 1) . ' is invalid.';
                 continue;
             }
             $from = (string)($edge['from'] ?? '');
             $to = (string)($edge['to'] ?? '');
             if ($from === '' || $to === '') {
-                $issues[] = 'Связь #' . ($i + 1) . ': укажите from и to.';
+                $issues[] = 'Connection #' . ($i + 1) . ': set from and to.';
                 continue;
             }
             if (!isset($nodes[$from])) {
-                $issues[] = 'Связь из неизвестного блока «' . $from . '».';
+                $issues[] = 'Connection from an unknown block “' . $from . '”.';
                 continue;
             }
             if (!isset($nodes[$to])) {
-                $issues[] = 'Связь в неизвестный блок «' . $to . '».';
+                $issues[] = 'Connection to an unknown block “' . $to . '”.';
                 continue;
             }
             $branch = (string)($edge['branch'] ?? 'next');
@@ -84,30 +84,30 @@ final class AutomationDefinitionValidator
             if ($type === 'end') {
                 $hasEnd = true;
                 if ($inCount === 0) {
-                    $issues[] = '«' . $label . '»: блок «Конец» не подключён (нет входящей связи).';
+                    $issues[] = '“' . $label . '”: the End block is not connected (no incoming line).';
                 }
                 if ($outCount > 0) {
-                    $issues[] = '«' . $label . '»: после «Конец» не должно быть исходящих связей.';
+                    $issues[] = '“' . $label . '”: nothing should leave an End block.';
                 }
                 continue;
             }
 
             if ($type === 'trigger' || $id === 'start') {
                 if ($outCount === 0) {
-                    $issues[] = '«' . $label . '»: от старта должна идти связь к следующему шагу.';
+                    $issues[] = '“' . $label . '”: Start needs a line to the next step.';
                 }
                 continue;
             }
 
             if ($inCount === 0 && $outCount === 0) {
-                $issues[] = '«' . $label . '»: блок изолирован (нет связей).';
+                $issues[] = '“' . $label . '”: this block is isolated (no connections).';
                 continue;
             }
             if ($inCount === 0) {
-                $issues[] = '«' . $label . '»: нет входящей связи (недостижим из старта).';
+                $issues[] = '“' . $label . '”: no incoming line (cannot be reached from Start).';
             }
             if ($outCount === 0) {
-                $issues[] = '«' . $label . '»: нет исходящей связи (добавьте шаг или «Конец»).';
+                $issues[] = '“' . $label . '”: no outgoing line (add a step or End).';
             }
 
             if ($type === 'condition' || $type === 'wait_event') {
@@ -115,7 +115,7 @@ final class AutomationDefinitionValidator
                 $hasYes = in_array('yes', $branches, true);
                 $hasNo = in_array('no', $branches, true);
                 if (!$hasYes || !$hasNo) {
-                    $issues[] = '«' . $label . '»: у блока должны быть обе ветки — «да» и «нет».';
+                    $issues[] = '“' . $label . '”: the block needs both a yes branch and a no branch.';
                 }
             }
 
@@ -126,11 +126,11 @@ final class AutomationDefinitionValidator
         }
 
         if (!$hasEnd) {
-            $issues[] = 'Добавьте хотя бы один блок «Конец» (end) и соедините завершающие ветки.';
+            $issues[] = 'Add at least one End block and connect the finishing branches.';
         }
 
         if ($edges === [] && count($nodes) > 1) {
-            $issues[] = 'Соедините блоки линиями — схема из нескольких блоков без связей не сохранится.';
+            $issues[] = 'Connect the blocks. A flow of several blocks with no lines cannot be saved.';
         }
 
         $reachable = self::reachableFromEntries($nodes, $out, $entryIds);
@@ -144,7 +144,7 @@ final class AutomationDefinitionValidator
                 continue;
             }
             if (!in_array($id, $reachable, true) && $type !== 'trigger' && $id !== 'start') {
-                $issues[] = '«' . self::nodeLabel($id, $node) . '»: не достигается от старта по связям.';
+                $issues[] = '“' . self::nodeLabel($id, $node) . '”: cannot be reached from Start.';
             }
         }
 
@@ -186,12 +186,12 @@ final class AutomationDefinitionValidator
         if ($type === 'send_template') {
             $tpl = trim((string)($node['template'] ?? ''));
             if ($tpl === '') {
-                return '«' . $label . '»: выберите шаблон письма.';
+                return '“' . $label . '”: choose an email template.';
             }
             if (str_starts_with($tpl, 'sale_crosssell_')) {
                 $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
                 if ($slug === '') {
-                    return '«' . $label . '»: для cross-sell письма укажите курс (course slug).';
+                    return '“' . $label . '”: a cross-sell letter needs a course (course slug).';
                 }
             }
         }
@@ -199,32 +199,32 @@ final class AutomationDefinitionValidator
         if ($type === 'grant_demo') {
             $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
             if ($slug === '') {
-                return '«' . $label . '»: укажите курс демо.';
+                return '“' . $label . '”: set the demo course.';
             }
         }
 
         if ($type === 'condition') {
             $cond = (string)($node['condition'] ?? '');
             if ($cond === '') {
-                return '«' . $label . '»: выберите тип условия.';
+                return '“' . $label . '”: choose a condition.';
             }
             if (in_array($cond, ['has_paid_course', 'has_active_demo', 'demo_lesson_opened'], true)) {
                 $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
                 if ($slug === '') {
-                    return '«' . $label . '»: для этого условия нужен курс.';
+                    return '“' . $label . '”: this condition needs a course.';
                 }
             }
         }
 
         if ($type === 'revoke_demo') {
-            return '«' . $label . '»: блок «Отзыв демо» устарел — демо истекает по таймеру курса. Удалите блок и соедините ветки напрямую.';
+            return '“' . $label . '”: the Revoke demo block is obsolete — demo expires on the course timer. Remove the block and connect the branches directly.';
         }
 
         if ($type === 'end') {
             $outcome = (string)($node['outcome'] ?? '');
             $allowed = ['completed', 'converted', 'exited', 'other', ''];
             if ($outcome !== '' && !in_array($outcome, $allowed, true)) {
-                return '«' . $label . '»: некорректный тип завершения.';
+                return '“' . $label . '”: invalid end type.';
             }
         }
 
@@ -235,24 +235,24 @@ final class AutomationDefinitionValidator
                 $until = '';
             }
             if ($mode === 'until' && $until === '') {
-                return '«' . $label . '»: укажите дату и время паузы.';
+                return '“' . $label . '”: set the date and time for this pause.';
             }
             if ($until !== '' && strtotime($until) === false) {
-                return '«' . $label . '»: некорректное время паузы.';
+                return '“' . $label . '”: that pause time is not valid.';
             }
             $sec = (int)($node['seconds'] ?? -1);
             if ($until === '' && $sec < 0) {
-                return '«' . $label . '»: укажите длительность паузы.';
+                return '“' . $label . '”: set how long the pause lasts.';
             }
         }
 
         if ($type === 'wait_event') {
             $slug = preg_replace('/[^a-z0-9\-]/', '', (string)($node['course_slug'] ?? ''));
             if ($slug === '') {
-                return '«' . $label . '»: укажите курс.';
+                return '“' . $label . '”: set a course.';
             }
             if ((int)($node['timeout_seconds'] ?? 0) < 60) {
-                return '«' . $label . '»: укажите таймаут ожидания.';
+                return '“' . $label . '”: set a wait timeout.';
             }
         }
 
@@ -261,7 +261,7 @@ final class AutomationDefinitionValidator
             if (is_array($ids)) {
                 foreach ($ids as $key) {
                     if (trim((string)$key) === '') {
-                        return '«' . $label . '»: пустой id администратора в списке получателей.';
+                        return '“' . $label . '”: an empty administrator id is in the recipient list.';
                     }
                 }
             }
@@ -273,7 +273,7 @@ final class AutomationDefinitionValidator
                         continue;
                     }
                     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                        return '«' . $label . '»: некорректный email в legacy-поле staff_recipients.';
+                        return '“' . $label . '”: invalid email in the legacy staff_recipients field.';
                     }
                 }
             }

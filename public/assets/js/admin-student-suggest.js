@@ -61,7 +61,7 @@
       items = rows;
       active = rows.length ? 0 : -1;
       if (rows.length === 0) {
-        list.innerHTML = '<li class="admin-student-suggest__empty">Никого не найдено по «' + escapeHtml(q) + '»</li>';
+        list.innerHTML = '<li class="admin-student-suggest__empty">No one found for “' + escapeHtml(q) + '”</li>';
         list.hidden = false;
         return;
       }

@@ -101,7 +101,7 @@
       selectedDfId = null;
       removeAllNodeDeleteButtons();
       if (propsPanel) {
-        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+        propsPanel.innerHTML = '<p class="field-hint">Select a block on the canvas.</p>';
       }
     }
 
@@ -297,7 +297,7 @@
       syncJsonField();
       selectedDfId = null;
       if (propsPanel) {
-        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+        propsPanel.innerHTML = '<p class="field-hint">Select a block on the canvas.</p>';
       }
     } finally {
       restoring = false;
@@ -362,8 +362,8 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'automation-node-delete';
-    btn.setAttribute('aria-label', 'Удалить блок');
-    btn.title = 'Удалить блок';
+    btn.setAttribute('aria-label', 'Delete block');
+    btn.title = 'Delete block';
     btn.innerHTML = '<span aria-hidden="true">&times;</span>';
     btn.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
@@ -395,15 +395,15 @@
       }
       removeAllNodeDeleteButtons();
       if (propsPanel) {
-        propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+        propsPanel.innerHTML = '<p class="field-hint">Select a block on the canvas.</p>';
       }
       syncJsonField();
     };
     if (typeof wwmAdminConfirm === 'function') {
       wwmAdminConfirm({
-        title: 'Удалить блок?',
-        message: 'Блок «' + label + '» и его связи будут удалены с холста.',
-        confirmLabel: 'Удалить',
+        title: 'Delete this block?',
+        message: 'Block “' + label + '” and its connections will be removed from the canvas.',
+        confirmLabel: 'Delete',
         danger: true,
       }).then((ok) => {
         if (ok) {
@@ -435,9 +435,9 @@
     updateRemoveConnBtn();
     if (propsPanel) {
       propsPanel.innerHTML = (
-        '<h3 class="automation-props-title">Связь</h3>'
-        + '<p class="field-hint">Чтобы переназначить: удалите эту связь (кнопка «Удалить связь» или Delete), затем потяните линию от кружка-выхода одного блока к кружку-входу другого.</p>'
-        + '<p class="field-hint">Двойной клик по линии добавляет изгиб (reroute).</p>'
+        '<h3 class="automation-props-title">Connection</h3>'
+        + '<p class="field-hint">To reassign it: remove this connection (“Remove connection” or Delete), then drag a line from one block’s output to another block’s input.</p>'
+        + '<p class="field-hint">Double-click a line to add a bend (reroute).</p>'
       );
     }
   });
@@ -500,7 +500,7 @@
     const dfId = findStartNodeDfId();
     if (!dfId) {
       if (typeof wwmAdminAlert === 'function') {
-        wwmAdminAlert({ title: 'Старт не найден', message: 'На схеме нет блока «Старт» (start).' });
+        wwmAdminAlert({ title: 'Start not found', message: 'There is no Start block (start) on the canvas.' });
       }
       return;
     }
@@ -819,15 +819,15 @@
     waitBtn.dataset.nodeId = nodeId;
     waitBtn.dataset.kind = 'waiting';
     waitBtn.textContent = String(waitN);
-    waitBtn.title = 'Сейчас на блоке: ' + waitN;
-    waitBtn.setAttribute('aria-label', 'Сейчас на блоке: ' + waitN);
+    waitBtn.title = 'On this block: ' + waitN;
+    waitBtn.setAttribute('aria-label', 'On this block: ' + waitN);
     waitBtn.classList.toggle('is-empty', waitN === 0);
 
     passBtn.dataset.nodeId = nodeId;
     passBtn.dataset.kind = 'passed';
     passBtn.textContent = String(passN);
-    passBtn.title = 'Прошли блок: ' + passN;
-    passBtn.setAttribute('aria-label', 'Прошли блок: ' + passN);
+    passBtn.title = 'Passed this block: ' + passN;
+    passBtn.setAttribute('aria-label', 'Passed this block: ' + passN);
     passBtn.classList.toggle('is-empty', passN === 0);
   }
 
@@ -877,8 +877,8 @@
   }
 
   function branchLabel(branch) {
-    if (branch === 'yes') return 'Да';
-    if (branch === 'no') return 'Нет';
+    if (branch === 'yes') return 'Yes';
+    if (branch === 'no') return 'No';
     return String(branch || '');
   }
 
@@ -905,14 +905,14 @@
     el.innerHTML = ''
       + '<div class="modal-backdrop" data-people-close></div>'
       + '<div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="automation-node-people-title">'
-      + '<button type="button" class="automation-node-people__close" data-people-close aria-label="Закрыть">×</button>'
-      + '<h2 id="automation-node-people-title">Прошедшие блок</h2>'
+      + '<button type="button" class="automation-node-people__close" data-people-close aria-label="Close">×</button>'
+      + '<h2 id="automation-node-people-title">Passed this block</h2>'
       + '<p class="field-hint automation-node-people__hint"></p>'
       + '<div class="admin-table-wrap admin-table-wrap--profile">'
       + '<table class="admin-table admin-table-compact admin-table--profile">'
       + '<thead><tr>'
-      + '<th>Имя</th><th>Email</th><th class="col-date">Дата</th>'
-      + '<th class="col-tight automation-node-people__actions-col">Действие</th>'
+      + '<th>Name</th><th>Email</th><th class="col-date">Date</th>'
+      + '<th class="col-tight automation-node-people__actions-col">Action</th>'
       + '</tr></thead>'
       + '<tbody></tbody></table></div>'
       + '</div>';
@@ -936,6 +936,11 @@
     return el;
   }
 
+  function peopleColSpan(options) {
+    const opts = options || {};
+    return 3 + (opts.allowAdvance ? 1 : 0);
+  }
+
   function setPeopleActionsColVisible(modal, visible) {
     const col = modal.querySelector('.automation-node-people__actions-col');
     if (col) {
@@ -952,7 +957,7 @@
     let branchHtml = '';
     if (branches.length > 0) {
       branchHtml = '<select data-advance-branch style="max-width:120px;margin-right:6px">'
-        + '<option value="auto">Авто</option>'
+        + '<option value="auto">Auto</option>'
         + branches.map((br) => (
           '<option value="' + escapeHtml(br) + '">' + escapeHtml(branchLabel(br)) + '</option>'
         )).join('')
@@ -960,7 +965,7 @@
     }
     return '<div class="automation-node-people__advance" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
       + branchHtml
-      + '<button type="button" class="btn btn-primary btn-sm" data-advance-run="' + runId + '">Протолкнуть</button>'
+      + '<button type="button" class="btn btn-primary btn-sm" data-advance-run="' + runId + '">Advance</button>'
       + '</div>';
   }
 
@@ -968,7 +973,7 @@
     const opts = options || {};
     const nodeId = String(opts.nodeId || '');
     const allowAdvance = !!opts.allowAdvance;
-    const colSpan = allowAdvance ? 4 : 3;
+    const colSpan = peopleColSpan(opts);
     const people = uniquePeople(rows);
     if (people.length === 0) {
       tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="field-hint">' + escapeHtml(emptyText) + '</td></tr>';
@@ -978,7 +983,7 @@
       const name = String(row.name || '').trim();
       const email = String(row.email || '').trim();
       const url = String(row.student_url || ('/admin/students/' + (row.user_id || '')));
-      const label = name !== '' ? name : (email || 'Ученик');
+      const label = name !== '' ? name : (email || 'Student');
       const waiting = allowAdvance ? (waitingRowForUser(nodeId, row.user_id) || row) : null;
       const actions = allowAdvance && waiting ? advanceControlsHtml(waiting) : '';
       return '<tr>'
@@ -1074,14 +1079,14 @@
     const token = csrfToken();
     if (runId <= 0 || base === '' || token === '') {
       if (typeof wwmAdminAlert === 'function') {
-        wwmAdminAlert({ title: 'Не удалось', message: 'Нет данных для проталкивания. Обновите страницу.' });
+        wwmAdminAlert({ title: 'Could not advance', message: 'Nothing to advance. Refresh the page.' });
       }
       return;
     }
     const wrap = btn.closest('.automation-node-people__advance');
     const select = wrap ? wrap.querySelector('[data-advance-branch]') : null;
     const branch = select ? String(select.value || 'auto') : 'auto';
-    const confirmMsg = 'Протолкнуть ученика дальше по процессу?';
+    const confirmMsg = 'Move this student forward in the process?';
     const doAdvance = () => {
       btn.disabled = true;
       const body = new FormData();
@@ -1098,10 +1103,10 @@
           const data = payload.data || {};
           if (!payload.res.ok || !data.ok) {
             const msg = String(data.error || '') === 'csrf'
-              ? 'Сессия истекла. Обновите страницу.'
-              : 'Не удалось протолкнуть ученика.';
+              ? 'Your session expired. Refresh the page.'
+              : 'Could not move this student forward.';
             if (typeof wwmAdminAlert === 'function') {
-              wwmAdminAlert({ title: 'Ошибка', message: msg });
+              wwmAdminAlert({ title: 'Error', message: msg });
             }
             btn.disabled = false;
             return;
@@ -1116,17 +1121,17 @@
           }
           applyAllNodeStats();
           refreshOpenPeopleModal();
-          showFlowSaveToast(data.message || 'Ученик протолкнут.');
+          showFlowSaveToast(data.message || 'Student moved forward.');
         })
         .catch(() => {
           if (typeof wwmAdminAlert === 'function') {
-            wwmAdminAlert({ title: 'Ошибка', message: 'Сетевая ошибка при проталкивании.' });
+            wwmAdminAlert({ title: 'Error', message: 'Network error while advancing.' });
           }
           btn.disabled = false;
         });
     };
     if (typeof wwmAdminConfirm === 'function') {
-      wwmAdminConfirm({ title: 'Протолкнуть', message: confirmMsg }).then((ok) => {
+      wwmAdminConfirm({ title: 'Advance', message: confirmMsg }).then((ok) => {
         if (ok) {
           doAdvance();
         }
@@ -1153,7 +1158,7 @@
     const tbody = modal.querySelector('tbody');
     const isWaiting = kind === 'waiting';
     peopleModalState = { nodeId: String(nodeId || ''), kind: isWaiting ? 'waiting' : 'passed' };
-    title.textContent = isWaiting ? 'Сейчас на блоке' : 'Прошедшие блок';
+    title.textContent = isWaiting ? 'On this block' : 'Passed this block';
     let label = nodeId;
     const home = editor.export().drawflow?.Home?.data || {};
     Object.keys(home).forEach((dfId) => {
@@ -1164,20 +1169,18 @@
     });
     hint.textContent = label;
     setPeopleActionsColVisible(modal, true);
-    tbody.innerHTML = '<tr><td colspan="4" class="field-hint">Загрузка…</td></tr>';
+    const listOptions = { allowAdvance: true, nodeId };
+    tbody.innerHTML = '<tr><td colspan="' + peopleColSpan(listOptions) + '" class="field-hint">Loading…</td></tr>';
     modal.classList.add('is-open');
 
     if (isWaiting) {
-      renderPeopleRows(tbody, waitingForNode(nodeId), 'Никого нет на этом блоке.', {
-        allowAdvance: true,
-        nodeId,
-      });
+      renderPeopleRows(tbody, waitingForNode(nodeId), 'Nobody is on this block.', listOptions);
       return;
     }
 
     const base = String(config.step_events_url || '');
     if (base === '') {
-      renderPeopleRows(tbody, [], 'Список недоступен.', { allowAdvance: true, nodeId });
+      renderPeopleRows(tbody, [], 'The list is not available.', listOptions);
       return;
     }
     fetch(base + '?node_id=' + encodeURIComponent(nodeId), { credentials: 'same-origin' })
@@ -1190,13 +1193,10 @@
       .then((data) => {
         const events = Array.isArray(data.events) ? data.events : [];
         // Same advance controls if the student is still waiting on this block.
-        renderPeopleRows(tbody, events, 'Пока никто не проходил этот блок.', {
-          allowAdvance: true,
-          nodeId,
-        });
+        renderPeopleRows(tbody, events, 'Nobody has passed this block yet.', listOptions);
       })
       .catch(() => {
-        renderPeopleRows(tbody, [], 'Не удалось загрузить список.', { allowAdvance: true, nodeId });
+        renderPeopleRows(tbody, [], 'Could not load the list.', listOptions);
       });
   }
 
@@ -1251,7 +1251,7 @@
         return bits.filter(Boolean).join(' · ');
       }
       case 'revoke_demo':
-        return 'устарел — удалите';
+        return 'obsolete — remove it';
       case 'end':
         return outcomeLabel(data.outcome);
       case 'notify_staff': {
@@ -1264,7 +1264,7 @@
           return names.slice(0, 2).join(', ') + (names.length > 2 ? '…' : '');
         }
         const def = String(config.staff_notify_default_email || '').trim();
-        return def ? '→ config ' + def : 'только лог';
+        return def ? '→ config ' + def : 'log only';
       }
       default:
         return data.type || '';
@@ -1313,7 +1313,7 @@
   function staffAdminSummaryText(ids) {
     const list = (ids || []).map(String);
     if (!list.length) {
-      return 'Не выбрано';
+      return 'None selected';
     }
     const names = list.map((id) => {
       const opt = (config.staff_admins || []).find((o) => String(o.value) === id);
@@ -1325,7 +1325,7 @@
     if (names.length === 2) {
       return names.join(', ');
     }
-    return names.length + ' выбрано: ' + names.slice(0, 2).join(', ') + '…';
+    return names.length + ' selected: ' + names.slice(0, 2).join(', ') + '…';
   }
 
   function bindStaffAdminMultiselect(dfId, d) {
@@ -1410,8 +1410,8 @@
   }
 
   const DELAY_ZONES = [
-    { id: 'America/New_York', label: 'Нью-Йорк' },
-    { id: 'Europe/Moscow', label: 'Москва' },
+    { id: 'America/New_York', label: 'New York' },
+    { id: 'Europe/Moscow', label: 'Moscow' },
     { id: 'UTC', label: 'UTC' },
   ];
 
@@ -1473,15 +1473,15 @@
   function formatUntilLabel(until) {
     const parsed = parseUntil(until);
     if (!parsed) {
-      return 'дата не задана';
+      return 'no date set';
     }
-    const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const parts = parsed.local.split('T');
     const date = parts[0].split('-');
     const zoneId = zoneForOffset(parsed.local, parsed.offset);
     const zone = DELAY_ZONES.find((item) => item.id === zoneId);
     const where = zone ? zone.label : parsed.offset;
-    return 'до ' + Number(date[2]) + ' ' + months[Number(date[1]) - 1] + ' ' + date[0]
+    return 'until ' + Number(date[2]) + ' ' + months[Number(date[1]) - 1] + ' ' + date[0]
       + ', ' + parts[1] + (where ? ' · ' + where : '');
   }
 
@@ -1507,13 +1507,13 @@
     const { days, hours, minutes } = secondsToDhm(sec);
     const parts = [];
     if (days) {
-      parts.push(days + ' д');
+      parts.push(days + ' d');
     }
     if (hours) {
-      parts.push(hours + ' ч');
+      parts.push(hours + ' h');
     }
     if (minutes || parts.length === 0) {
-      parts.push(minutes + ' мин');
+      parts.push(minutes + ' min');
     }
     return parts.join(' ');
   }
@@ -1584,7 +1584,7 @@
     editor.connection_selected = null;
     updateRemoveConnBtn();
     if (propsPanel) {
-      propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+      propsPanel.innerHTML = '<p class="field-hint">Select a block on the canvas.</p>';
     }
     syncJsonField();
   }
@@ -1729,7 +1729,7 @@
 
   function updateFullscreenButton() {
     if (fsBtn) {
-      fsBtn.textContent = fullscreenOn ? 'Выйти из полноэкранного' : 'На весь экран';
+      fsBtn.textContent = fullscreenOn ? 'Exit full screen' : 'Full screen';
     }
   }
 
@@ -2167,6 +2167,71 @@
     if (zoneSelect) {
       zoneSelect.addEventListener('change', writeUntil);
     }
+
+    const testBtn = propsPanel.querySelector('[data-send-test]');
+    if (testBtn && !testBtn.disabled) {
+      testBtn.addEventListener('click', () => {
+        const url = String(config.test_send_url || '');
+        const token = csrfToken();
+        const status = propsPanel.querySelector('.automation-test-send-status');
+        const errors = {
+          csrf: 'Your session expired. Refresh the page.',
+          not_found: 'Process not found.',
+          template: 'Choose an email template first.',
+          mail_disabled: 'Mail is turned off on the server.',
+          no_email: 'Your administrator account has no email address.',
+          send_failed: 'The letter could not be sent.',
+        };
+        if (!url || !token) {
+          if (typeof wwmAdminAlert === 'function') {
+            wwmAdminAlert({ title: 'Could not send', message: 'Refresh the page and try again.' });
+          }
+          return;
+        }
+        const body = new FormData();
+        body.append('csrf', token);
+        body.append('template', String(d.template || ''));
+        body.append('course_slug', String(d.course_slug || processCourseSlug() || ''));
+        testBtn.disabled = true;
+        if (status) {
+          status.textContent = 'Sending…';
+        }
+        fetch(url, {
+          method: 'POST',
+          body,
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        }).then((res) => res.json().catch(() => ({ ok: false, error: 'send_failed' }))).then((data) => {
+          testBtn.disabled = false;
+          if (!data || !data.ok) {
+            const code = data && data.error ? String(data.error) : 'send_failed';
+            const msg = errors[code] || 'Could not send the test letter.';
+            if (status) {
+              status.textContent = msg;
+            }
+            if (typeof wwmAdminAlert === 'function') {
+              wwmAdminAlert({ title: 'Could not send', message: msg });
+            }
+            return;
+          }
+          const sentTo = data.email ? String(data.email) : '';
+          const done = sentTo ? ('Test letter sent to ' + sentTo + '.') : 'Test letter sent.';
+          if (status) {
+            status.textContent = done;
+          }
+          showFlowSaveToast(done);
+        }).catch(() => {
+          testBtn.disabled = false;
+          const msg = 'Network error while sending the test letter.';
+          if (status) {
+            status.textContent = msg;
+          }
+          if (typeof wwmAdminAlert === 'function') {
+            wwmAdminAlert({ title: 'Could not send', message: msg });
+          }
+        });
+      });
+    }
   }
 
   function courseSelectOptions() {
@@ -2260,8 +2325,8 @@
     }
     if (hintEl) {
       const modeText = entryModeLabel(mode);
-      const courseText = slug ? courseLabelForSlug(slug) : 'не привязан';
-      hintEl.innerHTML = 'С блока <strong>«Старт»</strong>: ' + escapeHtml(modeText) + ' · ' + escapeHtml(courseText);
+      const courseText = slug ? courseLabelForSlug(slug) : 'not linked';
+      hintEl.innerHTML = 'From <strong>Start</strong>: ' + escapeHtml(modeText) + ' · ' + escapeHtml(courseText);
     }
   }
 
@@ -2291,18 +2356,18 @@
     const allowEmpty = !!(opts && opts.allowEmpty);
     const prop = (opts && opts.prop) ? String(opts.prop) : 'course_slug';
     const val = String(currentValue !== undefined && currentValue !== null ? currentValue : processCourseSlug()).trim();
-    const fieldLabel = label || 'Курс';
+    const fieldLabel = label || 'Course';
     const courses = courseSelectOptions();
     if (courses.length === 0) {
       return (
         '<label class="field"><span class="field-label">' + escapeHtml(fieldLabel) + '</span>'
-        + '<input type="text" data-prop="' + escapeHtml(prop) + '" value="' + escapeHtml(val) + '" pattern="[a-z0-9\\-]+" placeholder="slug курса"></label>'
+        + '<input type="text" data-prop="' + escapeHtml(prop) + '" value="' + escapeHtml(val) + '" pattern="[a-z0-9\\-]+" placeholder="course slug"></label>'
       );
     }
     const known = new Set();
     let html = '<label class="field"><span class="field-label">' + escapeHtml(fieldLabel) + '</span><select data-prop="' + escapeHtml(prop) + '">';
     if (allowEmpty) {
-      html += '<option value=""' + (val === '' ? ' selected' : '') + '>— не привязан —</option>';
+      html += '<option value=""' + (val === '' ? ' selected' : '') + '>— not linked —</option>';
     }
     courses.forEach((c) => {
       const v = String(c.value || '');
@@ -2313,7 +2378,7 @@
       html += '<option value="' + escapeHtml(v) + '"' + (v === val ? ' selected' : '') + '>' + escapeHtml(c.label || v) + '</option>';
     });
     if (val && !known.has(val)) {
-      html += '<option value="' + escapeHtml(val) + '" selected>' + escapeHtml(val) + ' (в схеме)</option>';
+      html += '<option value="' + escapeHtml(val) + '" selected>' + escapeHtml(val) + ' (in the flow)</option>';
     }
     html += '</select></label>';
     return html;
@@ -2326,14 +2391,14 @@
     const id = normalizeDfId(dfId);
     const n = editor.getNodeFromId(id);
     if (!n) {
-      propsPanel.innerHTML = '<p class="field-hint">Выберите блок на схеме.</p>';
+      propsPanel.innerHTML = '<p class="field-hint">Select a block on the canvas.</p>';
       return;
     }
     const d = n.data;
     let html = '<h3 class="automation-props-title">' + escapeHtml(d.label || d.type) + '</h3>';
     html += '<p class="field-hint">ID: <code>' + escapeHtml(d.node_id || id) + '</code></p>';
 
-    html += '<label class="field"><span class="field-label">Подпись на схеме</span><input type="text" data-prop="label" value="' + escapeHtml(d.label || '') + '"></label>';
+    html += '<label class="field"><span class="field-label">Label on the canvas</span><input type="text" data-prop="label" value="' + escapeHtml(d.label || '') + '"></label>';
 
     const help = paletteHint(d.type);
     if (help) {
@@ -2342,86 +2407,89 @@
 
     if (d.type === 'trigger') {
       const curMode = d.entry_mode || (config.automation && config.automation.entry_mode) || 'demo_grant';
-      html += '<label class="field"><span class="field-label">Тип входа в процесс</span><select data-prop="entry_mode">';
+      html += '<label class="field"><span class="field-label">How people enter</span><select data-prop="entry_mode">';
       (config.entry_modes || []).forEach((m) => {
         html += '<option value="' + escapeHtml(m.value) + '"' + (m.value === curMode ? ' selected' : '') + '>'
           + escapeHtml(m.label || m.value) + '</option>';
       });
       html += '</select></label>';
       html += '<p class="field-hint">Demo for a course starts from AVO or /api/demo. Cabinet demo form starts when that course’s public form is submitted. Manual and after payment are for upsells.</p>';
-      html += courseSlugFieldHtml(d.process_course_slug, 'Курс процесса', {
+      html += courseSlugFieldHtml(d.process_course_slug, 'Process course', {
         allowEmpty: true,
         prop: 'process_course_slug',
       });
       const needCourse = !!ENTRY_MODES_NEED_COURSE[curMode];
       html += '<p class="field-hint" id="automation-trigger-course-hint">' + (needCourse
-        ? 'Для этого типа входа курс обязателен (сохраняется slug).'
-        : 'Необязательно — контекст для писем и условий в схеме.') + '</p>';
+        ? 'This entry type requires a course (the slug is saved).'
+        : 'Optional — context for letters and conditions in the flow.') + '</p>';
     }
 
     if (d.type === 'delay') {
       const mode = delayMode(d);
-      html += '<div class="field"><span class="field-label">Режим паузы</span>';
+      html += '<div class="field"><span class="field-label">Pause mode</span>';
       html += '<div class="automation-delay-modes">';
       html += '<label><input type="radio" name="automation-delay-mode" data-delay-mode="duration"'
-        + (mode === 'duration' ? ' checked' : '') + '> Ждать промежуток</label>';
+        + (mode === 'duration' ? ' checked' : '') + '> Wait for a duration</label>';
       html += '<label><input type="radio" name="automation-delay-mode" data-delay-mode="until"'
-        + (mode === 'until' ? ' checked' : '') + '> Ждать до даты и времени</label>';
+        + (mode === 'until' ? ' checked' : '') + '> Wait until a date and time</label>';
       html += '</div></div>';
       if (mode === 'until') {
         const parsed = parseUntil(d.until);
         const local = parsed ? parsed.local : '';
         const zone = parsed ? zoneForOffset(parsed.local, parsed.offset) : 'Europe/Moscow';
-        html += '<label class="field"><span class="field-label">Дата и время</span>';
+        html += '<label class="field"><span class="field-label">Date and time</span>';
         html += '<input type="datetime-local" data-delay-until value="' + escapeHtml(local) + '"></label>';
-        html += '<label class="field"><span class="field-label">Часовой пояс</span><select data-delay-zone>';
+        html += '<label class="field"><span class="field-label">Time zone</span><select data-delay-zone>';
         DELAY_ZONES.forEach((item) => {
           html += '<option value="' + escapeHtml(item.id) + '"' + (item.id === zone ? ' selected' : '') + '>'
             + escapeHtml(item.label) + '</option>';
         });
         if (parsed && zone === '') {
-          html += '<option value="" selected>Как в схеме (' + escapeHtml(parsed.offset) + ')</option>';
+          html += '<option value="" selected>As stored (' + escapeHtml(parsed.offset) + ')</option>';
         }
         html += '</select></label>';
         html += '<p class="field-hint automation-until-label">' + escapeHtml(formatUntilLabel(d.until)) + '</p>';
-        html += '<p class="field-hint">Ученик стоит на этом блоке до этого момента. Дни, часы и минуты здесь не считаются.</p>';
+        html += '<p class="field-hint">The student stays on this block until that moment. Days, hours, and minutes are not used here.</p>';
       } else {
         const parts = secondsToDhm(d.seconds);
-        html += '<div class="field"><span class="field-label">Ожидание</span>';
+        html += '<div class="field"><span class="field-label">Wait</span>';
         html += '<div class="automation-dhm-row">';
-        html += '<label class="automation-dhm-field"><span>Дни</span><input type="number" min="0" data-dhm="days" value="' + parts.days + '"></label>';
-        html += '<label class="automation-dhm-field"><span>Часы</span><input type="number" min="0" max="23" data-dhm="hours" value="' + parts.hours + '"></label>';
-        html += '<label class="automation-dhm-field"><span>Минуты</span><input type="number" min="0" max="59" data-dhm="minutes" value="' + parts.minutes + '"></label>';
+        html += '<label class="automation-dhm-field"><span>Days</span><input type="number" min="0" data-dhm="days" value="' + parts.days + '"></label>';
+        html += '<label class="automation-dhm-field"><span>Hours</span><input type="number" min="0" max="23" data-dhm="hours" value="' + parts.hours + '"></label>';
+        html += '<label class="automation-dhm-field"><span>Minutes</span><input type="number" min="0" max="59" data-dhm="minutes" value="' + parts.minutes + '"></label>';
         html += '</div>';
         html += '<p class="field-hint automation-dhm-total">' + escapeHtml(formatDelay(d.seconds)) + '</p>';
-        html += '<p class="field-hint">Обработка по cron (run-email-automations). Ученик «ждёт» на этом шаге до наступления времени.</p></div>';
+        html += '<p class="field-hint">Cron (run-email-automations) picks this up. The student waits on this step until the time arrives.</p></div>';
       }
     }
     if (d.type === 'send_template') {
-      html += '<label class="field"><span class="field-label">Шаблон письма</span><select data-prop="template">';
+      html += '<label class="field"><span class="field-label">Email template</span><select data-prop="template">';
       (config.templates || []).forEach((t) => {
-        const kindTag = t.kind === 'marketing' ? ' [маркетинг]' : '';
+        const kindTag = t.kind === 'marketing' ? ' [marketing]' : '';
         html += '<option value="' + escapeHtml(t.value) + '"' + (t.value === d.template ? ' selected' : '') + '>' + escapeHtml((t.label || t.value) + kindTag) + '</option>';
       });
       html += '</select></label>';
       const kind = templateKind(d.template);
       html += '<p class="field-hint">' + (kind === 'marketing'
-        ? 'Маркетинг: отписка, List-Unsubscribe, промокод cross-sell из config.'
-        : 'Транзакционное: напоминания и demo/sale из AVO-воронки.') + '</p>';
+        ? 'Marketing: unsubscribe, List-Unsubscribe, and the cross-sell promo code from config.'
+        : 'Transactional: reminders and demo/sale from the AVO funnel.') + '</p>';
       const editUrl = templateEditUrl(d.template);
       if (editUrl) {
-        html += '<p><a class="btn btn-primary btn-sm" href="' + escapeHtml(editUrl) + '" target="_blank" rel="noopener">Редактировать письмо</a></p>';
+        html += '<p><a class="btn btn-primary btn-sm" href="' + escapeHtml(editUrl) + '" target="_blank" rel="noopener">Edit letter</a></p>';
       }
-      html += courseSlugFieldHtml(d.course_slug, 'Курс в письме');
-      html += '<p class="field-hint">Slug для buy_url, course_title и условий. Пустой — контекст run / настройки процесса.</p>';
+      const testTo = String(config.admin_email || '').trim();
+      html += '<p><button type="button" class="btn btn-ghost btn-sm" data-send-test' + (d.template ? '' : ' disabled') + '>Send test to me</button></p>';
+      html += '<p class="field-hint automation-test-send-status">Goes to ' + escapeHtml(testTo || 'the address you are signed in with') + '. It is not counted in this process.</p>';
+      html += courseSlugFieldHtml(d.course_slug, 'Course in the letter');
+      html += '<p class="field-hint">Slug for buy_url, course_title, and conditions. Empty uses the run context / process settings.</p>';
       html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_paid_course" value="1"'
-        + (d.skip_if_paid_course ? ' checked' : '') + '><span>Не слать, если этот курс уже куплен</span></label>';
+        + (d.skip_if_paid_course ? ' checked' : '') + '><span>Do not send if this course is already bought</span></label>';
       if (templateNeedsCourseSlug(d.template)) {
-        html += '<p class="field-hint"><strong>Cross-sell:</strong> для этого шаблона курс обязателен.</p>';
+        html += '<p class="field-hint"><strong>Cross-sell:</strong> this template requires a course.</p>';
       }
     }
     if (d.type === 'condition') {
-      html += '<label class="field"><span class="field-label">Условие</span><select data-prop="condition">';
+      html += '<label class="field"><span class="field-label">Condition</span><select data-prop="condition">';
       (config.conditions || []).forEach((c) => {
         html += '<option value="' + escapeHtml(c.value) + '"' + (c.value === d.condition ? ' selected' : '') + '>' + escapeHtml(c.label || c.value) + '</option>';
       });
@@ -2431,33 +2499,33 @@
         html += '<p class="field-hint">' + escapeHtml(cm.hint) + '</p>';
       }
       if (conditionNeedsCourseSlug(d.condition)) {
-        html += courseSlugFieldHtml(d.course_slug, 'Курс для условия');
+        html += courseSlugFieldHtml(d.course_slug, 'Course for this condition');
       }
-      html += '<p class="field-hint">Верхний кружок — «да», нижний — «нет».</p>';
+      html += '<p class="field-hint">The top socket is yes, the bottom socket is no.</p>';
     }
     if (d.type === 'revoke_demo') {
-      html += '<div class="alert alert-warning" style="margin:12px 0">Блок устарел: демо снимается по таймеру курса (demo_hours). Удалите блок и соедините линию напрямую.</div>';
+      html += '<div class="alert alert-warning" style="margin:12px 0">This block is obsolete: demo expires on the course timer (demo_hours). Remove the block and connect the line directly.</div>';
     }
     if (d.type === 'grant_demo') {
-      html += courseSlugFieldHtml(d.course_slug, 'Курс демо');
+      html += courseSlugFieldHtml(d.course_slug, 'Demo course');
       html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_paid" value="1"'
-        + (d.skip_if_paid !== false ? ' checked' : '') + '><span>Пропустить, если курс уже куплен</span></label>';
+        + (d.skip_if_paid !== false ? ' checked' : '') + '><span>Skip if the course is already bought</span></label>';
       html += '<label class="field field-checkbox"><input type="checkbox" data-prop="skip_if_demo_active" value="1"'
-        + (d.skip_if_demo_active !== false ? ' checked' : '') + '><span>Пропустить, если демо уже активно</span></label>';
-      html += '<p class="field-hint">Письмо demo уходит только при новой выдаче. Срок демо — в карточке курса (demo_hours), отзыв не нужен.</p>';
+        + (d.skip_if_demo_active !== false ? ' checked' : '') + '><span>Skip if a demo is already active</span></label>';
+      html += '<p class="field-hint">The demo letter is sent only when access is newly granted. Demo length is on the course card (demo_hours); nothing needs to revoke it.</p>';
       if (config.demo_email_edit_url) {
-        html += '<p><a class="btn btn-ghost btn-sm" href="' + escapeHtml(config.demo_email_edit_url) + '" target="_blank" rel="noopener">Шаблон письма demo</a></p>';
+        html += '<p><a class="btn btn-ghost btn-sm" href="' + escapeHtml(config.demo_email_edit_url) + '" target="_blank" rel="noopener">Demo letter template</a></p>';
       }
     }
     if (d.type === 'end') {
-      html += '<label class="field"><span class="field-label">Тип завершения (статистика)</span><select data-prop="outcome">';
-      const outcomes = config.end_outcomes || [{ value: 'completed', label: 'Обычное завершение' }];
+      html += '<label class="field"><span class="field-label">End type (statistics)</span><select data-prop="outcome">';
+      const outcomes = config.end_outcomes || [{ value: 'completed', label: 'Completed' }];
       const cur = d.outcome || 'completed';
       outcomes.forEach((o) => {
         html += '<option value="' + escapeHtml(o.value) + '"' + (o.value === cur ? ' selected' : '') + '>' + escapeHtml(o.label) + '</option>';
       });
       html += '</select></label>';
-      html += '<p class="field-hint">Пишется в step events (detail=outcome=…). На логику веток не влияет.</p>';
+      html += '<p class="field-hint">Stored on step events (detail=outcome=…). It does not change branch logic.</p>';
     }
     if (d.type === 'notify_staff') {
       const hadLegacyRecipients = String(d.staff_recipients || '').trim();
@@ -2468,9 +2536,9 @@
       const defaultEmail = String(config.staff_notify_default_email || '').trim();
       const selected = new Set(staffAdminIds(d));
       const admins = config.staff_admins || [];
-      html += '<div class="field"><span class="field-label">Кому из администраторов</span>';
+      html += '<div class="field"><span class="field-label">Which administrators</span>';
       if (!admins.length) {
-        html += '<p class="field-hint">Список пуст — добавьте админов в разделе Administrators или <code>admin_emails</code> в config.</p>';
+        html += '<p class="field-hint">The list is empty — add admins under Administrators, or set <code>admin_emails</code> in config.</p>';
       } else {
         const summary = staffAdminSummaryText(Array.from(selected));
         html += '<div class="automation-staff-multiselect" data-staff-multiselect>';
@@ -2500,22 +2568,22 @@
         html += '</div></div>';
       }
       html += '</div>';
-      html += '<p class="field-hint">Отметьте одного или нескольких. Если никого не выбрано — '
-        + (defaultEmail ? 'письмо на <code>' + escapeHtml(defaultEmail) + '</code> из config' : 'только запись в cabinet.log (<code>staff_notify_email</code>)')
-        + '. Нужен <code>mail.enabled</code>.</p>';
-      html += '<label class="field"><span class="field-label">Тема письма</span>';
+      html += '<p class="field-hint">Check one or more. If nobody is checked — '
+        + (defaultEmail ? 'an email to <code>' + escapeHtml(defaultEmail) + '</code> from config' : 'only a line in cabinet.log (<code>staff_notify_email</code>)')
+        + '. Requires <code>mail.enabled</code>.</p>';
+      html += '<label class="field"><span class="field-label">Subject</span>';
       html += '<input type="text" data-prop="notify_subject" value="' + escapeHtml(d.notify_subject || 'WWM automation: {{step_label}}') + '"></label>';
-      html += '<label class="field"><span class="field-label">Текст уведомления</span>';
+      html += '<label class="field"><span class="field-label">Notice text</span>';
       html += '<textarea data-prop="notify_body" rows="8" spellcheck="false">' + escapeHtml(d.notify_body || defaultStaffNotifyBody()) + '</textarea></label>';
       const ph = (config.staff_notify_placeholders || []).join(', ');
       if (ph) {
-        html += '<p class="field-hint">Подстановки: ' + escapeHtml(ph) + '</p>';
+        html += '<p class="field-hint">Placeholders: ' + escapeHtml(ph) + '</p>';
       }
     }
 
     html += '<div class="automation-props-actions" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">';
-    html += '<button type="button" class="btn btn-ghost btn-sm automation-props-duplicate">Дублировать</button>';
-    html += '<button type="button" class="btn btn-ghost btn-sm automation-props-delete">Удалить блок</button>';
+    html += '<button type="button" class="btn btn-ghost btn-sm automation-props-duplicate">Duplicate</button>';
+    html += '<button type="button" class="btn btn-ghost btn-sm automation-props-delete">Delete block</button>';
     html += '</div>';
     propsPanel.innerHTML = html;
 
@@ -2531,7 +2599,7 @@
         const copy = JSON.parse(JSON.stringify(d));
         const newKey = slugifyKey(copy.node_id || copy.type || 'node');
         copy.node_id = newKey;
-        copy.label = (copy.label || '') + ' (копия)';
+        copy.label = (copy.label || '') + ' (copy)';
         const dfId = addNodeToCanvas(
           copy.type || n.name,
           newKey,
@@ -2662,22 +2730,22 @@
   function collectFlowValidationIssues(def) {
     const issues = [];
     if (!def || typeof def !== 'object') {
-      return ['Не удалось собрать определение сценария.'];
+      return ['Could not build the flow definition.'];
     }
     const nodes = def.nodes;
     const edges = def.edges;
     if (!nodes || typeof nodes !== 'object' || Object.keys(nodes).length === 0) {
-      return ['Добавьте хотя бы один блок на схему.'];
+      return ['Add at least one block to the flow.'];
     }
     if (!Array.isArray(edges)) {
-      return ['Некорректный список связей.'];
+      return ['The list of connections is invalid.'];
     }
 
     const entryIds = [];
     Object.keys(nodes).forEach((id) => {
       const node = nodes[id];
       if (!node || typeof node !== 'object') {
-        issues.push('Узел «' + id + '» повреждён.');
+        issues.push('Block “' + id + '” is damaged.');
         return;
       }
       const type = String(node.type || '');
@@ -2686,7 +2754,7 @@
       }
     });
     if (entryIds.length === 0) {
-      issues.push('Нужен блок «Старт» (Start слева, id start).');
+      issues.push('A Start block is required (Start on the left, id start).');
     }
 
     const out = {};
@@ -2698,21 +2766,21 @@
 
     edges.forEach((edge, i) => {
       if (!edge || typeof edge !== 'object') {
-        issues.push('Связь #' + (i + 1) + ' некорректна.');
+        issues.push('Connection #' + (i + 1) + ' is invalid.');
         return;
       }
       const from = String(edge.from || '');
       const to = String(edge.to || '');
       if (!from || !to) {
-        issues.push('Связь #' + (i + 1) + ': укажите from и to.');
+        issues.push('Connection #' + (i + 1) + ': set from and to.');
         return;
       }
       if (!nodes[from]) {
-        issues.push('Связь из неизвестного блока «' + from + '».');
+        issues.push('Connection from an unknown block “' + from + '”.');
         return;
       }
       if (!nodes[to]) {
-        issues.push('Связь в неизвестный блок «' + to + '».');
+        issues.push('Connection to an unknown block “' + to + '”.');
         return;
       }
       const branch = String(edge.branch || 'next');
@@ -2734,70 +2802,70 @@
       if (type === 'end') {
         hasEnd = true;
         if (inCount === 0) {
-          issues.push('«' + label + '»: «Конец» не подключён.');
+          issues.push('“' + label + '”: End is not connected.');
         }
         if (outCount > 0) {
-          issues.push('«' + label + '»: после «Конец» не должно быть исходящих связей.');
+          issues.push('“' + label + '”: nothing should leave an End block.');
         }
         return;
       }
 
       if (type === 'trigger' || id === 'start') {
         if (outCount === 0) {
-          issues.push('«' + label + '»: от старта нужна связь к следующему шагу.');
+          issues.push('“' + label + '”: Start needs a line to the next step.');
         }
         return;
       }
 
       if (inCount === 0 && outCount === 0) {
-        issues.push('«' + label + '»: блок изолирован (нет связей).');
+        issues.push('“' + label + '”: this block is isolated (no connections).');
       } else {
         if (inCount === 0) {
-          issues.push('«' + label + '»: нет входящей связи.');
+          issues.push('“' + label + '”: no incoming line.');
         }
         if (outCount === 0) {
-          issues.push('«' + label + '»: нет исходящей связи (добавьте шаг или «Конец»).');
+          issues.push('“' + label + '”: no outgoing line (add a step or End).');
         }
       }
 
       if (type === 'condition') {
         const branches = (out[id] || []).map((e) => e.branch);
         if (!branches.includes('yes') || !branches.includes('no')) {
-          issues.push('«' + label + '»: у условия должны быть ветки «да» и «нет».');
+          issues.push('“' + label + '”: a condition needs both a yes branch and a no branch.');
         }
         const cond = String(node.condition || '');
         if (!cond) {
-          issues.push('«' + label + '»: выберите тип условия.');
+          issues.push('“' + label + '”: choose a condition.');
         } else if (conditionNeedsCourseSlug(cond)) {
           const slug = String(node.course_slug || '').trim();
           if (!slug) {
-            issues.push('«' + label + '»: для условия нужен курс.');
+            issues.push('“' + label + '”: this condition needs a course.');
           }
         }
       }
 
       if (type === 'revoke_demo') {
-        issues.push('«' + label + '»: блок «Отзыв демо» устарел — удалите и пересоедините ветки.');
+        issues.push('“' + label + '”: the Revoke demo block is obsolete — remove it and reconnect the branches.');
       }
 
       if (type === 'send_template' && !String(node.template || '').trim()) {
-        issues.push('«' + label + '»: выберите шаблон письма.');
+        issues.push('“' + label + '”: choose an email template.');
       }
       if (type === 'send_template' && templateNeedsCourseSlug(node.template)) {
         if (!String(node.course_slug || '').trim()) {
-          issues.push('«' + label + '»: для cross-sell письма укажите курс.');
+          issues.push('“' + label + '”: a cross-sell letter needs a course.');
         }
       }
 
       if (type === 'grant_demo' && !String(node.course_slug || '').trim()) {
-        issues.push('«' + label + '»: укажите курс демо.');
+        issues.push('“' + label + '”: set the demo course.');
       }
 
       if (type === 'trigger' || id === 'start') {
         const mode = String(node.entry_mode || '').trim() || 'demo_grant';
         const procCourse = String(node.process_course_slug ?? node.course_slug ?? '').trim();
         if (ENTRY_MODES_NEED_COURSE[mode] && !procCourse) {
-          issues.push('«' + label + '»: для типа входа «' + entryModeLabel(mode) + '» укажите курс в блоке «Старт».');
+          issues.push('“' + label + '”: entry type “' + entryModeLabel(mode) + '” needs a course on the Start block.');
         }
       }
 
@@ -2808,7 +2876,7 @@
           legacy.split(/[,;\s]+/).forEach((part) => {
             const email = part.trim();
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-              issues.push('«' + label + '»: некорректный email в устаревшем поле получателей.');
+              issues.push('“' + label + '”: invalid email in the old recipient field.');
             }
           });
         }
@@ -2821,10 +2889,10 @@
           : (until !== '' ? 'until' : 'duration');
         if (mode === 'until') {
           if (!until || Number.isNaN(Date.parse(until))) {
-            issues.push('«' + label + '»: укажите дату и время паузы.');
+            issues.push('“' + label + '”: set the date and time for this pause.');
           }
         } else if ((parseInt(node.seconds, 10) || 0) < 0) {
-          issues.push('«' + label + '»: укажите длительность паузы.');
+          issues.push('“' + label + '”: set how long the pause lasts.');
         }
       }
 
@@ -2832,16 +2900,16 @@
         const outcome = String(node.outcome || 'completed');
         const allowed = (config.end_outcomes || []).map((o) => o.value);
         if (allowed.length && outcome && !allowed.includes(outcome)) {
-          issues.push('«' + label + '»: выберите тип завершения.');
+          issues.push('“' + label + '”: choose an end type.');
         }
       }
     });
 
     if (!hasEnd) {
-      issues.push('Добавьте блок «Конец» и подключите завершающие ветки.');
+      issues.push('Add an End block and connect the finishing branches.');
     }
     if (edges.length === 0 && Object.keys(nodes).length > 1) {
-      issues.push('Соедините блоки линиями.');
+      issues.push('Connect the blocks with lines.');
     }
 
     const seen = {};
@@ -2865,7 +2933,7 @@
         return;
       }
       if (!seen[id]) {
-        issues.push('«' + nodeLabel(id, node) + '»: не достигается от старта.');
+        issues.push('“' + nodeLabel(id, node) + '”: cannot be reached from Start.');
       }
     });
 
@@ -2877,7 +2945,7 @@
     if (issues.length === 0) {
       return '';
     }
-    return 'Исправьте схему перед сохранением:\n\n' + issues.map((line) => '• ' + line).join('\n');
+    return 'Fix the flow before saving:\n\n' + issues.map((line) => '• ' + line).join('\n');
   }
 
   function validateAutomationEntryFromForm() {
@@ -2889,20 +2957,20 @@
     const mode = String(modeEl.value || 'demo_grant');
     const slug = String(courseEl.value || '').trim();
     if (ENTRY_MODES_NEED_COURSE[mode] && !slug) {
-      return 'Для типа входа «' + entryModeLabel(mode) + '» выберите курс в блоке «Старт» на схеме.';
+      return 'For entry type “' + entryModeLabel(mode) + '”, choose a course on the Start block.';
     }
     return '';
   }
 
   function showValidationAlert(message) {
     if (typeof wwmAdminAlert === 'function') {
-      wwmAdminAlert({ title: 'Схема не готова к сохранению', message });
+      wwmAdminAlert({ title: 'The flow is not ready to save', message });
     }
   }
 
   function prepareFormSave() {
     if (!jsonField) {
-      return 'Поле definition_json не найдено на странице.';
+      return 'The definition_json field is not on the page.';
     }
     if (fullscreenOn && jsonInline && String(jsonInline.value || '').trim() !== '') {
       jsonField.value = jsonInline.value;
@@ -2917,7 +2985,7 @@
       }
       return validateDefinitionClient(def);
     } catch (err) {
-      return 'Ошибка при экспорте схемы в JSON. Проверьте блоки на холсте.';
+      return 'Could not export the canvas to JSON. Check the blocks.';
     }
   }
 
@@ -2933,11 +3001,11 @@
   }
 
   const saveErrorMessages = {
-    csrf: 'Сессия истекла. Обновите страницу и попробуйте снова.',
+    csrf: 'Your session expired. Refresh the page and try again.',
     invalid_json: 'Definition JSON is not valid.',
-    invalid_definition: 'В JSON должны быть nodes (с блоком start), edges и корректные связи.',
-    course_required: 'Для выбранного типа входа нужен course slug.',
-    not_found: 'Процесс не найден.',
+    invalid_definition: 'JSON needs nodes (with a start block), edges, and valid connections.',
+    course_required: 'This entry type needs a course slug.',
+    not_found: 'Process not found.',
   };
 
   function showFlowSaveToast(message) {
@@ -3000,16 +3068,16 @@
           const code = String(data.error || '');
           const msg = String(data.detail || '').trim()
             || saveErrorMessages[code]
-            || 'Не удалось сохранить. Попробуйте ещё раз.';
+            || 'Could not save. Try again.';
           showValidationAlert(msg);
           return false;
         }
-        showFlowSaveToast(data.message || 'Сохранено.');
+        showFlowSaveToast(data.message || 'Saved.');
         return true;
       })
       .catch(function () {
         if (typeof wwmAdminAlert === 'function') {
-          wwmAdminAlert({ title: 'Не сохранено', message: 'Сетевая ошибка при сохранении.' });
+          wwmAdminAlert({ title: 'Not saved', message: 'Network error while saving.' });
         }
         return false;
       })
@@ -3089,19 +3157,19 @@
         } catch (err) {
           if (typeof wwmAdminAlert === 'function') {
             wwmAdminAlert({
-              title: 'Ошибка JSON',
+              title: 'JSON error',
               message: fullscreenOn
-                ? 'Некорректный JSON. Откройте «JSON сценария» над схемой и проверьте синтаксис.'
-                : 'Некорректный JSON. Проверьте синтаксис в поле Definition (JSON) ниже.',
+                ? 'Invalid JSON. Open Flow JSON above the canvas and check the syntax.'
+                : 'Invalid JSON. Check the syntax in Definition (JSON) below.',
             });
           }
         }
       };
       if (typeof wwmAdminConfirm === 'function') {
         wwmAdminConfirm({
-          title: 'Загрузить из JSON?',
-          message: 'Схема на холсте будет заменена содержимым JSON. Несохранённые правки на холсте пропадут.',
-          confirmLabel: 'Загрузить',
+          title: 'Load from JSON?',
+          message: 'The canvas will be replaced by this JSON. Unsaved changes on the canvas will be lost.',
+          confirmLabel: 'Load',
         }).then((ok) => {
           if (ok) {
             if (fullscreenOn && jsonDrawer && !jsonDrawer.open) {

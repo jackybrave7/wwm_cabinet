@@ -60,9 +60,12 @@ final class MarketingEmailDelivery
         array $links,
         string $listIdSuffix,
         string $name = '',
+        ?int $automationId = null,
+        ?string $automationNodeId = null,
+        bool $honorSuppression = true,
     ): bool {
         $pdo = wwm_pdo();
-        if (EmailSuppression::isSuppressed($pdo, $email)) {
+        if ($honorSuppression && EmailSuppression::isSuppressed($pdo, $email)) {
             wwm_log(sprintf('marketing mail skipped (suppressed) template=%s user_id=%d', $templateId, $userId));
 
             return false;

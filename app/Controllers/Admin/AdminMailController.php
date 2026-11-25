@@ -5,11 +5,14 @@ namespace Wwm\Controllers\Admin;
 
 use Wwm\Auth\Session;
 use Wwm\Models\EmailTemplate;
+use Wwm\Models\User;
 use Wwm\Services\EmailTemplateCatalog;
+use Wwm\Services\EmailTemplateDrafts;
 use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
 use Wwm\Services\EmailWebhookCatalog;
 use Wwm\Services\Mailer;
+use Wwm\Services\MarketingEmailDelivery;
 
 final class AdminMailController
 {
@@ -36,7 +39,8 @@ final class AdminMailController
 
     public function edit(string $id): void
     {
-        Session::requireSuperAdmin();
+        $adminId = Session::requireSuperAdmin();
+        $admin = User::findById(wwm_pdo(), $adminId);
 
         $meta = EmailTemplateCatalog::find($id);
         if ($meta === null) {
@@ -77,7 +81,68 @@ final class AdminMailController
             'webhooksEnabled' => !empty(wwm_config()['webhooks']['enabled']),
             'message' => $flash,
             'error' => $loadError,
+            'adminEmail' => is_array($admin) ? (string)($admin['email'] ?? '') : '',
         ]);
+    }
+
+    public function sendTest(string $id): void
+    {
+        $adminId = Session::requireSuperAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            wwm_json_response(403, ['ok' => false, 'error' => 'csrf']);
+        }
+        if (EmailTemplateCatalog::find($id) === null) {
+            wwm_json_response(404, ['ok' => false, 'error' => 'not_found']);
+        }
+        $mail = wwm_config()['mail'] ?? [];
+        if (empty($mail['enabled'])) {
+            wwm_json_response(400, ['ok' => false, 'error' => 'mail_disabled']);
+        }
+
+        $admin = User::findById(wwm_pdo(), $adminId);
+        $email = strtolower(trim((string)($admin['email'] ?? '')));
+        $name = trim((string)($admin['name'] ?? ''));
+        if ($admin === null || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            wwm_json_response(400, ['ok' => false, 'error' => 'no_email']);
+        }
+
+        $subject = trim(wwm_sanitize_utf8((string)($_POST['subject'] ?? '')));
+        $bodyText = wwm_sanitize_utf8((string)($_POST['body_text'] ?? ''));
+        $bodyHtml = wwm_sanitize_utf8((string)($_POST['body_html'] ?? ''));
+        if ($subject === '') {
+            wwm_json_response(400, ['ok' => false, 'error' => 'subject']);
+        }
+        if (trim($bodyText) === '' && trim($bodyHtml) === '') {
+            wwm_json_response(400, ['ok' => false, 'error' => 'empty']);
+        }
+
+        $vars = EmailTemplateRenderer::normalizeVars(EmailTemplateCatalog::sampleContext($id));
+        $vars['name'] = $name !== '' ? $name : 'there';
+        $vars['email'] = $email;
+        $subject = EmailTemplateRenderer::applyVars($subject, $vars);
+        $bodyText = EmailTemplateRenderer::applyVars($bodyText, $vars);
+        $html = trim($bodyHtml) !== '' ? EmailTemplateRenderer::applyVarsHtml($bodyHtml, $vars) : '';
+        if ($html !== '') {
+            $html = EmailTemplateDrafts::finalizeHtml($html, $vars) ?? $html;
+            $cover = str_starts_with($id, 'bf2026_') ? '' : (string)($vars['cover_url'] ?? '');
+            $html = wwm_email_ensure_cover_row(wwm_repair_email_html($html), $cover) ?? $html;
+        }
+
+        $message = [
+            'subject' => $subject,
+            'text' => $bodyText,
+            'html' => $html !== '' ? $html : null,
+        ];
+        $sent = MarketingEmailDelivery::isMarketingTemplate($id)
+            ? MarketingEmailDelivery::deliver($adminId, $email, $id, $message, [], 'editor-test', $name, null, null, false)
+            : EmailTracker::compose($adminId, $email, $id, $subject)->deliver($bodyText, $message['html'], []);
+
+        if (!$sent) {
+            wwm_log('email template test send failed template=' . $id . ' to=' . $email . ' ' . (string)Mailer::lastError());
+            wwm_json_response(500, ['ok' => false, 'error' => 'send_failed']);
+        }
+
+        wwm_json_response(200, ['ok' => true, 'email' => $email]);
     }
 
     public function update(string $id): void

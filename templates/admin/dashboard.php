@@ -34,13 +34,13 @@ $periodRevenueRub = \Wwm\Models\Payment::formatRevenueRub($periodRevenue);
 $dashPeriod = $period ?? '7d';
 $dashGroup = $group ?? 'day';
 $periodOptions = [
-    'yesterday' => 'Вчера',
+    'yesterday' => 'Yesterday',
     '7d' => '7 days',
     '30d' => '30 days',
     '90d' => '90 days',
     '365d' => '12 months',
     'all' => 'All time',
-    'custom' => 'Свой период',
+    'custom' => 'Custom range',
 ];
 $customFromVal = (string)($customFrom ?? '');
 $customToVal = (string)($customTo ?? '');

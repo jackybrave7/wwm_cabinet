@@ -42,8 +42,12 @@ $hasHtml = !empty($emailTemplate['has_html']) || !empty($draft['html']);
   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
 
   <div class="admin-card">
-    <h2>Subject</h2>
-    <input type="text" name="subject" class="admin-input" value="<?= wwm_escape((string)$draft['subject']) ?>" required>
+    <div class="email-subject-head">
+      <h2>Subject</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="email-send-test">Send test to me</button>
+    </div>
+    <input type="text" name="subject" class="email-subject-input" value="<?= wwm_escape((string)$draft['subject']) ?>" required>
+    <p class="field-hint" id="email-send-test-status">Sends this letter, as it is now, to <?= wwm_escape((string)($adminEmail ?? '')) ?>.</p>
   </div>
 
   <div class="admin-card">

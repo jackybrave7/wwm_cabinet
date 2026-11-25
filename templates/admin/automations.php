@@ -13,12 +13,12 @@ foreach ($courseSlugList as $courseOpt) {
     }
 }
 $listErrors = [
-    'csrf' => 'Сессия истекла. Повторите действие.',
-    'not_found' => 'Процесс не найден.',
-    'archive_failed' => 'Не удалось отправить в архив.',
-    'unarchive_failed' => 'Не удалось восстановить из архива.',
-    'delete_blocked' => 'Удаление возможно только для выключенного процесса без активных запусков. Сначала снимите Active или дождитесь завершения runs, либо отправьте в архив.',
-    'course_required' => 'Для выбранного типа входа укажите курс.',
+    'csrf' => 'Your session expired. Try again.',
+    'not_found' => 'Process not found.',
+    'archive_failed' => 'Could not archive the process.',
+    'unarchive_failed' => 'Could not restore the process from the archive.',
+    'delete_blocked' => 'You can delete only an inactive process with no active runs. Turn Active off or wait for the runs to finish, or archive it.',
+    'course_required' => 'This entry type needs a course.',
 ];
 $listErr = (string)($_GET['error'] ?? '');
 ?>
@@ -29,7 +29,7 @@ $listErr = (string)($_GET['error'] ?? '');
     <p class="field-hint">Business-process style drip flows inside the cabinet. New flows are <strong>draft (off)</strong> until you enable Active on each flow.</p>
   </div>
   <?php if (!$archivedView): ?>
-  <form method="post" action="/admin/automations/run" data-confirm="Запустить все шаги automations, у которых подошло время?">
+  <form method="post" action="/admin/automations/run" data-confirm="Run every automation step that is due?">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <button type="submit" class="btn btn-ghost btn-sm">Run due steps</button>
   </form>
@@ -45,23 +45,23 @@ $listErr = (string)($_GET['error'] ?? '');
 
 <div class="admin-card" style="margin-bottom:16px;padding:12px 16px">
   <div class="admin-table-actions" style="margin:0">
-    <a href="/admin/automations" class="btn btn-sm <?= !$archivedView ? 'btn-primary' : 'btn-ghost' ?>">Активные и черновики</a>
-    <a href="/admin/automations?view=archived" class="btn btn-sm <?= $archivedView ? 'btn-primary' : 'btn-ghost' ?>">Архив</a>
-    <a href="/admin/guide?section=automations" class="btn btn-ghost btn-sm">Инструкция</a>
+    <a href="/admin/automations" class="btn btn-sm <?= !$archivedView ? 'btn-primary' : 'btn-ghost' ?>">Active and drafts</a>
+    <a href="/admin/automations?view=archived" class="btn btn-sm <?= $archivedView ? 'btn-primary' : 'btn-ghost' ?>">Archive</a>
+    <a href="/admin/guide?section=automations" class="btn btn-ghost btn-sm">Guide</a>
   </div>
 </div>
 
 <?php if (!$archivedView && $entryModeLabels !== []): ?>
 <div class="admin-card" style="margin-bottom:16px">
-  <h2 class="admin-team-section-title" style="margin-top:0">Новый процесс</h2>
+  <h2 class="admin-team-section-title" style="margin-top:0">New process</h2>
   <form method="post" action="/admin/automations/create" class="automation-create-form">
     <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
     <label class="field">
-      <span class="field-label">Название</span>
-      <input type="text" name="title" required placeholder="Например: Post-purchase cross-sell">
+      <span class="field-label">Name</span>
+      <input type="text" name="title" required placeholder="For example: Post-purchase cross-sell">
     </label>
     <label class="field">
-      <span class="field-label">Тип входа</span>
+      <span class="field-label">Entry type</span>
       <select name="entry_mode" id="automation-create-entry-mode">
         <?php foreach ($entryModeLabels as $mode => $modeLabel): ?>
           <option value="<?= wwm_escape($mode) ?>"><?= wwm_escape($modeLabel) ?></option>
@@ -69,10 +69,10 @@ $listErr = (string)($_GET['error'] ?? '');
       </select>
     </label>
     <label class="field" id="automation-create-course-wrap">
-      <span class="field-label">Курс</span>
+      <span class="field-label">Course</span>
       <?php if ($courseSlugList !== []): ?>
         <select name="course_slug" id="automation-create-course">
-          <option value="">— не привязан —</option>
+          <option value="">— not linked —</option>
           <?php foreach ($courseSlugList as $courseOpt): ?>
             <?php
               $slug = is_array($courseOpt) ? (string)($courseOpt['value'] ?? '') : (string)$courseOpt;
@@ -86,11 +86,11 @@ $listErr = (string)($_GET['error'] ?? '');
       <?php endif; ?>
     </label>
     <div class="automation-create-form__submit">
-      <button type="submit" class="btn btn-primary">Создать и открыть редактор</button>
+      <button type="submit" class="btn btn-primary">Create and open the editor</button>
     </div>
   </form>
   <p class="field-hint" style="margin-top:12px">
-    Готовый cross-sell после оплаты уже в списке ниже (<code>post-purchase-cross-sell</code>) — синхронизируется из репозитория при каждом запросе к кабинету.
+    The ready-made post-purchase cross-sell is already in the list below (<code>post-purchase-cross-sell</code>). It syncs from the repository on every request to the cabinet.
   </p>
   <script>
   (function () {
@@ -123,7 +123,7 @@ $listErr = (string)($_GET['error'] ?? '');
       </thead>
       <tbody>
         <?php if ($rows === []): ?>
-          <tr><td colspan="6" class="field-hint"><?= $archivedView ? 'Архив пуст.' : 'Нет процессов. Выполните migrate.php или откройте любую страницу админки (схема подтянется автоматически).' ?></td></tr>
+          <tr><td colspan="6" class="field-hint"><?= $archivedView ? 'The archive is empty.' : 'No processes yet. Run migrate.php or open any admin page (the flows are pulled in automatically).' ?></td></tr>
         <?php endif; ?>
         <?php foreach ($rows as $row): ?>
           <?php
@@ -165,23 +165,23 @@ $listErr = (string)($_GET['error'] ?? '');
             <td class="col-num"><?= $activeRuns ?></td>
             <td class="admin-table-actions">
               <a href="/admin/automations/<?= $id ?>/edit" class="btn btn-ghost btn-sm">Edit</a>
-              <form method="post" action="/admin/automations/<?= $id ?>/duplicate" class="inline-form" data-confirm="Создать копию «<?= wwm_escape($title) ?>»? Копия будет выключена.">
+              <form method="post" action="/admin/automations/<?= $id ?>/duplicate" class="inline-form" data-confirm="Create a copy of “<?= wwm_escape($title) ?>”? The copy will be off.">
                 <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                 <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
               </form>
               <?php if ($archivedView): ?>
-                <form method="post" action="/admin/automations/<?= $id ?>/unarchive" class="inline-form" data-confirm="Восстановить «<?= wwm_escape($title) ?>» из архива?">
+                <form method="post" action="/admin/automations/<?= $id ?>/unarchive" class="inline-form" data-confirm="Restore “<?= wwm_escape($title) ?>” from the archive?">
                   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                   <button type="submit" class="btn btn-ghost btn-sm">Restore</button>
                 </form>
               <?php else: ?>
-                <form method="post" action="/admin/automations/<?= $id ?>/archive" class="inline-form" data-confirm="Отправить «<?= wwm_escape($title) ?>» в архив? Процесс будет выключен, новые ученики не попадут в цепочку.">
+                <form method="post" action="/admin/automations/<?= $id ?>/archive" class="inline-form" data-confirm="Archive “<?= wwm_escape($title) ?>”? The process will be turned off, and new students will not enter it.">
                   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                   <button type="submit" class="btn btn-ghost btn-sm">Archive</button>
                 </form>
               <?php endif; ?>
               <?php if ($canDelete): ?>
-                <form method="post" action="/admin/automations/<?= $id ?>/delete" class="inline-form" data-confirm-danger data-confirm="Удалить «<?= wwm_escape($title) ?>» безвозвратно? Удалятся и все записи запусков в базе.">
+                <form method="post" action="/admin/automations/<?= $id ?>/delete" class="inline-form" data-confirm-danger data-confirm="Delete “<?= wwm_escape($title) ?>” permanently? Every run record in the database will be deleted too.">
                   <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </form>
@@ -193,6 +193,6 @@ $listErr = (string)($_GET['error'] ?? '');
     </table>
   </div>
   <?php if (!$archivedView): ?>
-  <p class="field-hint" style="margin-top:16px">После входа ученик сразу идёт до первой паузы. Дальше cron: <code>php scripts/run-email-automations.php</code> каждые 5–15 минут.</p>
+  <p class="field-hint" style="margin-top:16px">After a student enters, they move straight to the first pause. After that, cron runs <code>php scripts/run-email-automations.php</code> every 5–15 minutes.</p>
   <?php endif; ?>
 </div>

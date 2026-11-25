@@ -40,13 +40,13 @@ final class EmailAutomation
 
         return [
 
-            self::ENTRY_DEMO_GRANT => 'Демо по курсу (AVO / API)',
+            self::ENTRY_DEMO_GRANT => 'Demo for a course (AVO / API)',
 
-            self::ENTRY_MANUAL => 'Вручную (допродажи, сегменты)',
+            self::ENTRY_MANUAL => 'Manual (upsells, segments)',
 
-            self::ENTRY_PAYMENT_ANY => 'После любой оплаты',
+            self::ENTRY_PAYMENT_ANY => 'After any payment',
 
-            self::ENTRY_PAYMENT_COURSE => 'После оплаты выбранного курса',
+            self::ENTRY_PAYMENT_COURSE => 'After payment for a chosen course',
 
             self::ENTRY_DEMO_FORM => 'Cabinet demo form (this course)',
 
@@ -654,9 +654,9 @@ final class EmailAutomation
 
         $title = trim((string)$row['title']);
 
-        if ($title !== '' && !str_ends_with($title, '(копия)')) {
+        if ($title !== '' && !str_ends_with($title, '(copy)') && !str_ends_with($title, '(копия)')) {
 
-            $title .= ' (копия)';
+            $title .= ' (copy)';
 
         }
 

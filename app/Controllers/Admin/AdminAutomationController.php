@@ -58,7 +58,7 @@ final class AdminAutomationController
 
     public function edit(int $id): void
     {
-        Session::requireSuperAdmin();
+        $adminId = Session::requireSuperAdmin();
         $pdo = wwm_pdo();
         $row = EmailAutomation::find($pdo, $id);
         if ($row === null) {
@@ -128,6 +128,9 @@ final class AdminAutomationController
         $flowEditorConfig['node_waiting'] = $nodeWaiting;
         $flowEditorConfig['step_events_url'] = '/admin/automations/' . $id . '/step-events';
         $flowEditorConfig['advance_run_url'] = '/admin/automations/' . $id . '/runs';
+        $adminUser = User::findById($pdo, $adminId) ?? [];
+        $flowEditorConfig['admin_email'] = (string)($adminUser['email'] ?? '');
+        $flowEditorConfig['test_send_url'] = '/admin/automations/' . $id . '/test-send';
 
         $openRunsPanel = $flowRunsPage > 1
             || !empty($_GET['enrolled'])
@@ -382,7 +385,7 @@ final class AdminAutomationController
             $after = EmailAutomationRun::find($pdo, $runId);
             $this->jsonResponse([
                 'ok' => true,
-                'message' => 'Ученик протолкнут дальше по процессу.',
+                'message' => 'The student was moved forward in the process.',
                 'run_id' => $runId,
                 'status' => is_array($after) ? (string)($after['status'] ?? '') : '',
                 'current_node_id' => is_array($after) ? (string)($after['current_node_id'] ?? '') : '',
@@ -390,6 +393,56 @@ final class AdminAutomationController
         }
 
         wwm_redirect('/admin/automations/' . $id . '/edit?advanced=1#automation-runs');
+    }
+
+    public function testSend(int $id): void
+    {
+        $adminId = Session::requireSuperAdmin();
+        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+            $this->jsonResponse(['ok' => false, 'error' => 'csrf'], 403);
+        }
+
+        $pdo = wwm_pdo();
+        $row = EmailAutomation::find($pdo, $id);
+        if ($row === null) {
+            $this->jsonResponse(['ok' => false, 'error' => 'not_found'], 404);
+        }
+
+        $template = trim((string)($_POST['template'] ?? ''));
+        if ($template === '' || \Wwm\Services\EmailTemplateCatalog::find($template) === null) {
+            $this->jsonResponse(['ok' => false, 'error' => 'template'], 400);
+        }
+        $mail = wwm_config()['mail'] ?? [];
+        if (empty($mail['enabled'])) {
+            $this->jsonResponse(['ok' => false, 'error' => 'mail_disabled'], 400);
+        }
+
+        $admin = User::findById($pdo, $adminId);
+        $email = strtolower(trim((string)($admin['email'] ?? '')));
+        if ($admin === null || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->jsonResponse(['ok' => false, 'error' => 'no_email'], 400);
+        }
+
+        $courseSlug = strtolower(trim((string)($_POST['course_slug'] ?? '')));
+        $courseSlug = preg_replace('/[^a-z0-9\-]/', '', $courseSlug) ?? '';
+        if ($courseSlug === '') {
+            $courseSlug = trim((string)($row['course_slug'] ?? ''));
+        }
+        if ($courseSlug === '') {
+            $courseSlug = 'elke-en';
+        }
+
+        try {
+            $sent = (new \Wwm\Services\CabinetMail())->sendEditorTest($template, $admin, $courseSlug);
+        } catch (\Throwable $e) {
+            wwm_log('automation test send failed template=' . $template . ' ' . $e->getMessage());
+            $this->jsonResponse(['ok' => false, 'error' => 'send_failed'], 500);
+        }
+        if (!$sent) {
+            $this->jsonResponse(['ok' => false, 'error' => 'send_failed'], 500);
+        }
+
+        $this->jsonResponse(['ok' => true, 'email' => $email]);
     }
 
     public function importAvo(int $id): void
@@ -570,25 +623,25 @@ final class AdminAutomationController
     private function flashMessage(): string
     {
         if (!empty($_GET['saved'])) {
-            return 'Сохранено.';
+            return 'Saved.';
         }
         if (!empty($_GET['imported'])) {
             return 'Imported from AVO export. Review the flow JSON before activating.';
         }
         if (!empty($_GET['duplicated'])) {
-            return 'Копия создана как черновик (выключена). Проверьте slug и схему перед включением.';
+            return 'Copy created as a draft (off). Check the slug and the flow before turning it on.';
         }
         if (!empty($_GET['created'])) {
-            return 'Новый процесс создан. Настройте схему и тип входа, затем включите Active.';
+            return 'New process created. Set up the flow and the entry type, then turn Active on.';
         }
         if (!empty($_GET['enrolled'])) {
-            return 'Ученик добавлен в процесс (или уже был в активном run).';
+            return 'Student added to the process (or already in an active run).';
         }
         if (!empty($_GET['cancelled'])) {
-            return 'Ученик снят с процесса. Письма и паузы больше не идут.';
+            return 'Student removed from the process. Letters and pauses stop.';
         }
         if (!empty($_GET['advanced'])) {
-            return 'Ученик протолкнут дальше по процессу (до следующей паузы или конца).';
+            return 'Student moved forward in the process (up to the next pause or the end).';
         }
         if (isset($_GET['ran'])) {
             return 'Processed ' . (int)$_GET['ran'] . ' automation run(s).';
@@ -600,13 +653,13 @@ final class AdminAutomationController
     private function listFlashMessage(): string
     {
         if (!empty($_GET['archived'])) {
-            return 'Процесс в архиве и выключен. Новые ученики в него не попадают.';
+            return 'Process archived and turned off. New students will not enter it.';
         }
         if (!empty($_GET['unarchived'])) {
-            return 'Процесс восстановлен из архива (по умолчанию всё ещё выключен — включите Active при необходимости).';
+            return 'Process restored from the archive (still off by default — turn Active on if you need it).';
         }
         if (!empty($_GET['deleted'])) {
-            return 'Процесс удалён вместе с историей запусков в базе.';
+            return 'Process deleted, including its run history in the database.';
         }
         if (isset($_GET['ran'])) {
             return 'Processed ' . (int)$_GET['ran'] . ' automation run(s).';
@@ -708,7 +761,7 @@ final class AdminAutomationController
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
         $payload = $ok
-            ? ['ok' => true, 'message' => 'Сохранено.']
+            ? ['ok' => true, 'message' => 'Saved.']
             : ['ok' => false, 'error' => $errorCode, 'detail' => $detail];
         echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
