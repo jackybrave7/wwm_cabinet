@@ -911,7 +911,7 @@
       + '<div class="admin-table-wrap admin-table-wrap--profile">'
       + '<table class="admin-table admin-table-compact admin-table--profile">'
       + '<thead><tr>'
-      + '<th>Name</th><th>Email</th><th class="col-date">Date</th>'
+      + '<th>Name</th><th>Email</th><th class="automation-node-people__mail-col">Letter</th><th class="col-date">Date</th>'
       + '<th class="col-tight automation-node-people__actions-col">Action</th>'
       + '</tr></thead>'
       + '<tbody></tbody></table></div>'
@@ -936,9 +936,27 @@
     return el;
   }
 
+  function setPeopleMailColVisible(modal, visible) {
+    const col = modal.querySelector('.automation-node-people__mail-col');
+    if (col) {
+      col.hidden = !visible;
+    }
+  }
+
+  function mailMarksHtml(row) {
+    const bits = [];
+    if (row && row.opened) {
+      bits.push('<span class="automation-mail-mark automation-mail-mark--open">Opened</span>');
+    }
+    if (row && row.clicked) {
+      bits.push('<span class="automation-mail-mark automation-mail-mark--click">Clicked</span>');
+    }
+    return bits.length ? bits.join(' ') : '—';
+  }
+
   function peopleColSpan(options) {
     const opts = options || {};
-    return 3 + (opts.allowAdvance ? 1 : 0);
+    return 3 + (opts.showMail ? 1 : 0) + (opts.allowAdvance ? 1 : 0);
   }
 
   function setPeopleActionsColVisible(modal, visible) {
@@ -973,6 +991,7 @@
     const opts = options || {};
     const nodeId = String(opts.nodeId || '');
     const allowAdvance = !!opts.allowAdvance;
+    const showMail = !!opts.showMail;
     const colSpan = peopleColSpan(opts);
     const people = uniquePeople(rows);
     if (people.length === 0) {
@@ -989,6 +1008,7 @@
       return '<tr>'
         + '<td><a href="' + escapeHtml(url) + '">' + escapeHtml(label) + '</a></td>'
         + '<td>' + (email !== '' ? '<a href="' + escapeHtml(url) + '">' + escapeHtml(email) + '</a>' : '—') + '</td>'
+        + (showMail ? '<td class="automation-node-people__mail">' + mailMarksHtml(row) + '</td>' : '')
         + '<td class="col-date">' + escapeHtml(formatPersonDate(row.created_at || (waiting && waiting.created_at))) + '</td>'
         + (allowAdvance ? '<td class="col-tight">' + (actions || '—') + '</td>' : '')
         + '</tr>';
@@ -1168,8 +1188,11 @@
       }
     });
     hint.textContent = label;
+    const node = (definition.nodes || {})[nodeId] || {};
+    const showMail = !isWaiting && String(node.type || '') === 'send_template';
+    setPeopleMailColVisible(modal, showMail);
     setPeopleActionsColVisible(modal, true);
-    const listOptions = { allowAdvance: true, nodeId };
+    const listOptions = { allowAdvance: true, nodeId, showMail };
     tbody.innerHTML = '<tr><td colspan="' + peopleColSpan(listOptions) + '" class="field-hint">Loading…</td></tr>';
     modal.classList.add('is-open');
 
@@ -1211,8 +1234,23 @@
       + '<span class="automation-df-node__badge">' + escapeHtml(badge) + '</span>'
       + '<div class="automation-df-node__title">' + escapeHtml(title) + '</div>'
       + (sub ? '<div class="automation-df-node__sub">' + escapeHtml(sub) + '</div>' : '')
+      + (type === 'send_template' ? mailStatsLine(String(data.node_id || '')) : '')
       + '</div>'
     );
+  }
+
+  function mailStatsLine(nodeId) {
+    const all = config.mail_stats || {};
+    const row = all[nodeId] || {};
+    const sent = Number(row.sent) || 0;
+    const opened = Number(row.opened) || 0;
+    const clicked = Number(row.clicked) || 0;
+    const title = 'Sent ' + sent + ', opened ' + opened + ', clicked ' + clicked;
+    return '<div class="automation-df-node__mail" title="' + escapeHtml(title) + '">'
+      + '<span>' + escapeHtml(String(sent)) + ' sent</span>'
+      + '<span>' + escapeHtml(String(opened)) + ' opened</span>'
+      + '<span>' + escapeHtml(String(clicked)) + ' clicked</span>'
+      + '</div>';
   }
 
   function subtitleFor(data) {

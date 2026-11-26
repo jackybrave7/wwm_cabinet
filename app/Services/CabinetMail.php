@@ -22,7 +22,9 @@ final class CabinetMail
         string $email,
         ?string $name = null,
         ?string $courseSlug = null,
-        ?int $avoContactId = null
+        ?int $avoContactId = null,
+        ?int $automationId = null,
+        ?string $automationNodeId = null,
     ): array {
         if (EmailTemplateCatalog::find($template) === null) {
             throw new \InvalidArgumentException('Unknown template');
@@ -62,7 +64,16 @@ final class CabinetMail
         $message = $this->buildMessage($template, $user, $course, $courseSlug);
         $links = $this->trackedLinks($template, $message, $course);
 
-        return $this->deliverComposed($userId, $email, $template, $message, $links, $courseSlug);
+        return $this->deliverComposed(
+            $userId,
+            $email,
+            $template,
+            $message,
+            $links,
+            $courseSlug,
+            $automationId,
+            $automationNodeId,
+        );
     }
 
     /**
@@ -138,10 +149,15 @@ final class CabinetMail
         array $message,
         array $links,
         string $courseSlug,
+        ?int $automationId = null,
+        ?string $automationNodeId = null,
     ): array {
 
-        $emailSent = EmailTracker::compose($userId, $email, $template, $message['subject'])
-            ->deliver($message['text'], $message['html'], $links);
+        $tracker = EmailTracker::compose($userId, $email, $template, $message['subject']);
+        if ($automationId !== null && $automationId > 0 && trim((string)$automationNodeId) !== '') {
+            $tracker->forAutomation($automationId, (string)$automationNodeId);
+        }
+        $emailSent = $tracker->deliver($message['text'], $message['html'], $links);
 
         wwm_log(sprintf(
             'cabinet mail template=%s user_id=%d course=%s sent=%s',
@@ -167,6 +183,7 @@ final class CabinetMail
         array $user,
         string $courseSlug,
         int $automationId,
+        string $nodeId = '',
     ): bool {
         if (!MarketingEmailDelivery::isMarketingTemplate($template)) {
             throw new \InvalidArgumentException('Not a marketing automation template');
@@ -200,6 +217,8 @@ final class CabinetMail
             $links,
             $listId,
             $name,
+            $automationId,
+            $nodeId,
         );
     }
 

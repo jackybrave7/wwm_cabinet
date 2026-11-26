@@ -574,6 +574,38 @@ select[data-delay-zone] {
   line-height: 1.35;
 }
 
+.automation-df-node__mail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #1e293b;
+}
+
+.automation-mail-mark {
+  display: inline-block;
+  margin: 0 4px 2px 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.automation-mail-mark--open {
+  background: #e8f6ee;
+  color: #166534;
+}
+
+.automation-mail-mark--click {
+  background: #e8eefc;
+  color: #1e3a8a;
+}
+
 .automation-df-node--trigger .automation-df-node__badge { background: #dbeafe; color: #1d4ed8; }
 .automation-df-node--grant_demo .automation-df-node__badge { background: #ccfbf1; color: #0f766e; }
 .automation-df-node--delay .automation-df-node__badge { background: #ede9fe; color: #6d28d9; }

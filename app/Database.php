@@ -36,6 +36,8 @@ final class Database
         self::seedPostPurchaseCrossSellAutomation($pdo);
         self::seedBlackFriday2026Automation($pdo);
         self::seedBlackFriday2026Buyers($pdo);
+        self::ensureAutomationMailColumns($pdo);
+        self::backfillAutomationMailLinksOnce($pdo);
         self::syncElkeDemoAutomationDefinitionIfNewer($pdo);
         self::seedElkeDemoV2Automation($pdo);
         self::dropPaidTemplateThatIncludesPassword($pdo);
@@ -955,6 +957,33 @@ SQL);
         }
     }
 
+    private static function ensureAutomationMailColumns(PDO $pdo): void
+    {
+        self::ensureColumn($pdo, 'email_messages', 'automation_id', 'INTEGER');
+        self::ensureColumn($pdo, 'email_messages', 'automation_node_id', 'TEXT');
+        $pdo->exec(
+            'CREATE INDEX IF NOT EXISTS idx_email_messages_automation_node ON email_messages(automation_id, automation_node_id)'
+        );
+    }
+
+    /**
+     * One pass after deploy. New letters store the block id as they are sent.
+     */
+    private static function backfillAutomationMailLinksOnce(PDO $pdo): void
+    {
+        $marker = 'automation-mail-link-backfill';
+        $seen = $pdo->prepare('SELECT 1 FROM processed_events WHERE event_key = ?');
+        $seen->execute([$marker]);
+        if ($seen->fetchColumn()) {
+            return;
+        }
+
+        self::backfillAutomationMailLinks($pdo);
+        $pdo->prepare(
+            'INSERT OR IGNORE INTO processed_events (event_key, payload, created_at) VALUES (?, ?, ?)'
+        )->execute([$marker, '{}', gmdate('c')]);
+    }
+
     /**
      * Tie already-sent automation letters to the step that sent them,
      * so the editor can show opens and clicks on that block.
@@ -993,7 +1022,8 @@ SQL);
                     continue;
                 }
                 $delta = abs($sentTs - $eventTs);
-                if ($delta > 86400) {
+                // Letters already sent before a block id was stored on the message.
+                if ($delta > 3 * 86400) {
                     continue;
                 }
                 if ($bestDelta === null || $delta < $bestDelta) {

@@ -89,6 +89,9 @@ final class MarketingEmailDelivery
         }
 
         $tracker = EmailTracker::compose($userId, $email, $templateId, $message['subject']);
+        if ($automationId !== null && $automationId > 0 && trim((string)$automationNodeId) !== '') {
+            $tracker->forAutomation($automationId, (string)$automationNodeId);
+        }
 
         return $tracker->deliver($text, $html, $trackLinks, $headers);
     }

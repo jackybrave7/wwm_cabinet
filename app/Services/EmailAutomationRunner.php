@@ -563,14 +563,18 @@ final class EmailAutomationRunner
                     $template,
                     $user,
                     $templateCourse,
-                    (int)$automation['id']
+                    (int)$automation['id'],
+                    $nodeId
                 );
             } else {
                 (new CabinetMail())->sendTemplate(
                     $template,
                     (string)$user['email'],
                     trim((string)($user['name'] ?? '')) ?: null,
-                    $templateCourse
+                    $templateCourse,
+                    null,
+                    (int)$automation['id'],
+                    $nodeId
                 );
             }
         } catch (\Throwable $e) {

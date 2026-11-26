@@ -21,7 +21,7 @@ return [
     'meta' => [
         'title' => 'Administrator guide',
         'revision' => '2026-11-26',
-        'changelog' => 'A condition can mean bought ever, or bought after joining the process.',
+        'changelog' => 'An email block shows how many letters were sent, opened, and clicked.',
     ],
     'sections' => [
         [
@@ -115,7 +115,7 @@ return [
             'body' => [
                 ['type' => 'p', 'text' => 'Email sequences: pauses, conditions, letters, and a staff notice. A demo expires on the course timer (demo_hours) — there is no “revoke demo” block. Flows live in the database; a newly imported one is off by default.'],
                 ['type' => 'ul', 'items' => [
-                    '<strong>Blocks:</strong> Start — entry type and the process course (in the block properties). Grant demo — course, and skips when the course is already bought or a demo is already active. Pause — a duration, or wait until a date and time. Condition — yes and no branches. “Bought any course” means ever. “Bought any course after joining this process” means a payment dated after that person was enrolled. Also: this course, an active demo, the lesson opened. Email — a template and a course slug; a cross-sell letter requires a course; optional “do not send if this course is already bought”. Staff — checkboxes for administrators (plus super-admins from config), subject and text with placeholders. End — a label for statistics (converted / left without buying).',
+                    '<strong>Blocks:</strong> Start — entry type and the process course (in the block properties). Grant demo — course, and skips when the course is already bought or a demo is already active. Pause — a duration, or wait until a date and time. Condition — yes and no branches. “Bought any course” means ever. “Bought any course after joining this process” means a payment dated after that person was enrolled. Also: this course, an active demo, the lesson opened. Email — a template and a course slug; a cross-sell letter requires a course; optional “do not send if this course is already bought”. The block shows sent, opened, and clicked. Open the list of people who passed it to see who opened and who clicked. Staff — checkboxes for administrators (plus super-admins from config), subject and text with placeholders. End — a label for statistics (converted / left without buying).',
                     'While Active is off, students do not enter the sequence, cron sends nothing, and demo works as before through AVO.',
                     'When you turn Active on, turn off the matching business process in AVO. Right after entry the student moves through blocks until the first pause. After that, cron every 10 minutes: `/usr/bin/php8.1 /home/b/brateclis/my_worldwatercolormasters_art/scripts/run-email-automations.php >> /home/b/brateclis/automations.log 2>&1` (the same script also sets AVO logged_in tags from the queue after a fast sign-in). If someone is stuck on Start from before this deploy, use Run due steps on the process list.',
                     'Editor: a visual flow (blocks on the left, canvas, properties on the right) plus JSON under Advanced. Saving syncs the definition the engine uses.',

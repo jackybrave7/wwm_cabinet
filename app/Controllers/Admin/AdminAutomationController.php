@@ -124,6 +124,7 @@ final class AdminAutomationController
         $flowEditorConfig = EmailAutomationNodeCatalog::editorConfig($row);
         $flowEditorConfig['automation_id'] = $id;
         $flowEditorConfig['step_stats'] = $stepStatsByNode;
+        $flowEditorConfig['mail_stats'] = \Wwm\Models\EmailMessage::automationNodeStats($pdo, $id);
         $flowEditorConfig['node_occupancy'] = $nodeOccupancy;
         $flowEditorConfig['node_waiting'] = $nodeWaiting;
         $flowEditorConfig['step_events_url'] = '/admin/automations/' . $id . '/step-events';
@@ -516,12 +517,17 @@ final class AdminAutomationController
         }
 
         $events = EmailAutomationStepEvent::listByNode($pdo, $id, $nodeId);
+        $engagement = \Wwm\Models\EmailMessage::automationNodeEngagement($pdo, $id, $nodeId);
         $payload = [
             'node_id' => $nodeId,
             'summary' => $summary,
-            'events' => array_map(static function (array $ev): array {
+            'events' => array_map(static function (array $ev) use ($engagement): array {
+                $mark = $engagement[(int)$ev['user_id']] ?? ['opened' => false, 'clicked' => false];
+
                 return $ev + [
                     'student_url' => '/admin/students/' . (int)$ev['user_id'],
+                    'opened' => $mark['opened'],
+                    'clicked' => $mark['clicked'],
                 ];
             }, $events),
         ];
