@@ -232,6 +232,26 @@ final class AdminStudentController
         wwm_redirect('/admin/students/' . $userId . '?created=1');
     }
 
+    public function viewCabinet(int $id): void
+    {
+        Session::requireAdminStudents();
+        $student = User::findById(wwm_pdo(), $id);
+        if ($student === null) {
+            wwm_redirect('/admin/students');
+        }
+
+        Session::startStudentPreview($id);
+        wwm_redirect('/');
+    }
+
+    public function exitStudentPreview(): void
+    {
+        Session::requireAdminStudents();
+        $studentId = Session::studentPreviewId();
+        Session::stopStudentPreview();
+        wwm_redirect($studentId !== null ? '/admin/students/' . $studentId : '/admin/students');
+    }
+
     public function show(int $id): void
     {
         $adminId = Session::requireAdminStudents();

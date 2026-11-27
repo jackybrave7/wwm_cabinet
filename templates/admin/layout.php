@@ -21,6 +21,18 @@
   <?php endif; ?>
 </head>
 <body class="admin-body">
+  <?php
+    $previewStudentId = \Wwm\Auth\Session::studentPreviewId();
+    $previewStudent = $previewStudentId !== null ? \Wwm\Models\User::findById(wwm_pdo(), $previewStudentId) : null;
+  ?>
+  <?php if (is_array($previewStudent)): ?>
+    <div class="cabinet-preview-bar">
+      <div class="wrap cabinet-preview-bar-inner">
+        <p>Still viewing <?= wwm_escape((string)($previewStudent['name'] ?: $previewStudent['email'])) ?>’s cabinet.</p>
+        <a class="btn btn-ghost btn-sm" href="/admin/student-preview/exit">Leave their cabinet</a>
+      </div>
+    </div>
+  <?php endif; ?>
   <div class="admin-shell">
     <?php require __DIR__ . '/partials/sidebar.php'; ?>
     <div class="admin-main">

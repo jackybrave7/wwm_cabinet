@@ -54,6 +54,7 @@ $progressCourseCount = count($courseBlocksList);
     <p class="field-hint"><?= wwm_escape((string)$student['email']) ?> · registered <?= wwm_escape($formatDate(\Wwm\Models\User::registeredAtForDisplay($student))) ?><?php if (\Wwm\Models\User::isAvoBulkImport($student)): ?> <span class="field-hint">(AVO import)</span><?php endif; ?></p>
   </div>
   <div class="admin-topbar-actions">
+    <a class="btn btn-ghost btn-sm" href="/admin/students/<?= $id ?>/view-cabinet">View cabinet</a>
     <form method="post" action="/admin/students/<?= $id ?>/send-login-credentials" class="inline-form"
           data-confirm="Send sign-in details to <?= wwm_escape((string)$student['email']) ?>? A new password will be set and included in the email.">
       <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">

@@ -13,8 +13,12 @@ final class CourseController
 {
     public function show(string $slug): void
     {
-        $userId = Session::requireLogin();
+        $userId = Session::cabinetUserId();
         $user = User::findById(wwm_pdo(), $userId);
+        if (!is_array($user) && Session::studentPreviewId() !== null) {
+            Session::stopStudentPreview();
+            wwm_redirect('/admin/students');
+        }
         $catalog = new CourseCatalog();
         $course = $catalog->get($slug);
 
@@ -74,6 +78,7 @@ final class CourseController
             'accessLabel' => $access['access_label'],
             'demoExpiresAt' => $access['demo_expires_at'] ?? null,
             'completedLessons' => $completedLessons,
+            'cabinetReadOnly' => Session::studentPreviewId() !== null,
         ]);
     }
 }

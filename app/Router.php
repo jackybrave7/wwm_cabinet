@@ -228,6 +228,14 @@ final class Router
             (new AdminStudentController())->store();
             return;
         }
+        if ($method === 'GET' && preg_match('#^/admin/students/(\d+)/view-cabinet$#', $path, $m)) {
+            (new AdminStudentController())->viewCabinet((int)$m[1]);
+            return;
+        }
+        if ($method === 'GET' && $path === '/admin/student-preview/exit') {
+            (new AdminStudentController())->exitStudentPreview();
+            return;
+        }
         if ($method === 'GET' && preg_match('#^/admin/students/(\d+)$#', $path, $m)) {
             (new AdminStudentController())->show((int)$m[1]);
             return;

@@ -589,6 +589,70 @@ a:hover { text-decoration: underline; }
   display: block;
 }
 
+.lesson-done-mark {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid #c5c5c5;
+  background: #fff;
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.lesson-nav-item .lesson-done-mark {
+  width: 26px;
+  height: 26px;
+  margin-top: 0;
+}
+
+.lesson-done-mark.is-done {
+  background: #1f8a4c;
+  border-color: #1f8a4c;
+  color: #fff;
+}
+
+.lesson-done-mark svg {
+  display: block;
+}
+
+.cabinet-preview-bar {
+  background: #1e293b;
+  color: #fff;
+}
+
+.cabinet-preview-bar-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.cabinet-preview-bar p {
+  margin: 0;
+}
+
+.cabinet-preview-bar .btn {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.video-block-preview,
+.video-block-preview iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .lesson-content h3 {
   font-family: 'Fraunces', Georgia, serif;
   font-size: 1.2rem;

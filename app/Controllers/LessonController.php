@@ -16,8 +16,12 @@ final class LessonController
 {
     public function show(string $slug, int $num): void
     {
-        $userId = Session::requireLogin();
+        $userId = Session::cabinetUserId();
         $user = User::findById(wwm_pdo(), $userId);
+        if (!is_array($user) && Session::studentPreviewId() !== null) {
+            Session::stopStudentPreview();
+            wwm_redirect('/admin/students');
+        }
         $catalog = new CourseCatalog();
         $course = $catalog->get($slug);
 
@@ -55,10 +59,13 @@ final class LessonController
             return;
         }
 
-        // Opening the URL (including auto-login after signup) is not a view.
-        // The page pings markViewed after dwell or video start.
-        // Last-opened is a separate resume pointer and is stored on every visit.
-        LessonProgress::touch(wwm_pdo(), $userId, $slug, $num);
+        $readOnly = Session::studentPreviewId() !== null;
+        if (!$readOnly) {
+            // Opening the URL (including auto-login after signup) is not a view.
+            // The page pings markViewed after dwell or video start.
+            // Last-opened is a separate resume pointer and is stored on every visit.
+            LessonProgress::touch(wwm_pdo(), $userId, $slug, $num);
+        }
         $completedLessons = LessonProgress::completedMap(wwm_pdo(), $userId, $slug);
 
         $lessonAccess = [];
@@ -90,8 +97,9 @@ final class LessonController
             'nextLesson' => $nextLesson,
             'prevLocked' => $prevLocked,
             'nextLocked' => $nextLocked,
-            'trackLessonView' => !empty($lesson['demo']),
+            'trackLessonView' => !$readOnly && !empty($lesson['demo']),
             'completedLessons' => $completedLessons,
+            'cabinetReadOnly' => $readOnly,
         ]);
     }
 
@@ -99,6 +107,11 @@ final class LessonController
     {
         $userId = Session::requireLogin();
         header('Content-Type: application/json');
+        if (Session::studentPreviewId() !== null) {
+            http_response_code(403);
+            echo '{"ok":false}';
+            return;
+        }
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             http_response_code(400);
             echo '{"ok":false}';
@@ -137,6 +150,11 @@ final class LessonController
     public function markViewed(string $slug, int $num): void
     {
         $userId = Session::requireLogin();
+        if (Session::studentPreviewId() !== null) {
+            header('Content-Type: application/json');
+            echo '{"ok":true}';
+            return;
+        }
         if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
             http_response_code(400);
             header('Content-Type: application/json');

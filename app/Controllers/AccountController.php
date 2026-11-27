@@ -10,6 +10,9 @@ final class AccountController
 {
     public function show(): void
     {
+        if (Session::studentPreviewId() !== null) {
+            wwm_redirect('/');
+        }
         $userId = Session::requireLogin();
         $user = User::findById(wwm_pdo(), $userId);
 
@@ -25,6 +28,9 @@ final class AccountController
 
     public function updateProfile(): void
     {
+        if (Session::studentPreviewId() !== null) {
+            wwm_redirect('/');
+        }
         $userId = Session::requireLogin();
         $user = User::findById(wwm_pdo(), $userId);
 
@@ -53,6 +59,9 @@ final class AccountController
 
     public function updatePassword(): void
     {
+        if (Session::studentPreviewId() !== null) {
+            wwm_redirect('/');
+        }
         $userId = Session::requireLogin();
         $user = User::findById(wwm_pdo(), $userId);
 

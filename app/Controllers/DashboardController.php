@@ -12,8 +12,12 @@ final class DashboardController
 {
     public function index(): void
     {
-        $userId = Session::requireLogin();
+        $userId = Session::cabinetUserId();
         $user = User::findById(wwm_pdo(), $userId);
+        if (!is_array($user) && Session::studentPreviewId() !== null) {
+            Session::stopStudentPreview();
+            wwm_redirect('/admin/students');
+        }
         $catalog = new CourseCatalog();
         $checker = new AccessChecker(wwm_pdo());
         $courses = $checker->coursesForDashboard($userId, $catalog);

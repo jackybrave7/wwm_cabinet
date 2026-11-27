@@ -5,10 +5,78 @@ namespace Wwm\Auth;
 
 final class Session
 {
+    private static bool $previewResolved = false;
+
+    private static ?int $previewId = null;
     public static function userId(): ?int
     {
         $id = $_SESSION['user_id'] ?? null;
         return is_int($id) ? $id : (is_numeric($id) ? (int)$id : null);
+    }
+
+    /**
+     * Student cabinet shown to an administrator. Reads that student's courses
+     * and progress. Does not replace the administrator's login.
+     */
+    public static function startStudentPreview(int $studentId): void
+    {
+        if ($studentId <= 0) {
+            return;
+        }
+        self::reopenSession();
+        $_SESSION['student_preview_id'] = $studentId;
+        self::$previewResolved = false;
+        session_write_close();
+    }
+
+    public static function stopStudentPreview(): void
+    {
+        self::reopenSession();
+        unset($_SESSION['student_preview_id']);
+        self::$previewResolved = false;
+        self::$previewId = null;
+        session_write_close();
+    }
+
+    public static function studentPreviewId(): ?int
+    {
+        if (self::$previewResolved) {
+            return self::$previewId;
+        }
+        self::$previewResolved = true;
+        self::$previewId = null;
+
+        $raw = $_SESSION['student_preview_id'] ?? null;
+        $studentId = is_numeric($raw) ? (int)$raw : 0;
+        if ($studentId <= 0) {
+            return null;
+        }
+
+        $adminId = self::userId();
+        if ($adminId === null) {
+            return null;
+        }
+        $admin = \Wwm\Models\User::findById(wwm_pdo(), $adminId);
+        if (
+            !is_array($admin)
+            || !\Wwm\Services\AdminAccess::hasAdminPanelAccess($admin)
+            || !\Wwm\Services\AdminAccess::canManageStudents($admin)
+        ) {
+            return null;
+        }
+
+        self::$previewId = $studentId;
+
+        return $studentId;
+    }
+
+    /** Logged-in user, or the student being inspected by an administrator. */
+    public static function cabinetUserId(): int
+    {
+        $self = self::requireLogin();
+        $preview = self::studentPreviewId();
+
+        return $preview ?? $self;
     }
 
     public static function login(int $userId): void
@@ -18,11 +86,16 @@ final class Session
         }
         session_regenerate_id(true);
         $_SESSION['user_id'] = $userId;
+        unset($_SESSION['student_preview_id']);
+        self::$previewResolved = false;
+        self::$previewId = null;
         session_write_close();
     }
 
     public static function logout(): void
     {
+        self::$previewResolved = false;
+        self::$previewId = null;
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $p = session_get_cookie_params();
@@ -120,6 +193,13 @@ final class Session
         }
 
         return $userId;
+    }
+
+    private static function reopenSession(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
     }
 
     /**

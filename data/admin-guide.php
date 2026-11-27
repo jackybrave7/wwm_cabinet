@@ -20,8 +20,8 @@ declare(strict_types=1);
 return [
     'meta' => [
         'title' => 'Administrator guide',
-        'revision' => '2026-11-26',
-        'changelog' => 'An email block shows how many letters were sent, opened, and clicked.',
+        'revision' => '2026-11-28',
+        'changelog' => 'From a student card, an administrator can open that student’s cabinet without saving progress.',
     ],
     'sections' => [
         [
@@ -89,6 +89,7 @@ return [
                     'Demo and payment usually arrive from the AVO/Tilda webhook. Duplicate orders in AVO are an integration concern, not a cabinet one.',
                     'Grant access by hand only for exceptions, and check the course slug.',
                     'The email tab shows sends with open tracking when tracking is on.',
+                    'View cabinet opens that student’s courses and progress. Marking a lesson done and saving the video position stay off.',
                 ]],
                 ['type' => 'link', 'href' => '/admin/students', 'label' => 'Student list'],
             ],

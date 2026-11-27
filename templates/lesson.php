@@ -116,3 +116,40 @@ $lessonNum = (int)($lesson['num'] ?? 0);
 })();
 </script>
 <?php endif; ?>
+<?php if (!empty($cabinetReadOnly)): ?>
+<script>
+(function () {
+  var frames = document.querySelectorAll('iframe');
+  var pending = [];
+  frames.forEach(function (frame) {
+    var src = frame.getAttribute('src') || '';
+    if (!/kinescope\.io\/embed\//i.test(src)) {
+      return;
+    }
+    var holder = document.createElement('div');
+    holder.className = 'video-block-preview';
+    if (frame.parentNode) {
+      frame.parentNode.replaceChild(holder, frame);
+    }
+    pending.push({ holder: holder, src: src });
+  });
+  if (!pending.length) {
+    return;
+  }
+  var script = document.createElement('script');
+  script.src = 'https://player.kinescope.io/latest/iframe.player.js';
+  script.onload = function () {
+    if (!window.Kinescope || !Kinescope.IframePlayer) {
+      return;
+    }
+    pending.forEach(function (item) {
+      Kinescope.IframePlayer.create(item.holder, {
+        url: item.src,
+        behavior: { localStorage: { time: false } }
+      });
+    });
+  };
+  document.head.appendChild(script);
+})();
+</script>
+<?php endif; ?>
