@@ -102,10 +102,17 @@ final class EmailMessage
         $stmt->execute([gmdate('c'), $openToken]);
     }
 
-    public static function clickTarget(PDO $pdo, string $linkToken): ?string
+    /**
+     * @return array{target_url: string, link_label: string, user_id: int, to_email: string}|null
+     */
+    public static function openTrackedLink(PDO $pdo, string $linkToken): ?array
     {
         $stmt = $pdo->prepare(
-            'SELECT id, target_url FROM email_links WHERE token = ? LIMIT 1'
+            'SELECT el.id, el.target_url, el.link_label, em.user_id, em.to_email
+             FROM email_links el
+             INNER JOIN email_messages em ON em.id = el.message_id
+             WHERE el.token = ?
+             LIMIT 1'
         );
         $stmt->execute([$linkToken]);
         $row = $stmt->fetch();
@@ -113,15 +120,27 @@ final class EmailMessage
             return null;
         }
 
-        $stmt = $pdo->prepare(
+        $update = $pdo->prepare(
             "UPDATE email_links
              SET click_count = click_count + 1,
                  clicked_at = COALESCE(clicked_at, ?)
              WHERE id = ?"
         );
-        $stmt->execute([gmdate('c'), (int)$row['id']]);
+        $update->execute([gmdate('c'), (int)$row['id']]);
 
-        return (string)$row['target_url'];
+        return [
+            'target_url' => (string)$row['target_url'],
+            'link_label' => (string)($row['link_label'] ?? ''),
+            'user_id' => (int)($row['user_id'] ?? 0),
+            'to_email' => (string)($row['to_email'] ?? ''),
+        ];
+    }
+
+    public static function clickTarget(PDO $pdo, string $linkToken): ?string
+    {
+        $row = self::openTrackedLink($pdo, $linkToken);
+
+        return $row === null ? null : $row['target_url'];
     }
 
     /**

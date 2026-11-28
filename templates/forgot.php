@@ -9,18 +9,24 @@
   <?php if (!empty($message)): ?>
     <div class="alert alert-success"><?= wwm_escape($message) ?></div>
   <?php else: ?>
-    <p class="lede">Enter your email and we will send a reset link.</p>
+    <p class="lede"><?= !empty($autoSubmit) ? 'Sending a reset link…' : 'Enter your email and we will send a reset link.' ?></p>
     <p class="form-hint" style="margin-top:0;margin-bottom:16px">
       <a href="/help/recover-access">Step-by-step guide with screenshots</a> (reset link, spam folder, change password)
     </p>
-    <form method="post" action="/forgot" class="form">
+    <form method="post" action="/forgot" class="form" id="forgot-form">
       <input type="hidden" name="csrf" value="<?= wwm_escape(wwm_csrf_token()) ?>">
+      <input type="hidden" name="issue" value="<?= wwm_escape((string)($issue ?? '')) ?>">
       <label class="field">
         <span>Email</span>
-        <input type="email" name="email" required autocomplete="email" autofocus>
+        <input type="email" name="email" required autocomplete="email" value="<?= wwm_escape((string)($email ?? '')) ?>"<?= empty($email) ? ' autofocus' : '' ?>>
       </label>
       <button type="submit" class="btn btn-primary btn-block">Send link</button>
     </form>
+    <?php if (!empty($autoSubmit)): ?>
+    <script>
+      document.getElementById('forgot-form').submit();
+    </script>
+    <?php endif; ?>
   <?php endif; ?>
   <p class="form-footer">
     <a href="/help/recover-access">Recover access guide</a>

@@ -116,6 +116,14 @@ final class EmailTracker
     }
 
     /**
+     * @return array{target_url: string, link_label: string, user_id: int, to_email: string}|null
+     */
+    public static function openTrackedLink(string $linkToken): ?array
+    {
+        return EmailMessage::openTrackedLink(wwm_pdo(), $linkToken);
+    }
+
+    /**
      * Drop a password query parameter so tracked clicks never land on /login?password=...
      */
     public static function safeRedirectTarget(string $target): string

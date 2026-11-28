@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Wwm\Controllers;
 
 use Wwm\Services\EmailTracker;
+use Wwm\Services\ForgotPasswordRequest;
 
 final class EmailTrackingController
 {
@@ -34,8 +35,9 @@ final class EmailTrackingController
             return;
         }
 
-        $target = EmailTracker::clickTarget($token);
-        if ($target === null || $target === '') {
+        $link = EmailTracker::openTrackedLink($token);
+        $target = is_array($link) ? (string)$link['target_url'] : '';
+        if ($target === '') {
             http_response_code(404);
             wwm_render('error', [
                 'pageTitle' => 'Not found',
@@ -55,6 +57,11 @@ final class EmailTrackingController
             return;
         }
 
-        wwm_redirect(EmailTracker::safeRedirectTarget($target));
+        $target = EmailTracker::safeRedirectTarget($target);
+        $forgot = ForgotPasswordRequest::redirectForTrackedForgot(
+            $target,
+            (string)($link['to_email'] ?? '')
+        );
+        wwm_redirect($forgot ?? $target);
     }
 }

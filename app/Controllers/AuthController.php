@@ -6,11 +6,13 @@ namespace Wwm\Controllers;
 use Wwm\Auth\Password;
 use Wwm\Auth\Session;
 use Wwm\Models\BackgroundJob;
+use Wwm\Models\EmailMessage;
 use Wwm\Models\LoginLink;
 use Wwm\Models\PasswordReset;
 use Wwm\Models\User;
 use Wwm\Services\EmailTemplateRenderer;
 use Wwm\Services\EmailTracker;
+use Wwm\Services\ForgotPasswordRequest;
 use Wwm\Services\StudentAttribution;
 
 final class AuthController
@@ -213,11 +215,25 @@ final class AuthController
             }
         }
 
+        $email = ForgotPasswordRequest::normalizeEmail((string)($_GET['email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $email = '';
+        }
+        $issue = trim((string)($_GET['issue'] ?? ''));
+        $checked = $issue !== '' ? ForgotPasswordRequest::verify($issue) : null;
+        $autoSubmit = $checked !== null && $checked['email'] !== '' && $checked['email'] === $email;
+        if (!$autoSubmit) {
+            $issue = ForgotPasswordRequest::sign('');
+        }
+
         wwm_render('forgot', [
             'pageTitle' => 'Reset password',
             'message' => null,
             'error' => null,
             'loggedInEmail' => $loggedInEmail,
+            'email' => $email,
+            'issue' => $issue,
+            'autoSubmit' => $autoSubmit,
         ]);
     }
 
@@ -230,38 +246,79 @@ final class AuthController
 
     public function forgot(): void
     {
-        if (!wwm_verify_csrf($_POST['csrf'] ?? null)) {
+        $email = ForgotPasswordRequest::normalizeEmail((string)($_POST['email'] ?? ''));
+        $issue = ForgotPasswordRequest::verify((string)($_POST['issue'] ?? ''));
+        $csrfOk = wwm_verify_csrf(isset($_POST['csrf']) ? (string)$_POST['csrf'] : null);
+        $issueOk = $issue !== null && ($issue['email'] === '' || $issue['email'] === $email);
+        if (!$csrfOk && !$issueOk) {
             http_response_code(400);
-            wwm_render('forgot', ['pageTitle' => 'Reset password', 'message' => null, 'error' => 'Invalid request.']);
+            wwm_log('password reset rejected invalid form token');
+            wwm_render('forgot', [
+                'pageTitle' => 'Reset password',
+                'message' => null,
+                'error' => 'This page expired. Open Forgot password again and press Send link.',
+                'email' => $email,
+                'issue' => ForgotPasswordRequest::sign($email),
+                'autoSubmit' => false,
+            ]);
             return;
         }
 
-        $email = strtolower(trim((string)($_POST['email'] ?? '')));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            wwm_render('forgot', [
+                'pageTitle' => 'Reset password',
+                'message' => null,
+                'error' => 'Enter the email address you used for the course.',
+                'email' => '',
+                'issue' => ForgotPasswordRequest::sign(''),
+                'autoSubmit' => false,
+            ]);
+            return;
+        }
+
         $user = User::findByEmail(wwm_pdo(), $email);
 
         // Не раскрываем, есть ли email в базе
         if ($user !== null) {
-            $token = bin2hex(random_bytes(32));
-            PasswordReset::create(wwm_pdo(), (int)$user['id'], $token);
-            $link = wwm_base_url() . '/reset?token=' . urlencode($token);
-            $message = EmailTemplateRenderer::render('reset', [
-                'email' => (string)$user['email'],
-                'reset_link' => $link,
-            ]);
-            $sent = EmailTracker::compose((int)$user['id'], (string)$user['email'], 'reset', $message['subject'])
-                ->deliver($message['text'], $message['html'], [
-                    ['url' => $link, 'label' => 'Reset password'],
-                ]);
-            wwm_log('password reset mail to user_id=' . $user['id'] . ' sent=' . ($sent ? 'yes' : 'no'));
+            $this->sendPasswordReset($user);
         } else {
             wwm_log('password reset requested for unknown email: ' . $email);
         }
 
         wwm_render('forgot', [
             'pageTitle' => 'Reset password',
-            'message' => 'If this email is registered, we sent a reset link.',
+            'message' => 'If this email is registered, we sent a reset link. It works for 1 hour. Check Spam if it is not in your inbox.',
             'error' => null,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function sendPasswordReset(array $user): void
+    {
+        $pdo = wwm_pdo();
+        $userId = (int)$user['id'];
+        $email = (string)$user['email'];
+        if (EmailMessage::hasRecentSent($pdo, $email, 'reset', 90)) {
+            wwm_log('password reset mail skipped recent user_id=' . $userId);
+
+            return;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        PasswordReset::create($pdo, $userId, $token);
+        $link = wwm_base_url() . '/reset?token=' . urlencode($token);
+        $message = EmailTemplateRenderer::render('reset', [
+            'name' => trim((string)($user['name'] ?? '')),
+            'email' => $email,
+            'reset_link' => $link,
+        ]);
+        $sent = EmailTracker::compose($userId, $email, 'reset', $message['subject'])
+            ->deliver($message['text'], $message['html'], [
+                ['url' => $link, 'label' => 'Reset password'],
+            ]);
+        wwm_log('password reset mail to user_id=' . $userId . ' sent=' . ($sent ? 'yes' : 'no') . ($sent ? '' : ' error=' . (string)(\Wwm\Services\Mailer::lastError() ?? '')));
     }
 
     public function showReset(): void

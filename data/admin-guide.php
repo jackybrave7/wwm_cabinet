@@ -21,7 +21,7 @@ return [
     'meta' => [
         'title' => 'Administrator guide',
         'revision' => '2026-11-28',
-        'changelog' => 'From a student card, an administrator can open that student’s cabinet without saving progress.',
+        'changelog' => 'Forgot password in a course email sends the reset letter, and a failed letter shows the mail error.',
     ],
     'sections' => [
         [
@@ -88,7 +88,7 @@ return [
                 ['type' => 'ul', 'items' => [
                     'Demo and payment usually arrive from the AVO/Tilda webhook. Duplicate orders in AVO are an integration concern, not a cabinet one.',
                     'Grant access by hand only for exceptions, and check the course slug.',
-                    'The email tab shows sends with open tracking when tracking is on.',
+                    'The email tab shows sends with open tracking when tracking is on. A letter that did not go out is marked Failed, with the mail server error.',
                     'View cabinet opens that student’s courses and progress. Marking a lesson done and saving the video position stay off.',
                 ]],
                 ['type' => 'link', 'href' => '/admin/students', 'label' => 'Student list'],

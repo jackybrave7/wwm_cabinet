@@ -296,7 +296,12 @@ $emailMessages = is_array($email_messages ?? null) ? $email_messages : [];
                 <?php if (($mail['status'] ?? '') === 'sent'): ?>
                   <span class="badge badge-paid" style="margin:0">Sent</span>
                 <?php else: ?>
-                  <span class="badge badge-draft" style="margin:0">Failed</span>
+                  <div class="admin-cell-stack">
+                    <span class="badge badge-draft" style="margin:0">Failed</span>
+                    <?php if (trim((string)($mail['error_message'] ?? '')) !== ''): ?>
+                      <span class="admin-cell-muted"><?= wwm_escape((string)$mail['error_message']) ?></span>
+                    <?php endif; ?>
+                  </div>
                 <?php endif; ?>
               </td>
               <td class="col-status">

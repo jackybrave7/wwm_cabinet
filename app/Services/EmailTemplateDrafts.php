@@ -365,8 +365,25 @@ final class EmailTemplateDrafts
             ],
             'reset' => [
                 'subject' => 'Reset your WWM password',
-                'text' => "Open this link to set a new password (valid 1 hour):\n\n{{reset_link}}\n",
-                'html' => null,
+                'text' => implode("\n", [
+                    'Hello {{name}},',
+                    '',
+                    'Open this link to set a new password. It works for 1 hour:',
+                    '{{reset_link}}',
+                    '',
+                    'If you did not ask for this, you can ignore the email.',
+                    '',
+                    'World Watercolor Masters',
+                ]),
+                'html' => self::layoutDraft(
+                    'Reset your password',
+                    implode('', [
+                        self::paragraph('Hello {{name}},'),
+                        self::paragraph('Open this link to set a new password. It works for 1 hour and can be used once.'),
+                        self::button('{{reset_link}}', 'Set a new password'),
+                        self::paragraph('If you did not ask for this, you can ignore the email.'),
+                    ])
+                ),
             ],
             'login_credentials' => [
                 'subject' => 'Your new WWM sign-in details',
